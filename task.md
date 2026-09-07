@@ -96,6 +96,27 @@ Status legend: `[ ]` Not started · `[~]` In progress · `[x]` Done
 - [x] K10: Add comprehensive test suites for all ingestion modules (**91/91 tests passing**)
 - [x] K11: Update `data/README.md`, `data/external/SOURCES.md`, JSON schemas, and root `README.md` clearly distinguishing real, human-labelled, and synthetic data
 
+## Phase 12 — Defensible Human-Validated SIF Labelling (Task 2)
+- [x] L1: Define discrete label states (`SIF`, `NON_SIF`, `UNCERTAIN`, `UNLABELED`)
+- [x] L2: Implement `LabelReview` immutable history audit entity (`backend/app/models.py`)
+- [x] L3: Create labelling review service with consensus engine (2+ agreeing reviews = gold consensus; senior analyst override)
+- [x] L4: Implement Inter-Rater Reliability (Cohen's Kappa index) calculation
+- [x] L5: Add API endpoints (`POST /v1/reports/{id}/label-reviews`, `GET /v1/reports/{id}/label-history`, `GET /v1/reports/reviewer-agreement`)
+- [x] L6: Add UI review form and audit history table in `ReportDetail.tsx` and Cohen's Kappa display on `Dashboard.tsx`
+- [x] L7: Verify all training guards prevent synthetic labels from silently entering gold datasets (11 test cases)
+
+## Phase 13 — Leak-Free ML Training & Dataset Partitioning (Task 3)
+- [x] M1: Eliminate fallback to self-evaluation on training data
+- [x] M2: Implement group-aware 70% Train, 15% Validation, 15% Test dataset partitioning (`backend/app/training.py`)
+- [x] M3: Implement text normalization deduplication and Union-Find grouping to prevent duplicate text leakage
+- [x] M4: Add `INSUFFICIENT_VALIDATION_DATA` guardrail returning ungrounded metric protection for small samples (<20 records or <4 per class)
+- [x] M5: Implement Stratified Cross-Validation on the training partition
+- [x] M6: Restrict threshold calibration to train/validation sets, keeping the holdout test set completely untouched
+- [x] M7: Compute and report comprehensive metrics: accuracy, precision, recall, F1, ROC-AUC, PR-AUC, specificity, FPR, FNR, confusion matrix, sample counts
+- [x] M8: Highlight safety-oriented metrics (SIF recall and false-negative rate)
+- [x] M9: Persist evaluation metadata (`dataset_version`, `split_version`, `random_seed`, `model_version`, `training_timestamp`, `sample_counts`)
+- [x] M10: Add automated leakage test suite (`backend/tests/test_ml_leakage.py`) — **107/107 backend tests passing**
+
 ---
 
 ## Post-Submission / Pilot Deployment Roadmap

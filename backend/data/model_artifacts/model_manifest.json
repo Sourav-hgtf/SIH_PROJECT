@@ -1,5 +1,7 @@
 {
   "model_file": "sif_model.joblib",
-  "model_version": "tfidf-logreg-v1-20260907124049",
-  "sha256": "7fe468cf88cc16c36d1798d01f344fcd823bde9009277646f46d90f1cc0776e0"
+  "model_version": "tfidf-logreg-v1-20260907130323",
+  "sha256": "701188e5cf8bd923d67d6296ccb5474b75d6f98ed9a110d4557f8696145bf446",
+  "training_date": "2026-09-07T13:03:23.853804+00:00",
+  "evaluation_status": "VALIDATED"
 }

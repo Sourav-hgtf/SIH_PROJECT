@@ -3,7 +3,7 @@
 **Organization:** Oil India Limited (OIL)  
 **Theme:** Smart Automation  
 **Category:** Software  
-**Submission Status:** Certified Final Release (91 Tests Passing)  
+**Submission Status:** Certified Final Release (107 Tests Passing)  
 
 ---
 
@@ -11,12 +11,13 @@
 
 An enterprise AI/NLP decision-support platform that ingests OIL's free-text Unsafe Act / Unsafe Condition (UA/UC) observations, near-miss reports, and incident logs to:
 1. **Estimate SIF Potential**: Classifies each report for serious injury or fatality (SIF) potential using a trained and calibrated NLP classification model (fatal-potential detection, not merely injury outcome severity).
-2. **Tag Canonical Life-Saving Rules**: Deterministically maps reports to the 12 canonical **IOGP Life-Saving Rules**.
-3. **Surface Recurring Precursors**: Groups semantic precursors (activity, location, failed barriers) and ranks operating sites and activities by SIF precursor density.
-4. **Calculate Intervention Priority**: Computes a multi-factor 0–100 priority score (risk, recurrence, barrier criticality, operational exposure) to mitigate safety alert fatigue.
-5. **Recommend Corrective Actions**: Produces evidence-based, human-reviewed corrective action recommendations tied to the Hierarchy of Controls.
-6. **Enforce Human-in-the-Loop Governance**: Preserves independent HSE analyst review, override reasons, and full case resolution audit trails.
-7. **Monitor Model & Safety Effectiveness**: Tracks AI vs HSE agreement, feature drift, data sufficiency, and post-intervention safety metric changes.
+2. **Leak-Free ML Training & Evaluation**: Enforces strict 70% Train, 15% Validation, 15% Test group-aware stratified partitioning with deduplication and `INSUFFICIENT_VALIDATION_DATA` guards to eliminate train/test leakage.
+3. **Tag Canonical Life-Saving Rules**: Deterministically maps reports to the 12 canonical **IOGP Life-Saving Rules**.
+4. **Surface Recurring Precursors**: Groups semantic precursors (activity, location, failed barriers) and ranks operating sites and activities by SIF precursor density.
+5. **Calculate Intervention Priority**: Computes a multi-factor 0–100 priority score (risk, recurrence, barrier criticality, operational exposure) to mitigate safety alert fatigue.
+6. **Recommend Corrective Actions**: Produces evidence-based, human-reviewed corrective action recommendations tied to the Hierarchy of Controls.
+7. **Enforce Human-in-the-Loop Governance**: Preserves independent HSE analyst review, override reasons, consensus rater agreement (Cohen's Kappa), and full case resolution audit trails.
+8. **Monitor Model & Safety Effectiveness**: Tracks AI vs HSE agreement, feature drift, data sufficiency, and post-intervention safety metric changes.
 
 ---
 

@@ -64,6 +64,14 @@ This file tracks key architectural decisions, rationale, and context for the SIF
 **Decision:** Segregate data into `data/raw/`, `data/processed/`, `data/external/`, and `data/synthetic/`. Build modular ingestion adapters for US DOT PHMSA, Canada Energy Regulator (CER), Oil Industry Safety Directorate (OISD India), and US OSHA severe injuries. Strictly separate `data_type = "real"` from `data_type = "synthetic"`. Never invent missing values or arbitrarily fabricate ground-truth SIF labels.  
 **Rationale:** Preserves scientific and regulatory integrity by preventing synthetic data leakage into training datasets while avoiding ungrounded heuristics disguised as ground truth.
 
+### D14 — Defensible Human-Validated SIF Labelling & Multi-Rater Consensus (Task 2)
+**Decision:** Implement an immutable `LabelReview` audit entity tracking reviewer identity, label (`SIF`, `NON_SIF`, `UNCERTAIN`), reason, and timestamp. Enforce consensus rules (2+ agreeing reviews yield gold consensus; senior HSE analyst overrides resolve disputes). Compute inter-rater agreement via Cohen's Kappa index ($P_o - P_e / 1 - P_e$).  
+**Rationale:** Eliminates reliance on heuristic pseudo-labels as ground truth; ensures model training is grounded in defensible, peer-reviewed human expertise.
+
+### D15 — Leak-Free ML Dataset Partitioning & Guardrails (Task 3)
+**Decision:** Partition datasets into strictly separated 70% Train, 15% Validation, and 15% Test splits using group-aware stratified logic and text normalization deduplication (Union-Find grouping). If the sample size is inadequate (<20 records or <4 samples per class), return status `INSUFFICIENT_VALIDATION_DATA` and withhold ungrounded test metrics rather than reusing training data. Never expose the test set during threshold calibration or model selection.  
+**Rationale:** Completely eliminates data leakage, optimistic evaluation bias, and circular training/test artifacts. Ensures reported performance (accuracy, precision, recall, F1, ROC-AUC, PR-AUC, specificity, FPR, FNR) reflects true generalization.
+
 ---
 
 ## Open Questions / Transition to Pilot
