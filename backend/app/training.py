@@ -1,17 +1,35 @@
 """Machine learning training pipeline with probability calibration and versioned metadata.
 
-ML Architecture:
+ML Architecture (as actually implemented):
   Raw Text
-    ↓ Preprocessing (PII Redaction, Spell Correction, Abbreviation Expansion: prep-pii-spell-abbr-v1)
-  TF-IDF Vectorizer (ngram_range=(1,2), max_features=5000: tfidf-unigram-bigram-v1)
+    ↓ Preprocessing — PII Redaction, Spell Correction, Abbreviation Expansion
+      preprocessing_version: prep-pii-spell-abbr-v1
+  TF-IDF Vectorizer — ngram_range=(1,2), max_features=5000
+    feature_version: tfidf-unigram-bigram-v1
     ↓
-  Logistic Regression (class_weight='balanced': sif-logreg-v1-*)
+  Logistic Regression — class_weight='balanced'
+    model_version: sif-logreg-v1-<timestamp>
+    ↓  (fitted on TRAIN partition only)
+  sklearn CalibratedClassifierCV(cv='prefit', method='sigmoid')
+    calibration_version: sklearn-ccv-sigmoid-prefit-v1
+    (sigmoid calibration layer fitted on VAL partition only;
+     cv='prefit' means the base pipeline is NOT re-fitted here)
     ↓
-  Probability Calibration (CalibratedClassifierCV / Platt Sigmoid Scaling: platt-sigmoid-v1)
+  Threshold Optimization — safety-recall-prioritized grid search
+    threshold_version: thresh-opt-recall-0.85-v1
+    (computed on calibrated VAL predictions ONLY; test set never touched)
     ↓
-  Threshold Optimization (Evaluated on Validation Set only: thresh-opt-recall-0.85-v1)
-    ↓
-  Holdout Test Set Evaluation (Untouched until final metric calculation)
+  Holdout Test Set Evaluation — untouched until final metric calculation
+
+Version concepts are strictly SEPARATE and never overwrite each other:
+  model_version        — identity of the fitted LR + TF-IDF weights
+  feature_version      — TF-IDF configuration
+  preprocessing_version — PII/spell/abbreviation pipeline
+  dataset_version      — which labeled dataset was used
+  label_schema_version — SIF binary label schema
+  calibration_version  — calibration method (CalibratedClassifierCV vs uncalibrated)
+  threshold_version    — how the decision threshold was selected
+  training_run_id      — unique UUID for each training execution
 """
 
 from __future__ import annotations
@@ -249,11 +267,16 @@ def run_ml_training(
     """Train a calibrated TF-IDF + Logistic Regression model with versioned metadata.
 
     Guarantees:
-    - Preprocessing uniformity (PII redaction, spelling, abbreviation expansion) across splits.
-    - True probability calibration via CalibratedClassifierCV fitted on validation set.
-    - Threshold optimization strictly executed on validation predictions.
-    - Test set is strictly held out and evaluated only once.
-    - Distinct version strings stored for model, feature, preprocessing, calibration, threshold.
+    - Preprocessing uniformity (PII redaction, spelling, abbreviation expansion) applied
+      identically across TRAIN, VAL, TEST, and inference via app.nlp.preprocess.preprocess().
+    - True probability calibration via sklearn CalibratedClassifierCV(cv='prefit',
+      method='sigmoid') fitted ONLY on the held-out validation partition.  cv='prefit'
+      ensures the base TF-IDF + LR pipeline is never re-fitted during calibration.
+    - Threshold optimization executed ONLY on calibrated validation predictions.
+      Test set is never used for threshold selection.
+    - Test set strictly held out and evaluated only once after threshold is fixed.
+    - Each version concept (model, feature, preprocessing, calibration, threshold)
+      is independently versioned and stored in the artifact; none overwrites another.
     """
     reports = db.query(Report).all()
 

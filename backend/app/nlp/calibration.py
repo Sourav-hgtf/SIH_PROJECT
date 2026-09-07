@@ -1,9 +1,27 @@
 """Probability calibration and validation-only threshold optimization.
 
-Implements rigorous ML probability calibration:
-1. Platt scaling / Sigmoid probability calibration with calibration diagnostics.
-2. Calibration error metrics: Brier Score, Expected Calibration Error (ECE), and log loss.
-3. Threshold optimization executed strictly on validation predictions, targeting high safety recall (>=0.85) without test set contamination.
+Implements rigorous ML probability calibration using sklearn's native
+CalibratedClassifierCV (cv='prefit', method='sigmoid'):
+
+    1. Sklearn CalibratedClassifierCV (sigmoid / Platt scaling) fitted on held-out
+       validation data using cv='prefit' — the base pipeline is first trained on the
+       training partition, then the calibrator wraps it and fits the sigmoid layer
+       on the separate validation partition.  This matches the definition of
+       "calibrated logistic regression" used in this system.
+    2. Calibration error metrics: Brier Score, Expected Calibration Error (ECE),
+       and cross-entropy log loss — all measured on the validation partition before
+       they are reported.
+    3. Threshold optimization executed strictly on validation predictions, targeting
+       high safety recall (>=0.85) without test set contamination.
+
+Why CalibratedClassifierCV(cv='prefit') instead of full cross-val calibration?
+    Using cv='prefit' is correct here because we explicitly control the train /
+    validation / test partition upstream (create_leak_free_split) and hand the
+    already-fitted pipeline plus the *separate* validation partition to this
+    function.  cv='prefit' allows using a pre-fitted base estimator without
+    internal refitting, ensuring no data from the validation or test sets leaks
+    into the feature extractor (TF-IDF vocabulary) or the logistic regression
+    weights.
 """
 
 from __future__ import annotations
@@ -16,48 +34,14 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import brier_score_loss, log_loss
 
 logger = logging.getLogger(__name__)
 
-BASE_CALIBRATION_VERSION = "platt-sigmoid-v1"
+BASE_CALIBRATION_VERSION = "sklearn-ccv-sigmoid-prefit-v1"
 BASE_THRESHOLD_VERSION = "thresh-recall-prioritized-v1"
 ARTIFACT_PATH = Path(__file__).resolve().parents[2] / "data" / "model_artifacts" / "sif_calibration.json"
-
-
-class PlattCalibrator:
-    """Platt scaling probability calibrator fitted on validation logits/probabilities."""
-
-    def __init__(self, base_estimator: Any):
-        self.base_estimator = base_estimator
-        self.calibrator = LogisticRegression(C=1.0, solver="lbfgs", random_state=42)
-        self.is_fitted = False
-        self.classes_ = np.array([False, True])
-
-    def fit(self, X_val: Sequence[str], y_val: Sequence[bool]) -> PlattCalibrator:
-        if len(X_val) < 2 or len(set(y_val)) < 2:
-            self.is_fitted = False
-            return self
-
-        # Extract raw probabilities/scores from base estimator
-        raw_probs = self.base_estimator.predict_proba(X_val)[:, 1].reshape(-1, 1)
-        self.calibrator.fit(raw_probs, [1 if y else 0 for y in y_val])
-        self.is_fitted = True
-        return self
-
-    def predict_proba(self, X: Sequence[str]) -> np.ndarray:
-        raw_probs = self.base_estimator.predict_proba(X)[:, 1].reshape(-1, 1)
-        if not self.is_fitted:
-            # Fallback to uncalibrated probabilities
-            pos_p = raw_probs.ravel()
-            return np.column_stack([1.0 - pos_p, pos_p])
-
-        return self.calibrator.predict_proba(raw_probs)
-
-    def predict(self, X: Sequence[str]) -> np.ndarray:
-        probs = self.predict_proba(X)[:, 1]
-        return np.array([p >= 0.5 for p in probs])
 
 
 def compute_brier_score(y_true: Sequence[bool], y_prob: Sequence[float]) -> float | None:
@@ -125,22 +109,33 @@ def calibrate_classifier(
     y_val: Sequence[bool],
     method: str = "sigmoid",
 ) -> tuple[Any, str, dict[str, Any]]:
-    """Fits Platt scaling probability calibration on validation data and computes calibration diagnostics.
+    """Fits sklearn CalibratedClassifierCV(cv='prefit') on held-out validation data.
+
+    The base_estimator must already be fitted on the TRAINING partition.
+    CalibratedClassifierCV with cv='prefit' wraps the fitted estimator and fits
+    only the sigmoid calibration layer on X_val / y_val, never re-fitting the
+    base model weights or TF-IDF vocabulary.
 
     Returns:
-        (calibrator, calibration_version, calibration_metrics)
+        (calibrated_estimator, calibration_version, calibration_diagnostics)
+
+    calibration_version format: sklearn-ccv-{method}-prefit-v1
     """
     if len(X_val) < 4 or len(set(y_val)) < 2:
-        logger.warning("Validation set insufficient for calibration; using base estimator uncalibrated.")
+        logger.warning(
+            "Validation set insufficient for CalibratedClassifierCV (need >=4 samples, both classes present); "
+            "returning base estimator uncalibrated."
+        )
         return base_estimator, "uncalibrated-insufficient-val-v0", {
             "method": "none",
+            "calibrator": "none",
             "brier_score_before": None,
             "brier_score_after": None,
             "ece_before": None,
             "ece_after": None,
         }
 
-    # Measure uncalibrated probabilities
+    # Measure uncalibrated probabilities on validation set
     try:
         uncal_prob = base_estimator.predict_proba(X_val)[:, 1]
         brier_before = compute_brier_score(y_val, uncal_prob)
@@ -150,18 +145,26 @@ def calibrate_classifier(
         logger.warning(f"Failed to measure uncalibrated metrics: {e}")
         brier_before = ece_before = logloss_before = None
 
-    # Fit PlattCalibrator on validation partition
+    # Fit CalibratedClassifierCV(cv='prefit') on validation partition only
     try:
-        calibrator = PlattCalibrator(base_estimator=base_estimator)
-        calibrator.fit(X_val, y_val)
-        cal_prob = calibrator.predict_proba(X_val)[:, 1]
+        calibrated = CalibratedClassifierCV(
+            estimator=base_estimator,
+            method=method,       # 'sigmoid' = Platt scaling
+            cv="prefit",         # base estimator is already fitted; only the sigmoid layer is trained here
+        )
+        calibrated.fit(X_val, [1 if y else 0 for y in y_val])
+
+        cal_prob = calibrated.predict_proba(X_val)[:, 1]
         brier_after = compute_brier_score(y_val, cal_prob)
         ece_after = compute_expected_calibration_error(y_val, cal_prob)
         logloss_after = compute_log_loss(y_val, cal_prob)
-        cal_version = f"platt-{method}-v1"
+
+        cal_version = f"sklearn-ccv-{method}-prefit-v1"
 
         metrics = {
             "method": method,
+            "calibrator": "CalibratedClassifierCV",
+            "cv": "prefit",
             "brier_score_before": brier_before,
             "brier_score_after": brier_after,
             "ece_before": ece_before,
@@ -170,11 +173,27 @@ def calibrate_classifier(
             "log_loss_after": logloss_after,
             "val_samples_used": len(X_val),
         }
-        return calibrator, cal_version, metrics
+
+        improvement = (
+            round(float(brier_before - brier_after), 4)
+            if brier_before is not None and brier_after is not None
+            else None
+        )
+        metrics["brier_score_improvement"] = improvement
+
+        logger.info(
+            f"CalibratedClassifierCV(method={method}, cv='prefit') fitted on {len(X_val)} validation samples. "
+            f"Brier: {brier_before} → {brier_after}  ECE: {ece_before} → {ece_after}"
+        )
+        return calibrated, cal_version, metrics
+
     except Exception as e:
-        logger.error(f"Probability calibration fitting failed: {e}. Falling back to base model.")
+        logger.error(
+            f"CalibratedClassifierCV fitting failed: {e}. Falling back to base (uncalibrated) model."
+        )
         return base_estimator, "uncalibrated-fit-error-v0", {
             "method": "failed",
+            "calibrator": "none",
             "error": str(e),
             "brier_score_before": brier_before,
             "brier_score_after": None,
@@ -219,6 +238,8 @@ def optimize_threshold(
     """Optimizes decision threshold strictly on validation set predictions.
 
     Prioritizes safety: ensures high SIF recall (>=target_recall) while maximizing F1.
+    This function MUST only ever be called with validation-set predictions.
+    Test set predictions must never be passed here.
     """
     if len(y_val) == 0 or len(y_val_prob) == 0 or len(y_val) != len(y_val_prob):
         return fallback_threshold, "thresh-fallback-default-v1", {"threshold": fallback_threshold}

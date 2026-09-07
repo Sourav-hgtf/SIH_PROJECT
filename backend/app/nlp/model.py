@@ -1,10 +1,20 @@
 """Model loader, integrity verification, and unified prediction interface.
 
 Guarantees:
-1. Exact same preprocessing pipeline (PII redaction, spelling, abbreviation expansion) used across training and inference.
-2. Uses CalibratedClassifierCV calibrated probabilities when present.
-3. Exposes distinct version metadata (model_version, feature_version, preprocessing_version, calibration_version, threshold_version).
-4. Verifies cryptographic SHA-256 integrity on load.
+1. Exact same preprocessing pipeline (PII redaction, spelling, abbreviation expansion)
+   applied identically during training, validation, testing, and inference via
+   app.nlp.preprocess.preprocess().  The vocabulary (TF-IDF) is fitted on TRAIN only.
+2. When a trained artifact exists, uses the sklearn CalibratedClassifierCV(cv='prefit',
+   method='sigmoid') calibrated estimator stored under the 'calibrator' key.  Falls back
+   to the base pipeline only when the calibrator is absent or None.
+3. Exposes DISTINCT version metadata per concern:
+     model_version        — base LR + TF-IDF identity
+     calibration_version  — calibration method (e.g. sklearn-ccv-sigmoid-prefit-v1)
+     threshold_version    — how the operating threshold was selected
+     feature_version      — TF-IDF configuration
+     preprocessing_version — text cleaning pipeline
+   None of these fields ever overwrite each other.
+4. Verifies cryptographic SHA-256 integrity on load; refuses to serve a corrupted artifact.
 """
 
 from __future__ import annotations
