@@ -213,7 +213,7 @@ def test_invalid_label_state_rejected(client):
 def test_immutable_review_versioning(setup_db, client):
     db = setup_db
     # Analyst 1 updates their review with new notes
-    token = create_token("user-analyst-1", "analyst")
+    token = create_token("user-analyst-1", "access", 60)
     res = client.post(
         "/v1/reports/rep-label-001/label-review",
         headers={"Authorization": f"Bearer {token}"},
@@ -245,7 +245,7 @@ def test_immutable_review_versioning(setup_db, client):
 
 def test_two_agreeing_reviewers_produce_gold_validated_label(client):
     # Reviewer 2 (independent analyst) also marks SIF
-    token = create_token("user-analyst-2", "analyst")
+    token = create_token("user-analyst-2", "access", 60)
     res = client.post(
         "/v1/reports/rep-label-001/label-review",
         headers={"Authorization": f"Bearer {token}"},
@@ -288,7 +288,7 @@ def test_disagreement_and_senior_adjudication(setup_db, client):
     db.commit()
 
     # Reviewer 1 (analyst 1) says SIF
-    token1 = create_token("user-analyst-1", "analyst")
+    token1 = create_token("user-analyst-1", "access", 60)
     client.post(
         "/v1/reports/rep-label-002/label-review",
         headers={"Authorization": f"Bearer {token1}"},
@@ -296,7 +296,7 @@ def test_disagreement_and_senior_adjudication(setup_db, client):
     )
 
     # Reviewer 2 (analyst 2) says NON_SIF
-    token2 = create_token("user-analyst-2", "analyst")
+    token2 = create_token("user-analyst-2", "access", 60)
     res2 = client.post(
         "/v1/reports/rep-label-002/label-review",
         headers={"Authorization": f"Bearer {token2}"},
@@ -309,7 +309,7 @@ def test_disagreement_and_senior_adjudication(setup_db, client):
     assert data2["label_source"] == "DISAGREEMENT"
 
     # Senior HSE adjudicates the disagreement
-    senior_token = create_token("user-senior-hse", "admin")
+    senior_token = create_token("user-senior-hse", "access", 60)
     res_senior = client.post(
         "/v1/reports/rep-label-002/label-review",
         headers={"Authorization": f"Bearer {senior_token}"},
@@ -346,7 +346,7 @@ def test_cohens_kappa_calculation():
 
 
 def test_reviewer_agreement_endpoint(client):
-    token = create_token("user-analyst-1", "analyst")
+    token = create_token("user-analyst-1", "access", 60)
     res = client.get("/v1/reports/reviewer-agreement", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
     data = res.json()
@@ -412,7 +412,7 @@ def test_training_rejects_unvalidated_or_synthetic_data(setup_db):
 
     # In production mode (force_demo_fallback=False), training MUST raise ValueError
     # to protect production ML models from unvalidated synthetic data contamination
-    with pytest.raises(ValueError, match="Zero human-validated SIF labels found in database"):
+    with pytest.raises(ValueError, match="No validated human-labelled records found for production training."):
         run_ml_training(empty_db, force_demo_fallback=False)
 
     empty_db.close()

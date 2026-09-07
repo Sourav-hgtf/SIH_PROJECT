@@ -11,6 +11,7 @@ import {
   type ModelDriftOut,
   type ModelHealthOut,
   type PrioritySummaryRow,
+  type ReviewerAgreementSummaryOut,
 } from "../api";
 import { PriorityBadge } from "../components/Badges";
 
@@ -30,6 +31,7 @@ export function DashboardPage() {
   const [groupBy, setGroupBy] = useState<"site" | "department" | "activity">("site");
   const [lsr, setLsr] = useState<Array<{ lsr_category: string; count: number }>>([]);
   const [trend, setTrend] = useState<Array<{ period: string; sif_count: number; total_count: number; sif_rate: number }>>([]);
+  const [humanAgreement, setHumanAgreement] = useState<ReviewerAgreementSummaryOut | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,8 +48,9 @@ export function DashboardPage() {
       api.lsr(),
       api.trend(),
       api.recommendedFocusAreas(),
+      api.reviewerAgreement(),
     ])
-      .then(([k, lk, ag, mh, ea, md, ie, p, d, l, t, f]) => {
+      .then(([k, lk, ag, mh, ea, md, ie, p, d, l, t, f, ra]) => {
         setKpis(k);
         setLifecycleKpis(lk);
         setAgreement(ag);
@@ -65,6 +68,7 @@ export function DashboardPage() {
             sif_rate: row.total_count ? Math.round((row.sif_count / row.total_count) * 100) : 0,
           })),
         );
+        setHumanAgreement(ra);
       })
       .catch((e) => setError(String(e.message)));
   }, [groupBy]);
@@ -257,7 +261,7 @@ export function DashboardPage() {
             {/* Cohen's Kappa Card */}
             <div className="rounded-lg bg-slate-50 border border-border/80 p-4 flex flex-col justify-between">
               <div>
-                <div className="text-xs font-semibold text-ink">Cohen's Kappa Index</div>
+                <div className="text-xs font-semibold text-ink">AI-to-Human Kappa Index</div>
                 <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">{modelHealth.cohen_kappa}</div>
                 <div className="mt-1 text-[11px] text-warm">
                   {modelHealth.cohen_kappa >= 0.8
@@ -276,6 +280,37 @@ export function DashboardPage() {
                 <strong className="text-ink">{modelHealth.agreement_rate}%</strong>
               </div>
             </div>
+
+            {/* Human Inter-Rater Reliability Card */}
+            {humanAgreement && (
+              <div className="rounded-lg bg-slate-50 border border-border/80 p-4 flex flex-col justify-between">
+                <div>
+                  <div className="text-xs font-semibold text-ink">Human Inter-Rater Kappa</div>
+                  <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">{humanAgreement.cohens_kappa}</div>
+                  <div className="mt-1 text-[11px] text-warm">
+                    {humanAgreement.cohens_kappa >= 0.8
+                      ? "Almost Perfect Agreement"
+                      : humanAgreement.cohens_kappa >= 0.6
+                      ? "Substantial Agreement"
+                      : humanAgreement.cohens_kappa >= 0.4
+                      ? "Moderate Agreement"
+                      : humanAgreement.cohens_kappa >= 0.2
+                      ? "Fair Agreement"
+                      : "Slight / Poor Agreement"}
+                  </div>
+                </div>
+                <div className="mt-3 border-t border-border/60 pt-2 text-[11px] text-warm flex flex-col gap-1">
+                  <div className="flex justify-between">
+                    <span>Agreement Rate:</span>
+                    <strong className="text-ink">{Math.round(humanAgreement.observed_agreement * 100)}%</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Pairs Reviewed:</span>
+                    <strong className="text-ink">{humanAgreement.total_comparison_pairs}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Error Rates */}
             <div className="rounded-lg bg-slate-50 border border-border/80 p-4 space-y-3">

@@ -277,6 +277,7 @@ def get_report_label_history(db: Session, report_id: str) -> dict[str, Any]:
         labels.append(r.label)
         history.append({
             "id": r.id,
+            "report_id": r.report_id,
             "reviewer_id": r.reviewer_id,
             "reviewer_username": r.reviewer.username if r.reviewer else "Unknown",
             "reviewer_role": r.reviewer_role,
