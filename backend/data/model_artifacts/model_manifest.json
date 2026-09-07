@@ -1,5 +1,5 @@
 {
   "model_file": "sif_model.joblib",
-  "model_version": "tfidf-logreg-v1-20260907115700",
-  "sha256": "04c4e8b8bef713efbc87c9905d43360292923ad7213aa3b98ee70119d45dc258"
+  "model_version": "tfidf-logreg-v1-20260907121756",
+  "sha256": "f2c2d58455f6e72c9e4ba7ad990e807386dce5e066be5083331d283631158b2d"
 }
