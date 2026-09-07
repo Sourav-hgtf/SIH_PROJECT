@@ -1,0 +1,550 @@
+openapi: 3.0.3
+info:
+  title: OIL SIF Precursor Detection API
+  description: >
+    API for ingesting safety reports, retrieving SIF classifications and
+    Life-Saving Rule tags, exploring precursor clusters, and capturing
+    analyst feedback.
+  version: 0.1.0
+
+servers:
+  - url: https://api.internal.oil-sif.example/v1
+    description: Prototype/pilot environment
+
+tags:
+  - name: Auth
+  - name: Reports
+  - name: Classification
+  - name: Tags
+  - name: Clusters
+  - name: Dashboard
+  - name: Feedback
+  - name: Admin
+
+paths:
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and obtain access/refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  role: { type: string, enum: [analyst, site_manager, leadership, admin] }
+        '401':
+          description: Invalid credentials
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: List reports (filtered)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: site_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: sif_label
+          in: query
+          schema: { type: boolean }
+        - name: min_confidence
+          in: query
+          schema: { type: number, format: float }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 25 }
+      responses:
+        '200':
+          description: Paginated list of reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  page: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReportSummary' }
+
+    post:
+      tags: [Reports]
+      summary: Ingest a new report (used by ingestion service)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportCreate' }
+      responses:
+        '201':
+          description: Report ingested and queued for processing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportSummary' }
+
+  /reports/{report_id}:
+    get:
+      tags: [Reports]
+      summary: Get full report detail, including classification and tags
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Report detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportDetail' }
+        '404':
+          description: Report not found
+
+  /reports/{report_id}/classification:
+    get:
+      tags: [Classification]
+      summary: Get SIF classification result for a report
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SifClassification' }
+
+  /reports/{report_id}/tags:
+    get:
+      tags: [Tags]
+      summary: Get Life-Saving Rule tags for a report
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of LSR tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LsrTag' }
+
+  /clusters:
+    get:
+      tags: [Clusters]
+      summary: List precursor clusters (ranked by size/trend)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: site_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: sort_by
+          in: query
+          schema: { type: string, enum: [size, trend, recent], default: size }
+      responses:
+        '200':
+          description: List of clusters
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PrecursorCluster' }
+
+  /clusters/{cluster_id}:
+    get:
+      tags: [Clusters]
+      summary: Get cluster detail including member reports
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: cluster_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Cluster detail with member reports
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrecursorClusterDetail' }
+
+  /dashboard/sif-density:
+    get:
+      tags: [Dashboard]
+      summary: SIF-precursor density ranking by site/activity
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: group_by
+          in: query
+          schema: { type: string, enum: [site, department, activity], default: site }
+      responses:
+        '200':
+          description: Ranked density data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    group_label: { type: string }
+                    sif_count: { type: integer }
+                    total_count: { type: integer }
+                    sif_rate: { type: number, format: float }
+
+  /dashboard/lsr-distribution:
+    get:
+      tags: [Dashboard]
+      summary: Distribution of Life-Saving Rule tags
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: site_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: LSR frequency breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    lsr_category: { type: string }
+                    count: { type: integer }
+
+  /dashboard/trend:
+    get:
+      tags: [Dashboard]
+      summary: SIF-potential rate vs total report volume over time
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: site_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: interval
+          in: query
+          schema: { type: string, enum: [day, week, month], default: week }
+      responses:
+        '200':
+          description: Time series data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    period: { type: string, format: date }
+                    sif_count: { type: integer }
+                    total_count: { type: integer }
+
+  /feedback:
+    post:
+      tags: [Feedback]
+      summary: Submit analyst feedback (confirm/override) on a classification or tag
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedbackCreate' }
+      responses:
+        '201':
+          description: Feedback recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackRecord' }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users (Admin only)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/User' }
+    post:
+      tags: [Admin]
+      summary: Create a new user (Admin only)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserCreate' }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /admin/audit-log:
+    get:
+      tags: [Admin]
+      summary: Query audit log (Admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: user_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: action_type
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditLogEntry' }
+
+  /admin/training-runs:
+    get:
+      tags: [Admin]
+      summary: List feedback-driven model calibration runs (Admin only)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Calibration run history
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ModelTrainingRun' }
+    post:
+      tags: [Admin]
+      summary: Run feedback-driven SIF threshold calibration (Admin only)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Calibration artifact created and deployed for future ingestion
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelTrainingRun' }
+        '400':
+          description: No analyst SIF feedback is available
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ReportSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        report_type: { type: string, enum: [ua_uc, near_miss, incident] }
+        site_id: { type: string, format: uuid }
+        reported_at: { type: string, format: date-time }
+        sif_label: { type: boolean }
+        sif_probability: { type: number, format: float }
+
+    ReportCreate:
+      type: object
+      required: [source_report_id, report_type, site_id, raw_text, reported_at]
+      properties:
+        source_report_id: { type: string }
+        report_type: { type: string, enum: [ua_uc, near_miss, incident] }
+        site_id: { type: string, format: uuid }
+        department: { type: string }
+        shift: { type: string }
+        equipment_type: { type: string }
+        job_type: { type: string }
+        raw_text: { type: string, description: "Raw text; redacted server-side before storage" }
+        reported_at: { type: string, format: date-time }
+
+    ReportDetail:
+      allOf:
+        - $ref: '#/components/schemas/ReportSummary'
+        - type: object
+          properties:
+            raw_text_redacted: { type: string }
+            department: { type: string }
+            shift: { type: string }
+            equipment_type: { type: string }
+            job_type: { type: string }
+            lsr_tags:
+              type: array
+              items: { $ref: '#/components/schemas/LsrTag' }
+            contributing_phrases:
+              type: array
+              items:
+                type: object
+                properties:
+                  phrase: { type: string }
+                  weight: { type: number, format: float }
+
+    SifClassification:
+      type: object
+      properties:
+        report_id: { type: string, format: uuid }
+        sif_probability: { type: number, format: float }
+        sif_label: { type: boolean }
+        model_version: { type: string }
+        contributing_phrases:
+          type: array
+          items:
+            type: object
+            properties:
+              phrase: { type: string }
+              weight: { type: number, format: float }
+        classified_at: { type: string, format: date-time }
+
+    LsrTag:
+      type: object
+      properties:
+        lsr_category: { type: string }
+        confidence: { type: number, format: float }
+        source: { type: string, enum: [rule, model] }
+
+    PrecursorCluster:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        representative_activity: { type: string }
+        representative_location: { type: string }
+        representative_barrier_failure: { type: string }
+        cluster_size: { type: integer }
+        trend_status: { type: string, enum: [growing, stable, shrinking] }
+
+    PrecursorClusterDetail:
+      allOf:
+        - $ref: '#/components/schemas/PrecursorCluster'
+        - type: object
+          properties:
+            member_reports:
+              type: array
+              items: { $ref: '#/components/schemas/ReportSummary' }
+
+    FeedbackCreate:
+      type: object
+      required: [report_id, feedback_type]
+      properties:
+        report_id: { type: string, format: uuid }
+        feedback_type: { type: string, enum: [confirm_sif, override_sif, adjust_lsr] }
+        new_value: { type: object }
+        comment: { type: string, description: "Required when feedback_type is an override" }
+
+    FeedbackRecord:
+      allOf:
+        - $ref: '#/components/schemas/FeedbackCreate'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            user_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        role: { type: string, enum: [analyst, site_manager, leadership, admin] }
+        site_scope:
+          type: array
+          items: { type: string, format: uuid }
+        is_active: { type: boolean }
+
+    UserCreate:
+      type: object
+      required: [username, password, role]
+      properties:
+        username: { type: string }
+        password: { type: string, format: password }
+        role: { type: string, enum: [analyst, site_manager, leadership, admin] }
+        site_scope:
+          type: array
+          items: { type: string, format: uuid }
+        email: { type: string, format: email }
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        action_type: { type: string }
+        entity_type: { type: string }
+        entity_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+
+    ModelTrainingRun:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        model_version: { type: string }
+        feedback_count: { type: integer }
+        metrics_before: { type: object }
+        metrics_after: { type: object }
+        created_at: { type: string, format: date-time }

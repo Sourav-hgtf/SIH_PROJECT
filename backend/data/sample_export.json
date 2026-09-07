@@ -1,0 +1,13 @@
+[
+  {
+    "source_report_id": "HSSE-DEMO-1",
+    "report_type": "near_miss",
+    "site_name": "Duliajan GCS",
+    "department": "Well Services",
+    "shift": "Day",
+    "equipment_type": "Wellhead",
+    "job_type": "Well intervention",
+    "reported_at": "2026-08-12T09:30:00Z",
+    "raw_text": "Near miss: PTW missing at wellhead. LOTO not applied. Crew in line of fire of residual pressure. EMP-99011 Rahul Mehta on site."
+  }
+]
