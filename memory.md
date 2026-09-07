@@ -6,7 +6,7 @@ This file tracks key architectural decisions, rationale, and context for the SIF
 - **Project:** AI/NLP Engine for SIF Precursor Detection
 - **Organization:** Oil India Limited (OIL)
 - **Theme:** Smart Automation | **Category:** Software
-- **Status:** Final Submission Certified (72 Tests Passing)
+- **Status:** Final Submission Certified (91 Tests Passing)
 
 ---
 
@@ -60,6 +60,10 @@ This file tracks key architectural decisions, rationale, and context for the SIF
 **Decision:** Explicitly emit `INSUFFICIENT_DATA` when sample counts are inadequate for reliable statistical or clustering metrics.  
 **Rationale:** Avoids fabricating impressive or misleading metrics (such as claiming 0% drift or 100% accuracy on empty samples).
 
+### D13 — Multi-Tier Data Separation & Public Dataset Adapters (Task 1)
+**Decision:** Segregate data into `data/raw/`, `data/processed/`, `data/external/`, and `data/synthetic/`. Build modular ingestion adapters for US DOT PHMSA, Canada Energy Regulator (CER), Oil Industry Safety Directorate (OISD India), and US OSHA severe injuries. Strictly separate `data_type = "real"` from `data_type = "synthetic"`. Never invent missing values or arbitrarily fabricate ground-truth SIF labels.  
+**Rationale:** Preserves scientific and regulatory integrity by preventing synthetic data leakage into training datasets while avoiding ungrounded heuristics disguised as ground truth.
+
 ---
 
 ## Open Questions / Transition to Pilot
@@ -89,3 +93,4 @@ This file tracks key architectural decisions, rationale, and context for the SIF
 - **Lifecycle & Governance**: Analyst review workflow, override tracking, hierarchy-of-controls recommendations, and audit trail.
 - **Monitoring & Safety Effectiveness**: AI vs HSE agreement metrics, feature drift tracking, pre/post intervention rate comparison, and SHA-256 model verification.
 - **Final Submission Audit**: Full repository verification, removal of ungrounded hype claims, activity SIF density fix, emoji removal, complete 72-test passing suite, and `FINAL_RELEASE_AUDIT.md` certification.
+- **Task 1 (Real Public HSE Ingestion Pipeline)**: Created 4-tier data directory, canonical incident normalizer (`NormalizedIncident`), dataset-specific adapters (`phmsa.py`, `cer.py`, `oisd.py`, `osha.py`, `synthetic.py`), data quality auditing engine, CLI tool, and 19 new tests (91/91 passing).

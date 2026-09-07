@@ -83,6 +83,19 @@ Status legend: `[ ]` Not started · `[~]` In progress · `[x]` Done
 - [x] J5: Comprehensive audit document created (`docs/FINAL_RELEASE_AUDIT.md`)
 - [x] J6: Clean git repository initialized and committed: `chore: finalize SIH submission release`
 
+## Phase 11 — Real Public HSE Incident Ingestion Pipeline (Task 1)
+- [x] K1: Create separated 4-tier data directory (`data/raw/`, `data/processed/`, `data/external/`, `data/synthetic/`)
+- [x] K2: Build canonical incident normalizer (`backend/ingestion/normalizer.py`) with full provenance and schema compliance
+- [x] K3: Implement PHMSA pipeline accident adapter (`backend/ingestion/phmsa.py`)
+- [x] K4: Implement Canada Energy Regulator (CER) pipeline incident adapter (`backend/ingestion/cer.py`)
+- [x] K5: Implement Oil Industry Safety Directorate (OISD India) case study & safety alert adapter (`backend/ingestion/oisd.py`)
+- [x] K6: Implement OSHA severe injury adapter (`backend/ingestion/osha.py`) with Oil & Gas NAICS filtering
+- [x] K7: Implement synthetic demo data adapter (`backend/ingestion/synthetic.py`) enforcing `data_type = "synthetic"`
+- [x] K8: Build Data Quality Audit reporting engine (`compute_data_quality_report`) tracking validity, duplicates, missing fields, and label availability
+- [x] K9: Create CLI ingestion tool (`backend/scripts/ingest_public_data.py`)
+- [x] K10: Add comprehensive test suites for all ingestion modules (**91/91 tests passing**)
+- [x] K11: Update `data/README.md`, `data/external/SOURCES.md`, JSON schemas, and root `README.md` clearly distinguishing real, human-labelled, and synthetic data
+
 ---
 
 ## Post-Submission / Pilot Deployment Roadmap

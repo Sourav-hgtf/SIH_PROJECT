@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OSHASevereInjurySchema",
+  "type": "object",
+  "required": ["ID", "Final Narrative"],
+  "properties": {
+    "ID": { "type": ["string", "integer"] },
+    "Incident Date": { "type": ["string", "null"] },
+    "Employer": { "type": ["string", "null"] },
+    "City": { "type": ["string", "null"] },
+    "State": { "type": ["string", "null"] },
+    "NAICS": { "type": ["string", "integer", "null"] },
+    "Hospitalized": { "type": ["integer", "string", "null"] },
+    "Amputation": { "type": ["integer", "string", "null"] },
+    "EventTitle": { "type": ["string", "null"] },
+    "SourceTitle": { "type": ["string", "null"] },
+    "NatureTitle": { "type": ["string", "null"] },
+    "PartTitle": { "type": ["string", "null"] },
+    "Final Narrative": { "type": "string" }
+  }
+}

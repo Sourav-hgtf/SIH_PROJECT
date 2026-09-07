@@ -3,7 +3,7 @@
 **Organization:** Oil India Limited (OIL)  
 **Theme:** Smart Automation  
 **Category:** Software  
-**Submission Status:** Certified Final Release (72 Tests Passing)  
+**Submission Status:** Certified Final Release (91 Tests Passing)  
 
 ---
 
@@ -18,7 +18,31 @@ An enterprise AI/NLP decision-support platform that ingests OIL's free-text Unsa
 6. **Enforce Human-in-the-Loop Governance**: Preserves independent HSE analyst review, override reasons, and full case resolution audit trails.
 7. **Monitor Model & Safety Effectiveness**: Tracks AI vs HSE agreement, feature drift, data sufficiency, and post-intervention safety metric changes.
 
-> **Demonstration Data Disclosure**: Data provided in this demonstration environment is **synthetic data** structured to simulate upstream oil & gas operations (drilling, lifting, electrical work, confined space). The system is a decision-support tool for HSE teams and does not make autonomous safety determinations.
+---
+
+## 2. Multi-Tier Data Architecture: Real Public Data vs. Synthetic Demo Data
+
+The platform implements a multi-tier data architecture ([data/README.md](data/README.md)) that strictly isolates real public safety incident datasets from synthetic demonstration scenarios:
+
+### A. Real Public Safety Incident Data (`data_type = "real"`)
+- **US DOT PHMSA**: Hazardous liquid and gas transmission pipeline accident records (corrosion, valve failures, overpressure, fire/explosion).
+- **Canada Energy Regulator (CER)**: Open pipeline incident datasets with verified regulatory significance flags, releases, and root causes.
+- **Oil Industry Safety Directorate (OISD India)**: Official safety case studies and alerts covering upstream exploration & production (e.g., Oil India Limited, ONGC) and refining operations across India.
+- **US OSHA**: Severe injury reports filtered specifically for Oil & Gas extraction, drilling (NAICS 211/213), refining (NAICS 324), and pipeline transport (NAICS 486).
+- **Integrity Rule**: Real public data SIF labels are **never heuristically fabricated**. Documented fatalities, amputations, and hospitalizations reflect factual recorded outcomes; unclassified reports remain `sif_potential = None`.
+
+### B. Human-in-the-Loop Gold Standard Data
+- Analyst triage reviews and justifications recorded via the platform UI (`ReportReview` / `AnalystFeedback`), serving as the gold standard for active-learning calibration.
+
+### C. Synthetic Demonstration Data (`data_type = "synthetic"`)
+- Maintained strictly for offline demonstration, cold-start fallback, and end-to-end UI verification (`data/synthetic/synthetic_demo_reports.json`). All simulated records are explicitly labeled `data_type = "synthetic"` with `SYN-` prefixes.
+
+### Multi-Source Ingestion & Data Quality Auditing
+Run the ingestion and audit pipeline across all real and synthetic datasets:
+```bash
+python3 backend/scripts/ingest_public_data.py --source all
+```
+Generates an auditable Data Quality Report ([data/processed/data_quality_report.json](data/processed/data_quality_report.json)) verifying record validity, duplicates, missing fields, source distribution, and label availability.
 
 ---
 

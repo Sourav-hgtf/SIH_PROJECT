@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CERPipelineIncidentSchema",
+  "type": "object",
+  "required": ["Incident Number", "What happened narrative"],
+  "properties": {
+    "Incident Number": { "type": "string" },
+    "Incident Date": { "type": ["string", "null"] },
+    "Company": { "type": ["string", "null"] },
+    "Pipeline Name": { "type": ["string", "null"] },
+    "Province": { "type": ["string", "null"] },
+    "Substance": { "type": ["string", "null"] },
+    "Activity at time of incident": { "type": ["string", "null"] },
+    "What happened narrative": { "type": "string" },
+    "Primary Cause": { "type": ["string", "null"] },
+    "Adverse Effects": { "type": ["string", "null"] },
+    "Significant": { "type": ["string", "null"] },
+    "Fatalities": { "type": ["integer", "string", "null"] },
+    "Serious Injuries": { "type": ["integer", "string", "null"] }
+  }
+}

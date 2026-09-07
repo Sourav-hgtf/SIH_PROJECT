@@ -1,0 +1,40 @@
+{
+  "total_records": 101,
+  "valid_records": 101,
+  "rejected_records": 0,
+  "missing_descriptions": 0,
+  "missing_dates": 0,
+  "duplicate_records": 0,
+  "source_distribution": {
+    "PHMSA": 8,
+    "CER": 7,
+    "OISD": 6,
+    "OSHA": 8,
+    "SYNTHETIC": 72
+  },
+  "label_availability": {
+    "sif_labeled_true": 19,
+    "sif_labeled_false": 10,
+    "sif_unlabeled": 72,
+    "fatalities_recorded": 2,
+    "injuries_recorded": 15,
+    "lsr_mapped": 25
+  },
+  "data_type_distribution": {
+    "real": 29,
+    "synthetic": 72
+  },
+  "completeness_percentages": {
+    "report_id": 100.0,
+    "incident_description": 100.0,
+    "date": 100.0,
+    "site": 100.0,
+    "sector": 100.0,
+    "activity": 100.0,
+    "hazard": 100.0,
+    "barrier_failure": 28.7,
+    "consequence": 100.0
+  },
+  "rejection_reasons": {},
+  "data_quality_score": 100.0
+}
