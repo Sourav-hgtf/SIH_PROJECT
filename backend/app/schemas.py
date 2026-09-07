@@ -82,6 +82,58 @@ class ReportSummary(BaseModel):
     lsr_tags: list[LsrTagOut] = Field(default_factory=list)
     excerpt: str | None = None
     priority: PriorityOut | None = None
+    predicted_sif: bool | None = None
+    human_label: str = "UNLABELED"
+    validated_label: str | None = None
+    label_source: str = "UNLABELED"
+    validation_status: str = "UNLABELED"
+    data_type: str = "synthetic"
+
+
+class LabelReviewIn(BaseModel):
+    label: str  # "SIF", "NON_SIF", "UNCERTAIN"
+    reason: str
+    notes: str | None = None
+
+
+class LabelReviewOut(BaseModel):
+    id: str
+    report_id: str
+    reviewer_id: str
+    reviewer_username: str | None = None
+    reviewer_role: str | None = None
+    label: str
+    reason: str
+    notes: str | None = None
+    review_version: int
+    created_at: datetime
+
+
+class ReportLabelHistoryOut(BaseModel):
+    report_id: str
+    predicted_sif: bool | None = None
+    human_label: str
+    validated_label: str | None = None
+    label_source: str
+    validation_status: str
+    total_reviews: int
+    unique_reviewers_count: int
+    distinct_labels: list[str] = Field(default_factory=list)
+    is_consensus_validated: bool
+    has_disagreement: bool
+    reviews: list[LabelReviewOut] = Field(default_factory=list)
+
+
+class ReviewerAgreementSummaryOut(BaseModel):
+    multi_reviewed_reports: int
+    total_comparison_pairs: int
+    consensus_agreements: int
+    disagreements: int
+    cohens_kappa: float
+    observed_agreement: float
+    expected_agreement: float
+    sample_size: int
+    interpretation: str
 
 
 class ReportReviewOut(BaseModel):
@@ -116,6 +168,7 @@ class ReportDetail(ReportSummary):
     features: dict[str, Any] = Field(default_factory=dict)
     feedback_history: list[dict[str, Any]] = Field(default_factory=list)
     review: ReportReviewOut | None = None
+    label_reviews: list[LabelReviewOut] = Field(default_factory=list)
     precursor_triples: list[dict[str, Any]] = Field(default_factory=list)
 
 

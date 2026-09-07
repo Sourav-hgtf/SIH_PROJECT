@@ -57,6 +57,11 @@ class Report(Base):
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     vector_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     lifecycle_status: Mapped[str] = mapped_column(String(50), default="AI_ANALYZED")
+    data_type: Mapped[str] = mapped_column(String(20), default="synthetic")
+    human_label: Mapped[str] = mapped_column(String(20), default="UNLABELED")  # SIF, NON_SIF, UNCERTAIN, UNLABELED
+    validated_label: Mapped[str | None] = mapped_column(String(20), nullable=True)  # SIF, NON_SIF, UNCERTAIN, None
+    label_source: Mapped[str] = mapped_column(String(50), default="UNLABELED")  # UNLABELED, HEURISTIC_PREDICTION, HUMAN_REVIEW, CONSENSUS_VALIDATED, SENIOR_HSE_OVERRIDE
+    validation_status: Mapped[str] = mapped_column(String(50), default="UNLABELED")  # UNLABELED, PENDING_CONSENSUS, DISAGREEMENT, VALIDATED
     final_sif_label: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     final_priority: Mapped[str | None] = mapped_column(String(20), nullable=True)
     resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -70,6 +75,12 @@ class Report(Base):
     recommendations = relationship("Recommendation", back_populates="report")
     reviews = relationship("ReportReview", back_populates="report", cascade="all, delete-orphan")
     precursor_feedback = relationship("PrecursorFeedback", back_populates="report", cascade="all, delete-orphan")
+    label_reviews = relationship("LabelReview", back_populates="report", cascade="all, delete-orphan", order_by="LabelReview.created_at.desc()")
+
+    @property
+    def predicted_sif(self) -> bool | None:
+        """Heuristic or ML model predicted SIF potential (separate from human-validated label)."""
+        return self.classification.sif_label if self.classification else None
 
 
 class SifClassification(Base):
@@ -284,4 +295,28 @@ class PrecursorFeedback(Base):
 
     report = relationship("Report", back_populates="precursor_feedback")
     user = relationship("User")
+
+
+class LabelReview(Base):
+    """Immutable human-in-the-loop review record for SIF potential determination.
+
+    Supports multiple independent reviewers per incident, disagreement tracking,
+    and consensus validation without ever overwriting historical reviews.
+    """
+
+    __tablename__ = "label_reviews"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"), nullable=False)
+    reviewer_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    label: Mapped[str] = mapped_column(String(20), nullable=False)  # SIF, NON_SIF, UNCERTAIN
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    review_version: Mapped[int] = mapped_column(Integer, default=1)
+    reviewer_role: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    report = relationship("Report", back_populates="label_reviews")
+    reviewer = relationship("User")
+
 

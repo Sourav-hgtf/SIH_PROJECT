@@ -119,6 +119,48 @@ export type AgreementAnalyticsOut = {
   monthly_trend: Array<{ month: string; confirmed: number; overridden: number; agreement_rate: number }>;
 };
 
+export type LabelState = "SIF" | "NON_SIF" | "UNCERTAIN" | "UNLABELED";
+
+export type LabelReviewOut = {
+  id: string;
+  report_id: string;
+  reviewer_id: string;
+  reviewer_username?: string | null;
+  reviewer_role?: string | null;
+  label: LabelState;
+  reason: string;
+  notes?: string | null;
+  review_version: number;
+  created_at: string;
+};
+
+export type ReportLabelHistoryOut = {
+  report_id: string;
+  predicted_sif?: boolean | null;
+  human_label: string;
+  validated_label?: string | null;
+  label_source: string;
+  validation_status: string;
+  total_reviews: number;
+  unique_reviewers_count: number;
+  distinct_labels: string[];
+  is_consensus_validated: boolean;
+  has_disagreement: boolean;
+  reviews: LabelReviewOut[];
+};
+
+export type ReviewerAgreementSummaryOut = {
+  multi_reviewed_reports: number;
+  total_comparison_pairs: number;
+  consensus_agreements: number;
+  disagreements: number;
+  cohens_kappa: number;
+  observed_agreement: number;
+  expected_agreement: number;
+  sample_size: number;
+  interpretation: string;
+};
+
 export type Phrase = { phrase: string; weight: number };
 
 export type ReportSummary = {
@@ -139,6 +181,12 @@ export type ReportSummary = {
   resolution_notes?: string | null;
   resolved_at?: string | null;
   review?: ReportReviewOut | null;
+  predicted_sif?: boolean | null;
+  human_label?: string;
+  validated_label?: string | null;
+  label_source?: string;
+  validation_status?: string;
+  data_type?: string;
 };
 
 export type ReportDetail = ReportSummary & {
@@ -152,6 +200,7 @@ export type ReportDetail = ReportSummary & {
   cluster_id?: string | null;
   features: Record<string, unknown>;
   feedback_history: Array<Record<string, unknown>>;
+  label_reviews: LabelReviewOut[];
 };
 
 export type Cluster = {
@@ -511,5 +560,13 @@ export const api = {
   errorAnalysis: () => request<ErrorAnalysisOut>("/v1/dashboard/error-analysis"),
   modelDrift: () => request<ModelDriftOut>("/v1/dashboard/model-drift"),
   interventionEffectiveness: () => request<InterventionEffectivenessOut>("/v1/dashboard/intervention-effectiveness"),
+
+  // Task 2: Human-in-the-Loop SIF Labelling Workflow
+  submitLabelReview: (reportId: string, body: { label: "SIF" | "NON_SIF" | "UNCERTAIN"; reason: string; notes?: string }) =>
+    request<ReportDetail>(`/v1/reports/${reportId}/label-review`, { method: "POST", body: JSON.stringify(body) }),
+  reportLabelHistory: (reportId: string) =>
+    request<ReportLabelHistoryOut>(`/v1/reports/${reportId}/label-history`),
+  reviewerAgreement: () =>
+    request<ReviewerAgreementSummaryOut>("/v1/reports/reviewer-agreement"),
 };
 

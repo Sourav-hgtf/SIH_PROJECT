@@ -12,6 +12,7 @@ from app.models import (
     AnalystFeedback,
     AuditLog,
     ClusterMember,
+    LabelReview,
     LsrTag,
     PrecursorFeedback,
     PrecursorTriple,
@@ -28,6 +29,8 @@ from app.priority.engine import score_report
 from app.schemas import (
     CaseReopenIn,
     CaseResolutionIn,
+    LabelReviewIn,
+    LabelReviewOut,
     LsrEvidenceItem,
     LsrReviewIn,
     LsrRuleMetadataOut,
@@ -39,9 +42,11 @@ from app.schemas import (
     ReportConfirmIn,
     ReportCreate,
     ReportDetail,
+    ReportLabelHistoryOut,
     ReportOverrideIn,
     ReportReviewOut,
     ReportSummary,
+    ReviewerAgreementSummaryOut,
     SifClassificationOut,
     TimelineEventOut,
 )
@@ -98,6 +103,12 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
         lsr_tags=tags,
         excerpt=text[:180] + ("…" if len(text) > 180 else ""),
         priority=priority_out,
+        predicted_sif=report.predicted_sif,
+        human_label=report.human_label or "UNLABELED",
+        validated_label=report.validated_label,
+        label_source=report.label_source or "UNLABELED",
+        validation_status=report.validation_status or "UNLABELED",
+        data_type=getattr(report, "data_type", "synthetic") or "synthetic",
     )
 
 
@@ -265,8 +276,34 @@ def _build_report_detail(report: Report, db: Session) -> ReportDetail:
             for f in report.feedback
         ],
         review=review_out,
+        label_reviews=[
+            LabelReviewOut(
+                id=lr.id,
+                report_id=lr.report_id,
+                reviewer_id=lr.reviewer_id,
+                reviewer_username=lr.reviewer.username if getattr(lr, "reviewer", None) else None,
+                reviewer_role=lr.reviewer_role,
+                label=lr.label,
+                reason=lr.reason,
+                notes=lr.notes,
+                review_version=lr.review_version,
+                created_at=lr.created_at,
+            )
+            for lr in (getattr(report, "label_reviews", None) or [])
+        ],
         precursor_triples=triples_out,
     )
+
+
+@router.get("/reports/reviewer-agreement", response_model=ReviewerAgreementSummaryOut)
+def get_reviewer_agreement(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Calculates overall inter-rater reliability (Cohen's Kappa) across multi-reviewed incidents."""
+    from app.services.label_service import get_reviewer_agreement_summary
+
+    return get_reviewer_agreement_summary(db)
 
 
 @router.get("/reports/{report_id}", response_model=ReportDetail)
@@ -280,6 +317,7 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: User = Depen
             joinedload(Report.feedback),
             joinedload(Report.triples),
             joinedload(Report.reviews),
+            joinedload(Report.label_reviews),
         )
         .filter(Report.id == report_id)
         .first()
@@ -290,6 +328,63 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: User = Depen
     if allowed is not None and report.site_id not in allowed:
         raise HTTPException(status_code=403, detail="Outside site scope")
     return _build_report_detail(report, db)
+
+
+@router.post("/reports/{report_id}/label-review", response_model=ReportDetail)
+def submit_label_review(
+    report_id: str,
+    body: LabelReviewIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "analyst", "site_manager", "leadership")),
+):
+    """Submits a human review for SIF potential, versioning history and applying consensus policies."""
+    from app.services.label_service import record_label_review
+
+    try:
+        record_label_review(
+            db=db,
+            report_id=report_id,
+            reviewer_id=user.id,
+            label=body.label,
+            reason=body.reason,
+            notes=body.notes,
+            reviewer_role=user.role,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    report = (
+        db.query(Report)
+        .options(
+            joinedload(Report.classification),
+            joinedload(Report.lsr_tags),
+            joinedload(Report.site),
+            joinedload(Report.feedback),
+            joinedload(Report.triples),
+            joinedload(Report.reviews),
+            joinedload(Report.label_reviews),
+        )
+        .filter(Report.id == report_id)
+        .first()
+    )
+    return _build_report_detail(report, db)
+
+
+@router.get("/reports/{report_id}/label-history", response_model=ReportLabelHistoryOut)
+def get_report_label_history_endpoint(
+    report_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Returns the immutable versioned audit history of all human reviews and consensus status."""
+    from app.services.label_service import get_report_label_history
+
+    try:
+        return get_report_label_history(db, report_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/reports/{report_id}/confirm", response_model=ReportDetail)

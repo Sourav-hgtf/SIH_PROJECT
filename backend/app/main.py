@@ -8,6 +8,7 @@ from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.migrations import (
     run_ingestion_migrations,
+    run_labeling_migrations,
     run_lifecycle_migrations,
     run_lsr_migrations,
     run_recommendation_migrations,
@@ -92,6 +93,7 @@ def startup():
     run_recommendation_migrations(engine)
     run_ingestion_migrations(engine)
     run_lifecycle_migrations(engine)
+    run_labeling_migrations(engine)
     db = SessionLocal()
     try:
         seed_if_empty(db)

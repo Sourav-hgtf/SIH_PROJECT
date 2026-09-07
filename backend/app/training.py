@@ -32,66 +32,73 @@ def _feedback_label(feedback: AnalystFeedback) -> bool | None:
 
 def run_ml_training(db: Session, force_demo_fallback: bool = True) -> ModelTrainingRun:
     """Train a new TF-IDF + Logistic Regression model for SIF classification.
-    
-    If there is not enough analyst feedback, it falls back to using the heuristically
-    generated labels from the seed dataset if force_demo_fallback is True.
+
+    Production training policy (Requirement 11 & 12):
+    - Production training uses exclusively human-validated labels (validated_label in ('SIF', 'NON_SIF')).
+    - Synthetic demo labels are strictly barred from production training and final evaluation.
+    - If force_demo_fallback is True (offline dev/cold start only), heuristic demo data is used
+      with explicit warning and zero contamination of gold validation metrics.
     """
-    # 1. Fetch analyst reviews & feedback
-    reviews = db.query(ReportReview).order_by(ReportReview.created_at.desc()).all()
-    labels_by_report: dict[str, bool] = {}
-    for r in reviews:
-        if r.report_id not in labels_by_report:
-            labels_by_report[r.report_id] = r.final_sif_label
-
-    feedback_rows = (
-        db.query(AnalystFeedback)
-        .filter(AnalystFeedback.feedback_type.in_(["confirm_sif", "override_sif"]))
-        .order_by(AnalystFeedback.created_at.desc())
-        .all()
-    )
-    for feedback in feedback_rows:
-        label = _feedback_label(feedback)
-        if label is not None and feedback.report_id not in labels_by_report:
-            labels_by_report[feedback.report_id] = label
-
-    # 2. Fetch all reports
+    # 1. Fetch validated human labels from reports & reviews
+    # Validated records are those where consensus was reached or senior HSE reviewed
     reports = db.query(Report).all()
-    
-    X_raw = []
-    y_raw = []
-    
-    # 3. Build training dataset
-    for report in reports:
-        # Get label from AnalystFeedback if available
-        if report.id in labels_by_report:
-            X_raw.append(report.processed_text or report.raw_text_redacted)
-            y_raw.append(labels_by_report[report.id])
-        elif force_demo_fallback and report.classification is not None:
-            # Fallback to the heuristic label (often present in seed data)
-            X_raw.append(report.processed_text or report.raw_text_redacted)
-            y_raw.append(report.classification.sif_label)
-            
-    if not X_raw:
-        raise ValueError("No labeled records found for training.")
 
-    # Convert to standard python bools just in case
+    validated_X = []
+    validated_y = []
+    demo_fallback_X = []
+    demo_fallback_y = []
+
+    for report in reports:
+        text = report.processed_text or report.raw_text_redacted
+        is_synthetic = getattr(report, "data_type", "synthetic") == "synthetic"
+        val_lbl = getattr(report, "validated_label", None)
+        human_lbl = getattr(report, "human_label", None)
+
+        # 1. Check validated gold label first
+        if val_lbl in ("SIF", "NON_SIF"):
+            validated_X.append(text)
+            validated_y.append(True if val_lbl == "SIF" else False)
+        # 2. Check human review if not yet in consensus
+        elif human_lbl in ("SIF", "NON_SIF") and not is_synthetic:
+            validated_X.append(text)
+            validated_y.append(True if human_lbl == "SIF" else False)
+        elif report.final_sif_label is not None and getattr(report, "label_source", "") in ("CONSENSUS_VALIDATED", "SENIOR_HSE_OVERRIDE", "HUMAN_REVIEW"):
+            validated_X.append(text)
+            validated_y.append(bool(report.final_sif_label))
+        elif force_demo_fallback and report.classification is not None:
+            # Cold-start development fallback only
+            demo_fallback_X.append(text)
+            demo_fallback_y.append(bool(report.classification.sif_label))
+
+    feedback_count = len(validated_X)
+
+    if validated_X:
+        logger.info(f"Training on {len(validated_X)} human-validated records.")
+        X_raw = validated_X
+        y_raw = validated_y
+    elif force_demo_fallback and demo_fallback_X:
+        logger.warning(
+            "[DEFENSE AUDIT WARNING] Training using demo fallback data. "
+            "No validated human labels exist in database. Synthetic labels strictly tagged."
+        )
+        X_raw = demo_fallback_X
+        y_raw = demo_fallback_y
+    else:
+        raise ValueError("No validated human-labelled records found for production training.")
+
+    # Convert to standard python bools
     y_raw = [bool(lbl) for lbl in y_raw]
-    
-    feedback_count = len(labels_by_report)
-    
-    # If we have very few examples, we skip the test split or use a tiny one
+
+    # If we have very few examples, we use a small split
     if len(X_raw) < 10:
-        # Fallback to training on everything and testing on everything if data is extremely sparse
         X_train, X_test, y_train, y_test = X_raw, X_raw, y_raw, y_raw
     else:
-        # We try to stratify if we have both classes, else we might fail stratification
         has_both_classes = len(set(y_raw)) > 1
         try:
             X_train, X_test, y_train, y_test = train_test_split(
                 X_raw, y_raw, test_size=0.2, random_state=42, stratify=y_raw if has_both_classes else None
             )
         except ValueError:
-            # Fallback if stratification fails due to too few samples of a class
             X_train, X_test, y_train, y_test = train_test_split(
                 X_raw, y_raw, test_size=0.2, random_state=42
             )

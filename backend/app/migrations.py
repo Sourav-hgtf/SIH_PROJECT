@@ -134,3 +134,46 @@ def run_lifecycle_migrations(engine: Engine) -> None:
         conn.commit()
     logger.info("Checked / migrated report lifecycle columns and review tables.")
 
+
+def run_labeling_migrations(engine: Engine) -> None:
+    """Ensures label_reviews table exists and adds human_label, validated_label,
+    label_source, and validation_status columns to reports.
+    """
+    from app.database import Base
+    from app.models import LabelReview
+
+    Base.metadata.create_all(bind=engine, tables=[LabelReview.__table__])
+
+    inspector = inspect(engine)
+    if "reports" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("reports")}
+
+    with engine.connect() as conn:
+        if "data_type" not in columns:
+            logger.info("Migrating reports: Adding data_type column")
+            conn.execute(text("ALTER TABLE reports ADD COLUMN data_type VARCHAR(20) DEFAULT 'synthetic'"))
+        if "human_label" not in columns:
+            logger.info("Migrating reports: Adding human_label column")
+            conn.execute(text("ALTER TABLE reports ADD COLUMN human_label VARCHAR(20) DEFAULT 'UNLABELED'"))
+        if "validated_label" not in columns:
+            logger.info("Migrating reports: Adding validated_label column")
+            conn.execute(text("ALTER TABLE reports ADD COLUMN validated_label VARCHAR(20)"))
+        if "label_source" not in columns:
+            logger.info("Migrating reports: Adding label_source column")
+            conn.execute(text("ALTER TABLE reports ADD COLUMN label_source VARCHAR(50) DEFAULT 'UNLABELED'"))
+        if "validation_status" not in columns:
+            logger.info("Migrating reports: Adding validation_status column")
+            conn.execute(text("ALTER TABLE reports ADD COLUMN validation_status VARCHAR(50) DEFAULT 'UNLABELED'"))
+        conn.commit()
+
+        # Backfill default nulls
+        conn.execute(text("UPDATE reports SET human_label = 'UNLABELED' WHERE human_label IS NULL"))
+        conn.execute(text("UPDATE reports SET label_source = 'UNLABELED' WHERE label_source IS NULL"))
+        conn.execute(text("UPDATE reports SET validation_status = 'UNLABELED' WHERE validation_status IS NULL"))
+        conn.execute(text("UPDATE reports SET data_type = 'synthetic' WHERE data_type IS NULL"))
+        conn.commit()
+    logger.info("Checked / migrated human labeling tables and report columns.")
+
+

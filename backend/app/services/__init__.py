@@ -13,6 +13,13 @@ from app.services.analytics_service import (
     compute_model_version_drift,
 )
 
+from app.services.label_service import (
+    calculate_cohens_kappa,
+    get_report_label_history,
+    get_reviewer_agreement_summary,
+    record_label_review,
+)
+
 __all__ = [
     "write_audit",
     "ingest_and_process",
@@ -24,4 +31,8 @@ __all__ = [
     "compute_model_version_drift",
     "compute_intervention_effectiveness",
     "compute_agreement_trend",
+    "calculate_cohens_kappa",
+    "get_report_label_history",
+    "get_reviewer_agreement_summary",
+    "record_label_review",
 ]
