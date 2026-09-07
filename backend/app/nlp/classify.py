@@ -4,6 +4,7 @@ from functools import lru_cache
 import re
 from typing import Any
 
+from app.config import settings
 from app.nlp.features import extract_features
 from app.nlp.labeling import apply_labeling_functions
 from app.nlp.lsr import (
@@ -13,7 +14,7 @@ from app.nlp.lsr import (
     load_canonical_lsr_rules,
     LsrRuleConfig,
 )
-from app.nlp.model import predict_sif_probability
+from app.nlp.model import load_sif_model, predict_sif_details, predict_sif_probability
 
 # Minimum confidence threshold for tagging an LSR (configurable)
 DEFAULT_LSR_CONFIDENCE_THRESHOLD = 0.50
@@ -159,12 +160,21 @@ def tag_life_saving_rules(
     return tags
 
 
-def classify_sif(text: str, threshold: float = 0.45) -> dict:
+def classify_sif(text: str, threshold: float | None = None) -> dict:
     features = extract_features(text)
     weak = apply_labeling_functions(text)
 
     # Get ML prediction
     score, model_version = predict_sif_probability(text)
+
+    # Load version details from active model
+    model_data = load_sif_model()
+    feature_version = model_data.get("feature_version", "tfidf-unigram-bigram-v1")
+    preprocessing_version = model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1")
+    calibration_version = model_data.get("calibration_version", "platt-sigmoid-v1")
+    threshold_version = model_data.get("threshold_version", "thresh-recall-prioritized-v1")
+    opt_threshold = float(model_data.get("optimal_threshold", settings.sif_threshold))
+    effective_threshold = threshold if threshold is not None else opt_threshold
 
     phrases = []
     for span in features.contributing_spans:
@@ -175,9 +185,14 @@ def classify_sif(text: str, threshold: float = 0.45) -> dict:
     phrases.sort(key=lambda p: p["weight"], reverse=True)
 
     return {
-        "sif_probability": round(score, 3),
-        "sif_label": score >= threshold,
+        "sif_probability": round(score, 4),
+        "sif_label": score >= effective_threshold,
         "model_version": model_version,
+        "feature_version": feature_version,
+        "preprocessing_version": preprocessing_version,
+        "calibration_version": calibration_version,
+        "threshold_version": threshold_version,
+        "threshold": effective_threshold,
         "contributing_phrases": phrases[:8],
         "features": features.as_dict(),
         "weak_supervision": weak,

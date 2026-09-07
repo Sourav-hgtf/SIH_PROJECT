@@ -229,7 +229,7 @@ def test_full_ml_training_leak_free_pipeline(db_session: Session):
     run = run_ml_training(db_session, force_demo_fallback=False)
 
     assert run is not None
-    assert "tfidf-logreg-v1" in run.model_version
+    assert "sif-logreg-v1" in run.model_version or "tfidf-logreg-v1" in run.model_version
     metrics = run.metrics_after
 
     assert metrics["status"] == "VALIDATED"

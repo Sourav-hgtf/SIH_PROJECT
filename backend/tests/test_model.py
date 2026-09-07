@@ -70,7 +70,7 @@ def test_model_training_and_artifact_creation(setup_test_db):
     run = run_ml_training(db, force_demo_fallback=True)
     
     assert run is not None
-    assert "tfidf-logreg-v1" in run.model_version
+    assert "sif-logreg-v1" in run.model_version or "tfidf-logreg-v1" in run.model_version
     assert ARTIFACT_PATH.exists()
 
 def test_model_loading_and_prediction(setup_test_db):
@@ -80,14 +80,14 @@ def test_model_loading_and_prediction(setup_test_db):
     assert model_data is not None
     assert "pipeline" in model_data
     assert isinstance(model_data["pipeline"], Pipeline)
-    assert "tfidf-logreg-v1" in model_data["model_version"]
+    assert "sif-logreg-v1" in model_data["model_version"] or "tfidf-logreg-v1" in model_data["model_version"]
     
     # Test prediction
     text = "Terrible accident with energy isolation failure"
     prob, version = predict_sif_probability(text)
     
     assert 0.0 <= prob <= 1.0
-    assert "tfidf-logreg-v1" in version
+    assert "sif-logreg-v1" in version or "tfidf-logreg-v1" in version
     
 def test_missing_model_fallback():
     # Hide the artifact temporarily

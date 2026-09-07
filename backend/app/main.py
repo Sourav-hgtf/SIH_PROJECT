@@ -150,14 +150,23 @@ def readiness():
 
 @app.get("/model-info")
 def model_info():
-    """Model information endpoint: returns active version, type, threshold and integrity."""
-    from app.nlp.model import predict_sif_probability
+    """Model information endpoint: returns active version, calibration, threshold and integrity."""
     health = get_model_health_status()
     model_data = load_sif_model()
+    opt_thresh = float(model_data.get("optimal_threshold", settings.sif_threshold))
     return {
         "model_version": model_data.get("model_version", "unknown"),
-        "model_type": "TF-IDF + Logistic Regression",
-        "threshold": settings.sif_threshold,
+        "feature_version": model_data.get("feature_version", "tfidf-unigram-bigram-v1"),
+        "preprocessing_version": model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1"),
+        "dataset_version": model_data.get("dataset_version", "sih-safety-ds-v1"),
+        "label_schema_version": model_data.get("label_schema_version", "sif-binary-v1"),
+        "calibration_version": model_data.get("calibration_version", "platt-sigmoid-v1"),
+        "threshold_version": model_data.get("threshold_version", "thresh-recall-prioritized-v1"),
+        "threshold": opt_thresh,
+        "optimal_threshold": opt_thresh,
+        "training_run_id": model_data.get("training_run_id", ""),
+        "trained_at": model_data.get("trained_at"),
+        "model_type": "Calibrated TF-IDF + Logistic Regression (Platt Scaling)",
         "integrity_status": health["status"],
         "artifact_exists": health["artifact_exists"],
         "manifest_exists": health["manifest_exists"],
@@ -168,20 +177,25 @@ def model_info():
 
 @app.post("/predict")
 def predict_adhoc(payload: dict):
-    """Ad-hoc prediction endpoint for real-time safety text evaluation."""
-    from app.nlp.model import predict_sif_probability
+    """Ad-hoc prediction endpoint for real-time safety text evaluation with calibrated probability."""
+    from app.nlp.model import predict_sif_details
     text_content = payload.get("text", "")
     if not text_content:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": "Field 'text' is required."},
         )
-    proba, version = predict_sif_probability(text_content)
-    is_sif = proba >= settings.sif_threshold
+    pred = predict_sif_details(text_content)
     return {
         "text": text_content,
-        "sif_probability": round(proba, 4),
-        "sif_potential": is_sif,
-        "model_version": version,
-        "threshold": settings.sif_threshold,
+        "processed_text": pred["processed_text"],
+        "sif_probability": pred["sif_probability"],
+        "sif_potential": pred["sif_potential"],
+        "model_version": pred["model_version"],
+        "feature_version": pred["feature_version"],
+        "preprocessing_version": pred["preprocessing_version"],
+        "calibration_version": pred["calibration_version"],
+        "threshold_version": pred["threshold_version"],
+        "threshold": pred["threshold"],
+        "training_run_id": pred["training_run_id"],
     }

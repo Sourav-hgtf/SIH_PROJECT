@@ -1,12 +1,17 @@
-"""Machine learning training pipeline with leak-free dataset partitioning.
+"""Machine learning training pipeline with probability calibration and versioned metadata.
 
-Defensible ML engineering principles:
-1. Strict separation of TRAIN (70%), VALIDATION (15%), and TEST (15%) partitions.
-2. Group-aware partitioning and text normalization deduplication to prevent duplicate/near-duplicate leakage.
-3. Test set is strictly held out and never used for threshold fitting or hyperparameter tuning.
-4. If dataset is too small (<20 records or <4 per class), status is marked INSUFFICIENT_VALIDATION_DATA and training data is NEVER reused for evaluation.
-5. Safety-oriented evaluation metrics with explicit recall and false-negative rate tracking.
-6. Synthetic demo fallback data is tagged with is_synthetic_demo_evaluation=True.
+ML Architecture:
+  Raw Text
+    ↓ Preprocessing (PII Redaction, Spell Correction, Abbreviation Expansion: prep-pii-spell-abbr-v1)
+  TF-IDF Vectorizer (ngram_range=(1,2), max_features=5000: tfidf-unigram-bigram-v1)
+    ↓
+  Logistic Regression (class_weight='balanced': sif-logreg-v1-*)
+    ↓
+  Probability Calibration (CalibratedClassifierCV / Platt Sigmoid Scaling: platt-sigmoid-v1)
+    ↓
+  Threshold Optimization (Evaluated on Validation Set only: thresh-opt-recall-0.85-v1)
+    ↓
+  Holdout Test Set Evaluation (Untouched until final metric calculation)
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from pathlib import Path
 import random
 import re
 from typing import Any
+import uuid
 
 import joblib
 from sqlalchemy.orm import Session
@@ -38,12 +44,25 @@ from sklearn.metrics import (
 
 from app.config import settings
 from app.models import AnalystFeedback, ModelTrainingRun, Report, ReportReview, SifClassification
+from app.nlp.calibration import (
+    calibrate_classifier,
+    compute_brier_score,
+    compute_expected_calibration_error,
+    compute_log_loss,
+    optimize_threshold,
+)
 from app.nlp.model import ARTIFACT_PATH
+from app.nlp.preprocess import preprocess
 
 logger = logging.getLogger(__name__)
 
 MIN_TOTAL_RECORDS_FOR_SPLIT = 20
 MIN_PER_CLASS_FOR_SPLIT = 4
+
+FEATURE_VERSION = "tfidf-unigram-bigram-v1"
+PREPROCESSING_VERSION = "prep-pii-spell-abbr-v1"
+DATASET_VERSION = "sih-safety-ds-v1"
+LABEL_SCHEMA_VERSION = "sif-binary-v1"
 
 
 @dataclass
@@ -98,7 +117,6 @@ def create_leak_free_split(
     positives = sum(1 for r in records if r.label)
     negatives = total_records - positives
 
-    # Check minimum reliability criteria
     if total_records < min_total_records or positives < min_per_class or negatives < min_per_class:
         logger.warning(
             f"Dataset too small ({total_records} records, {positives} pos, {negatives} neg) "
@@ -107,7 +125,7 @@ def create_leak_free_split(
         )
         return "INSUFFICIENT_VALIDATION_DATA", records, [], []
 
-    # 1. Union-Find to merge records sharing the same group_id OR same text_hash
+    # Disjoint-Set / Union-Find to merge records sharing the same group_id OR same text_hash
     parent: dict[str, str] = {r.id: r.id for r in records}
 
     def find(i: str) -> str:
@@ -150,7 +168,7 @@ def create_leak_free_split(
         root = find(r.id)
         groups.setdefault(root, []).append(r)
 
-    # 2. Stratify groups by majority/any SIF label
+    # Stratify groups by majority/any SIF label
     pos_groups: list[str] = []
     neg_groups: list[str] = []
 
@@ -228,14 +246,14 @@ def run_ml_training(
     force_demo_fallback: bool = True,
     random_seed: int = 42,
 ) -> ModelTrainingRun:
-    """Train a new TF-IDF + Logistic Regression model with leak-free evaluation.
+    """Train a calibrated TF-IDF + Logistic Regression model with versioned metadata.
 
-    Production training policy (Requirements 1-11):
-    - Uses human-validated labels whenever present.
-    - Enforces strict 70/15/15 train/val/test partitioning.
-    - Prevents train/test leakage and duplicate description overlap.
-    - Withholds ungrounded metrics if dataset is insufficient (INSUFFICIENT_VALIDATION_DATA).
-    - Explicitly reports safety-critical metrics (SIF recall and false-negative rate).
+    Guarantees:
+    - Preprocessing uniformity (PII redaction, spelling, abbreviation expansion) across splits.
+    - True probability calibration via CalibratedClassifierCV fitted on validation set.
+    - Threshold optimization strictly executed on validation predictions.
+    - Test set is strictly held out and evaluated only once.
+    - Distinct version strings stored for model, feature, preprocessing, calibration, threshold.
     """
     reports = db.query(Report).all()
 
@@ -243,8 +261,12 @@ def run_ml_training(
     demo_fallback_records: list[IncidentDataRecord] = []
 
     for report in reports:
-        raw_text = report.processed_text or report.raw_text_redacted or ""
-        norm_text = normalize_incident_text(raw_text)
+        raw_text = report.raw_text_redacted or report.processed_text or ""
+        # Apply standard uniform preprocessing
+        prep = preprocess(raw_text)
+        processed_text = prep["processed_text"]
+
+        norm_text = normalize_incident_text(processed_text)
         text_hash = compute_text_hash(norm_text)
         group_id = report.source_report_id or report.id
 
@@ -334,10 +356,11 @@ def run_ml_training(
         random_seed=random_seed,
     )
 
-    version = f"tfidf-logreg-v1-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    training_run_id = str(uuid.uuid4())
+    model_version = f"sif-logreg-v1-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
-    # Define standard classification pipeline
-    pipeline = Pipeline([
+    # Base classification pipeline
+    base_pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(max_features=5000, stop_words="english", ngram_range=(1, 2))),
         ("clf", LogisticRegression(class_weight="balanced", random_state=random_seed, C=1.0)),
     ])
@@ -347,12 +370,17 @@ def run_ml_training(
             f"Dataset too small ({len(records)} records) for statistically valid train/val/test split. "
             "Evaluation metrics will NOT be computed on training data to prevent leakage."
         )
-        X_train = [r.raw_text for r in train_records]
+        # Consistently preprocess text
+        X_train_proc = [preprocess(r.raw_text)["processed_text"] for r in train_records]
         y_train = [r.label for r in train_records]
 
-        # Fit model for prototype functionality if at least 1 record per class exists
         if len(set(y_train)) >= 2:
-            pipeline.fit(X_train, y_train)
+            base_pipeline.fit(X_train_proc, y_train)
+
+        calibrator = base_pipeline
+        calibration_version = "uncalibrated-insufficient-data-v0"
+        threshold_version = "thresh-fallback-default-v1"
+        optimal_threshold = settings.sif_threshold
 
         metrics: dict[str, Any] = {
             "status": "INSUFFICIENT_VALIDATION_DATA",
@@ -371,6 +399,8 @@ def run_ml_training(
             "accuracy": None,
             "roc_auc": None,
             "pr_auc": None,
+            "brier_score": None,
+            "expected_calibration_error": None,
             "specificity": None,
             "false_positive_rate": None,
             "false_negative_rate": None,
@@ -383,10 +413,17 @@ def run_ml_training(
                 "note": "Evaluation withheld due to insufficient sample size.",
             },
             "metadata": {
-                "dataset_version": "sih-safety-ds-v1",
+                "model_version": model_version,
+                "feature_version": FEATURE_VERSION,
+                "preprocessing_version": PREPROCESSING_VERSION,
+                "dataset_version": DATASET_VERSION,
+                "label_schema_version": LABEL_SCHEMA_VERSION,
+                "calibration_version": calibration_version,
+                "threshold_version": threshold_version,
+                "optimal_threshold": optimal_threshold,
+                "training_run_id": training_run_id,
                 "split_version": "insufficient-data-hold",
                 "random_seed": random_seed,
-                "model_version": version,
                 "training_timestamp": datetime.now(timezone.utc).isoformat(),
                 "data_source": data_source,
                 "is_synthetic_demo_evaluation": is_demo_evaluation,
@@ -399,14 +436,14 @@ def run_ml_training(
             },
         }
     else:
-        # Full leak-free training & evaluation
-        X_train = [r.raw_text for r in train_records]
+        # Uniformly preprocessed text for each partition
+        X_train_proc = [preprocess(r.raw_text)["processed_text"] for r in train_records]
         y_train = [r.label for r in train_records]
 
-        X_val = [r.raw_text for r in val_records]
+        X_val_proc = [preprocess(r.raw_text)["processed_text"] for r in val_records]
         y_val = [r.label for r in val_records]
 
-        X_test = [r.raw_text for r in test_records]
+        X_test_proc = [preprocess(r.raw_text)["processed_text"] for r in test_records]
         y_test = [r.label for r in test_records]
 
         # 1. Stratified Cross-Validation on Train set
@@ -422,10 +459,10 @@ def run_ml_training(
             cv_recalls: list[float] = []
             cv_precisions: list[float] = []
 
-            for tr_idx, val_idx in skf.split(X_train, y_train):
-                fold_X_tr = [X_train[i] for i in tr_idx]
+            for tr_idx, val_idx in skf.split(X_train_proc, y_train):
+                fold_X_tr = [X_train_proc[i] for i in tr_idx]
                 fold_y_tr = [y_train[i] for i in tr_idx]
-                fold_X_val = [X_train[i] for i in val_idx]
+                fold_X_val = [X_train_proc[i] for i in val_idx]
                 fold_y_val = [y_train[i] for i in val_idx]
 
                 fold_pipe = Pipeline([
@@ -450,20 +487,23 @@ def run_ml_training(
                     "cv_folds": n_splits,
                 }
 
-        # 2. Fit pipeline on Train set
-        pipeline.fit(X_train, y_train)
+        # 2. Fit base pipeline on Train set
+        base_pipeline.fit(X_train_proc, y_train)
 
-        # 3. Validation set is used for threshold check (Test set is untouched!)
-        val_pred = pipeline.predict(X_val) if len(X_val) > 0 else []
-        val_p, val_r, val_f, _ = (
-            precision_recall_fscore_support(y_val, val_pred, average="binary", zero_division=0)
-            if len(X_val) > 0
-            else (0, 0, 0, None)
+        # 3. Probability Calibration on Validation set
+        calibrator, calibration_version, calib_diag = calibrate_classifier(
+            base_pipeline, X_val_proc, y_val, method="sigmoid"
         )
 
-        # 4. Final Evaluation strictly on untouched Holdout Test Set
-        y_test_pred = pipeline.predict(X_test)
-        y_test_proba = pipeline.predict_proba(X_test)[:, 1]
+        # 4. Threshold Optimization on Validation set only
+        val_proba = calibrator.predict_proba(X_val_proc)[:, 1] if len(X_val_proc) > 0 else []
+        optimal_threshold, threshold_version, val_thresh_metrics = optimize_threshold(
+            y_val, val_proba, target_recall=0.85, fallback_threshold=settings.sif_threshold
+        )
+
+        # 5. Final Holdout Evaluation strictly on untouched Test set
+        y_test_proba = calibrator.predict_proba(X_test_proc)[:, 1]
+        y_test_pred = [bool(p >= optimal_threshold) for p in y_test_proba]
 
         precision, recall, f1, _ = precision_recall_fscore_support(
             y_test, y_test_pred, average="binary", zero_division=0
@@ -479,6 +519,10 @@ def run_ml_training(
             pr_auc = average_precision_score(y_test, y_test_proba)
         except ValueError:
             pr_auc = None
+
+        brier = compute_brier_score(y_test, y_test_proba)
+        ece = compute_expected_calibration_error(y_test, y_test_proba)
+        logloss = compute_log_loss(y_test, y_test_proba)
 
         tn, fp, fn, tp = confusion_matrix(y_test, y_test_pred, labels=[False, True]).ravel()
         specificity = round(float(tn / (tn + fp)), 3) if (tn + fp) > 0 else 0.0
@@ -501,6 +545,9 @@ def run_ml_training(
             "accuracy": round(float(accuracy), 3),
             "roc_auc": round(float(roc_auc), 3) if roc_auc is not None else None,
             "pr_auc": round(float(pr_auc), 3) if pr_auc is not None else None,
+            "brier_score": brier,
+            "expected_calibration_error": ece,
+            "log_loss": logloss,
             "specificity": specificity,
             "false_positive_rate": false_positive_rate,
             "false_negative_rate": false_negative_rate,
@@ -512,17 +559,21 @@ def run_ml_training(
                 "false_alarms": int(fp),
                 "priority_alert": "SIF false-negative rate prioritized to ensure zero missed catastrophic hazards.",
             },
-            "validation_metrics": {
-                "val_precision": round(float(val_p), 3),
-                "val_recall": round(float(val_r), 3),
-                "val_f1": round(float(val_f), 3),
-            },
+            "calibration_diagnostics": calib_diag,
+            "validation_metrics": val_thresh_metrics,
             "cv_metrics": cv_scores,
             "metadata": {
-                "dataset_version": "sih-safety-ds-v1",
+                "model_version": model_version,
+                "feature_version": FEATURE_VERSION,
+                "preprocessing_version": PREPROCESSING_VERSION,
+                "dataset_version": DATASET_VERSION,
+                "label_schema_version": LABEL_SCHEMA_VERSION,
+                "calibration_version": calibration_version,
+                "threshold_version": threshold_version,
+                "optimal_threshold": optimal_threshold,
+                "training_run_id": training_run_id,
                 "split_version": "stratified-group-70-15-15",
                 "random_seed": random_seed,
-                "model_version": version,
                 "training_timestamp": datetime.now(timezone.utc).isoformat(),
                 "data_source": data_source,
                 "is_synthetic_demo_evaluation": is_demo_evaluation,
@@ -537,26 +588,42 @@ def run_ml_training(
             },
         }
 
-    # Save model artifact
-    model_data = {
-        "pipeline": pipeline,
-        "model_version": version,
+    # Save model artifact with complete version metadata
+    model_artifact_data = {
+        "pipeline": base_pipeline,
+        "calibrator": calibrator,
+        "model_version": model_version,
+        "feature_version": FEATURE_VERSION,
+        "preprocessing_version": PREPROCESSING_VERSION,
+        "dataset_version": DATASET_VERSION,
+        "label_schema_version": LABEL_SCHEMA_VERSION,
+        "calibration_version": calibration_version,
+        "threshold_version": threshold_version,
+        "optimal_threshold": optimal_threshold,
+        "training_run_id": training_run_id,
+        "trained_at": datetime.now(timezone.utc).isoformat(),
         "feedback_count": len(validated_records),
-        "created_at": datetime.now(timezone.utc).isoformat(),
         "is_demo_model": is_demo_evaluation,
+        "metrics": metrics,
     }
 
     ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model_data, ARTIFACT_PATH)
+    joblib.dump(model_artifact_data, ARTIFACT_PATH)
 
-    # Update SHA-256 in model_manifest.json
+    # Update SHA-256 and manifest metadata
     manifest_path = ARTIFACT_PATH.parent / "model_manifest.json"
     sha256 = hashlib.sha256(ARTIFACT_PATH.read_bytes()).hexdigest()
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "model_file": ARTIFACT_PATH.name,
-                "model_version": version,
+                "model_version": model_version,
+                "feature_version": FEATURE_VERSION,
+                "preprocessing_version": PREPROCESSING_VERSION,
+                "calibration_version": calibration_version,
+                "threshold_version": threshold_version,
+                "optimal_threshold": optimal_threshold,
+                "training_run_id": training_run_id,
                 "sha256": sha256,
                 "training_date": datetime.now(timezone.utc).isoformat(),
                 "evaluation_status": metrics.get("status"),
@@ -571,7 +638,7 @@ def run_ml_training(
 
     # Record run in DB
     run = ModelTrainingRun(
-        model_version=version,
+        model_version=model_version,
         artifact_path=str(ARTIFACT_PATH),
         feedback_count=len(validated_records),
         metrics_before={},
@@ -589,13 +656,15 @@ def run_feedback_calibration(db: Session) -> ModelTrainingRun:
 
 if __name__ == "__main__":
     from app.database import SessionLocal
-    print("Running ML training pipeline with leak-free partitioning...")
+    print("Running calibrated ML training pipeline...")
     db = SessionLocal()
     try:
         run = run_ml_training(db)
         db.commit()
         print(f"Success! Model {run.model_version} created.")
         print(f"Status: {run.metrics_after.get('status')}")
+        print(f"Calibration Version: {run.metrics_after.get('metadata', {}).get('calibration_version')}")
+        print(f"Threshold Version: {run.metrics_after.get('metadata', {}).get('threshold_version')}")
         print(f"Metrics: {json.dumps(run.metrics_after, indent=2)}")
     finally:
         db.close()
