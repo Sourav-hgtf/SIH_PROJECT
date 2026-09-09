@@ -8,7 +8,9 @@ from sqlalchemy.pool import StaticPool
 from app.auth import create_token
 from app.database import Base, get_db
 from app.main import app
+from app.migrations import run_feedback_migrations, run_labeling_migrations, run_lsr_migrations, run_recommendation_migrations
 from app.models import (
+    AnalystDecision,
     LsrTag,
     PrecursorTriple,
     Recommendation,
@@ -33,6 +35,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="module")
 def db_session():
     Base.metadata.create_all(bind=engine)
+    run_lsr_migrations(engine)
+    run_recommendation_migrations(engine)
+    run_labeling_migrations(engine)
+    run_feedback_migrations(engine)
     db = TestingSessionLocal()
     site = Site(id="site-test-1", name="Alpha Offshore", region="Assam")
     db.add(site)
@@ -264,3 +270,66 @@ def test_lifecycle_kpis_and_agreement_analytics(client, analyst_headers):
     assert analytics["confirm_count"] >= 1
     assert analytics["override_count"] >= 1
     assert "False positive" in str(analytics["reason_breakdown"])
+
+
+def test_confirm_sif_does_not_modify_ai_prediction(client, analyst_headers, db_session):
+    """Confirming SIF must not modify SifClassification sif_probability or sif_label."""
+    rep = db_session.query(Report).filter(Report.id == "rep-lc-01").first()
+    clf = rep.classification
+    original_prob = clf.sif_probability
+    original_label = clf.sif_label
+    original_version = clf.model_version
+
+    resp = client.post(
+        "/v1/reports/rep-lc-01/confirm",
+        json={"notes": "Confirmed"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # AI prediction preserved
+    assert data["sif_probability"] == original_prob
+    assert data["sif_label"] == original_label
+    assert data["model_version"] == original_version
+    assert data["ai_prediction"]["ai_probability"] == original_prob
+    assert data["ai_prediction"]["ai_label"] == original_label
+
+    # SifClassification unchanged
+    db_session.refresh(clf)
+    assert clf.sif_probability == original_prob
+    assert clf.sif_label == original_label
+    assert clf.model_version == original_version
+
+    # AnalystDecision recorded
+    decisions = db_session.query(AnalystDecision).filter(AnalystDecision.report_id == "rep-lc-01").all()
+    assert len(decisions) >= 1
+    assert decisions[0].review_action == "CONFIRMED"
+    assert decisions[0].ai_sif_probability_at_time == original_prob
+
+
+def test_override_sif_does_not_modify_ai_prediction(client, analyst_headers, db_session):
+    """Overriding SIF must not modify SifClassification sif_probability or sif_label."""
+    rep2 = db_session.query(Report).filter(Report.id == "rep-lc-02").first()
+    clf = rep2.classification
+    original_prob = clf.sif_probability
+    original_label = clf.sif_label
+
+    resp = client.post(
+        "/v1/reports/rep-lc-02/override",
+        json={"final_sif_label": False, "reason": "False positive", "notes": "Surface hazard"},
+        headers=analyst_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # AI prediction preserved
+    assert data["sif_probability"] == original_prob
+    assert data["sif_label"] == original_label
+    assert data["ai_prediction"]["ai_probability"] == original_prob
+    assert data["ai_prediction"]["ai_label"] == original_label
+
+    # SifClassification unchanged
+    db_session.refresh(clf)
+    assert clf.sif_probability == original_prob
+    assert clf.sif_label == original_label

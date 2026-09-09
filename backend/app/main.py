@@ -12,6 +12,7 @@ from app.migrations import (
     run_lifecycle_migrations,
     run_lsr_migrations,
     run_recommendation_migrations,
+    run_feedback_migrations,
 )
 from app.nlp.lsr import load_canonical_lsr_rules
 from app.nlp.model import get_model_health_status, load_sif_model
@@ -94,6 +95,7 @@ def startup():
     run_ingestion_migrations(engine)
     run_lifecycle_migrations(engine)
     run_labeling_migrations(engine)
+    run_feedback_migrations(engine)
     db = SessionLocal()
     try:
         seed_if_empty(db)

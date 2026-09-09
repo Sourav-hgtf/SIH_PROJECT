@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_roles
 from app.database import get_db
-from app.models import AnalystFeedback, LsrTag, Report, SifClassification, User
+from app.models import AnalystFeedback, AnalystDecision, LsrTag, Report, SifClassification, User
 from app.schemas import FeedbackCreate, FeedbackRecord
 from app.services import write_audit
 
@@ -30,14 +30,8 @@ def submit_feedback(
     }
     new_value = body.new_value or {}
 
-    if body.feedback_type in ("confirm_sif", "override_sif") and clf:
-        if body.feedback_type == "override_sif":
-            desired = new_value.get("sif_label")
-            if desired is None:
-                desired = not clf.sif_label
-            clf.sif_label = bool(desired)
-            clf.sif_probability = 1.0 if clf.sif_label else 0.05
-            clf.model_version = f"{clf.model_version}+analyst"
+    # NEVER modify SifClassification (AI prediction). Preserve original AI output permanently.
+    # Analyst decisions are stored separately in AnalystDecision.
 
     if body.feedback_type == "adjust_lsr" and "lsr_categories" in new_value:
         from app.nlp.lsr import get_rule_by_id, get_rule_by_name
@@ -58,6 +52,23 @@ def submit_feedback(
                     evidence=[{"text": "Analyst confirmed/adjusted rule", "type": "analyst"}],
                 )
             )
+
+    # Create AnalystDecision record to separate human decision from AI prediction
+    review_action = body.review_action or body.feedback_type
+    analyst_label = None
+    if review_action in ("CONFIRMED", "OVERRIDDEN", "LABELED") and body.new_value:
+        analyst_label = body.new_value.get("sif_label")
+
+    decision = AnalystDecision(
+        report_id=report.id,
+        analyst_id=user.id,
+        analyst_label=analyst_label,
+        review_action=review_action,
+        analyst_comment=body.comment,
+        ai_sif_label_at_time=clf.sif_label if clf else None,
+        ai_sif_probability_at_time=clf.sif_probability if clf else None,
+    )
+    db.add(decision)
 
     record = AnalystFeedback(
         report_id=report.id,

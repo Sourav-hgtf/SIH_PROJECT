@@ -72,6 +72,7 @@ class Report(Base):
     lsr_tags = relationship("LsrTag", back_populates="report")
     triples = relationship("PrecursorTriple", back_populates="report")
     feedback = relationship("AnalystFeedback", back_populates="report")
+    analyst_decisions = relationship("AnalystDecision", back_populates="report", cascade="all, delete-orphan", order_by="AnalystDecision.reviewed_at.desc()")
     recommendations = relationship("Recommendation", back_populates="report")
     reviews = relationship("ReportReview", back_populates="report", cascade="all, delete-orphan")
     precursor_feedback = relationship("PrecursorFeedback", back_populates="report", cascade="all, delete-orphan")
@@ -168,6 +169,29 @@ class AnalystFeedback(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     report = relationship("Report", back_populates="feedback")
+
+
+class AnalystDecision(Base):
+    """Immutable record of an analyst's final decision on a report.
+
+    Separates the human decision from the AI prediction permanently.
+    The ai_probability is NEVER modified by this record.
+    """
+
+    __tablename__ = "analyst_decisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"), nullable=False)
+    analyst_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    analyst_label: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # Analyst's final label
+    review_action: Mapped[str] = mapped_column(String(50), nullable=False)  # CONFIRMED, OVERRIDDEN, LABELED
+    analyst_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_sif_label_at_time: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # Snapshot of AI label
+    ai_sif_probability_at_time: Mapped[float | None] = mapped_column(Float, nullable=True)  # Snapshot of AI probability
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    report = relationship("Report", back_populates="analyst_decisions")
+    analyst = relationship("User")
 
 
 class AuditLog(Base):

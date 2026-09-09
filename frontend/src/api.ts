@@ -163,6 +163,25 @@ export type ReviewerAgreementSummaryOut = {
 
 export type Phrase = { phrase: string; weight: number };
 
+export type AiPredictionOut = {
+  ai_label?: boolean | null;
+  ai_probability?: number | null;
+  model_version?: string | null;
+  model_timestamp?: string | null;
+};
+
+export type AnalystDecisionOut = {
+  id: string;
+  report_id: string;
+  analyst_id: string;
+  analyst_label?: boolean | null;
+  review_action: string;
+  analyst_comment?: string | null;
+  ai_sif_label_at_time?: boolean | null;
+  ai_sif_probability_at_time?: number | null;
+  reviewed_at: string;
+};
+
 export type ReportSummary = {
   id: string;
   report_type: string;
@@ -187,6 +206,8 @@ export type ReportSummary = {
   label_source?: string;
   validation_status?: string;
   data_type?: string;
+  ai_prediction?: AiPredictionOut | null;
+  analyst_decision?: AnalystDecisionOut | null;
 };
 
 export type ReportDetail = ReportSummary & {

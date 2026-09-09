@@ -177,3 +177,40 @@ def run_labeling_migrations(engine: Engine) -> None:
     logger.info("Checked / migrated human labeling tables and report columns.")
 
 
+def run_feedback_migrations(engine: Engine) -> None:
+    """Creates analyst_decisions table and ensures AI prediction immutability.
+
+    The analyst_decisions table stores human decisions separately from AI predictions
+    in SifClassification. The SifClassification table is NEVER modified by analyst actions.
+    """
+    from app.database import Base
+    from app.models import AnalystDecision
+
+    Base.metadata.create_all(bind=engine, tables=[AnalystDecision.__table__])
+
+    inspector = inspect(engine)
+    if "analyst_decisions" not in inspector.get_table_names():
+        logger.info("Creating analyst_decisions table for HIL workflow separation")
+        conn = engine.connect()
+        conn.execute(
+            text(
+                "CREATE TABLE analyst_decisions ("
+                "id VARCHAR(36) PRIMARY KEY, "
+                "report_id VARCHAR(36) NOT NULL, "
+                "analyst_id VARCHAR(36) NOT NULL, "
+                "analyst_label BOOLEAN, "
+                "review_action VARCHAR(50) NOT NULL, "
+                "analyst_comment TEXT, "
+                "ai_sif_label_at_time BOOLEAN, "
+                "ai_sif_probability_at_time FLOAT, "
+                "reviewed_at DATETIME(timezone=True) DEFAULT CURRENT_TIMESTAMP, "
+                "FOREIGN KEY (report_id) REFERENCES reports(id), "
+                "FOREIGN KEY (analyst_id) REFERENCES users(id)"
+                ")"
+            )
+        )
+        conn.commit()
+        conn.close()
+    logger.info("Checked / created analyst_decisions table.")
+
+

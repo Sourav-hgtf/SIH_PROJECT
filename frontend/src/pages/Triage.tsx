@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { api, getStoredUser, type LifecycleKpiOut, type ReportSummary } from "../api";
 import {
   AssessmentComparisonBadge,
+  AiPredictionBadge,
+  AnalystDecisionBadge,
   ConfidenceBar,
   LifecycleBadge,
   LsrChip,
@@ -219,11 +221,25 @@ export function TriagePage() {
                   <span className="text-warm">·</span>
                   <span className="text-warm">{new Date(row.reported_at).toLocaleDateString()}</span>
                   <LifecycleBadge status={row.lifecycle_status} />
-                  <AssessmentComparisonBadge
-                    aiLabel={row.sif_label}
-                    finalLabel={row.final_sif_label}
-                    decision={row.review?.decision}
-                  />
+<AssessmentComparisonBadge
+                     aiLabel={row.sif_label}
+                     finalLabel={row.final_sif_label}
+                     decision={row.review?.decision}
+                   />
+                   {row.ai_prediction && (
+                     <AiPredictionBadge
+                       aiLabel={row.ai_prediction.ai_label}
+                       aiProbability={row.ai_prediction.ai_probability}
+                       modelVersion={row.ai_prediction.model_version}
+                     />
+                   )}
+                   {row.analyst_decision && (
+                     <AnalystDecisionBadge
+                       action={row.analyst_decision.review_action}
+                       analystLabel={row.analyst_decision.analyst_label}
+                       reviewedAt={row.analyst_decision.reviewed_at}
+                     />
+                   )}
                 </div>
 
                 <p className="text-sm text-ink leading-relaxed">{row.excerpt}</p>

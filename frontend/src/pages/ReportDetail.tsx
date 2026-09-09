@@ -10,6 +10,8 @@ import {
 } from "../api";
 import {
   AssessmentComparisonBadge,
+  AiPredictionBadge,
+  AnalystDecisionBadge,
   CategoryBadge,
   ConfidenceBar,
   LifecycleBadge,
@@ -546,10 +548,29 @@ export function ReportDetailPage() {
               </div>
             </div>
 
-            <div className="mt-3 text-[11px] text-indigo-900/80 bg-indigo-100/50 rounded-md p-2">
-              🔒 <strong>AI Result Immutability Guarantee:</strong> Original model probability and features remain permanent and are never overwritten by analyst actions.
-            </div>
-          </section>
+<div className="mt-3 text-[11px] text-indigo-900/80 bg-indigo-100/50 rounded-md p-2">
+               🔒 <strong>AI Result Immutability Guarantee:</strong> Original model probability and features remain permanent and are never overwritten by analyst actions.
+             </div>
+             <div className="mt-3 flex flex-wrap gap-2">
+               {report.ai_prediction && (
+                 <AiPredictionBadge
+                   aiLabel={report.ai_prediction.ai_label}
+                   aiProbability={report.ai_prediction.ai_probability}
+                   modelVersion={report.ai_prediction.model_version}
+                 />
+               )}
+               {report.analyst_decision && (
+                 <AnalystDecisionBadge
+                   action={report.analyst_decision.review_action}
+                   analystLabel={report.analyst_decision.analyst_label}
+                   reviewedAt={report.analyst_decision.reviewed_at}
+                 />
+               )}
+               {!report.ai_prediction && !report.analyst_decision && (
+                 <span className="text-[11px] text-warm">No AI prediction or analyst decision recorded</span>
+               )}
+             </div>
+           </section>
 
           {/* Section 3: AI-Assisted Corrective Actions & Implementation */}
           <section className="rounded-xl border border-border bg-white p-5 shadow-card">

@@ -276,3 +276,39 @@ export function AssessmentComparisonBadge({
     </span>
   );
 }
+
+export function AiPredictionBadge({
+  aiLabel,
+  aiProbability,
+  modelVersion,
+}: {
+  aiLabel?: boolean | null;
+  aiProbability?: number | null;
+  modelVersion?: string | null;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-800" title={`Model: ${modelVersion || "unknown"}`}>
+      <span>AI: {aiLabel ? "SIF" : "Non-SIF"}</span>
+      <span className="font-mono">{aiProbability != null ? Math.round(aiProbability * 100) : "—"}%</span>
+    </span>
+  );
+}
+
+export function AnalystDecisionBadge({
+  action,
+  analystLabel,
+  reviewedAt,
+}: {
+  action?: string | null;
+  analystLabel?: boolean | null;
+  reviewedAt?: string | null;
+}) {
+  if (!action) return null;
+  const label = analystLabel === true ? "SIF" : analystLabel === false ? "Non-SIF" : "—";
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-cyan-300 bg-cyan-50 px-2 py-0.5 text-[11px] font-medium text-cyan-800">
+      <span>Analyst: {label}</span>
+      <span>({action})</span>
+    </span>
+  );
+}

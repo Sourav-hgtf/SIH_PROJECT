@@ -19,6 +19,7 @@ from typing import Any, Literal
 from sqlalchemy.orm import Session
 
 from app.models import (
+    AnalystDecision,
     AnalystFeedback,
     AuditLog,
     LabelReview,
@@ -247,6 +248,20 @@ def record_label_review(
             previous_value=before_state,
             new_value={"label": lbl, "validated_label": report.validated_label},
             comment=f"{reason}: {notes or ''}".strip(),
+        )
+    )
+
+    # 6. Create immutable AnalystDecision separating human decision from AI prediction
+    label_bool = True if lbl == "SIF" else False if lbl == "NON_SIF" else None
+    db.add(
+        AnalystDecision(
+            report_id=report.id,
+            analyst_id=reviewer_id,
+            analyst_label=label_bool,
+            review_action="LABELED",
+            analyst_comment=reason,
+            ai_sif_label_at_time=report.classification.sif_label if report.classification else None,
+            ai_sif_probability_at_time=report.classification.sif_probability if report.classification else None,
         )
     )
 

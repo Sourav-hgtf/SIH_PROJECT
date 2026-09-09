@@ -9,20 +9,23 @@ Covers:
 6. Inter-rater agreement calculation (Cohen's Kappa).
 7. Audit log generation for every label review.
 8. Preventing synthetic / unvalidated records from becoming gold labels or leaking into production ML training.
+9. Human-in-the-loop classification: AI prediction preserved, analyst decision separate.
+10. Confirmed SIF, overridden SIF, confirmed non-SIF, analyst decision without AI prediction.
 """
 
 import pytest
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.auth import create_token
 from app.database import Base, get_db
 from app.main import app
-from app.migrations import run_labeling_migrations, run_lsr_migrations, run_recommendation_migrations
+from app.migrations import run_feedback_migrations, run_labeling_migrations, run_lsr_migrations, run_recommendation_migrations
 from app.models import (
+    AnalystDecision,
     AuditLog,
     LabelReview,
     Report,
@@ -54,6 +57,7 @@ def setup_db():
     run_lsr_migrations(engine)
     run_recommendation_migrations(engine)
     run_labeling_migrations(engine)
+    run_feedback_migrations(engine)
     db = TestingSessionLocal()
 
     site = Site(id="site-test-lab", name="Labelling Test Facility", region="Mumbai")
@@ -416,3 +420,289 @@ def test_training_rejects_unvalidated_or_synthetic_data(setup_db):
         run_ml_training(empty_db, force_demo_fallback=False)
 
     empty_db.close()
+
+
+# ==============================================================================
+# 9. HUMAN-IN-THE-LOOP CLASSIFICATION: AI PREDICTION PRESERVED
+# ==============================================================================
+
+def test_confirmed_sif_preserves_ai_prediction(client, setup_db):
+    """When analyst confirms SIF, AI prediction must be preserved unchanged."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+    report_id = "rep-label-001"
+    report = db.get(Report, report_id)
+    clf = report.classification
+    original_ai_probability = clf.sif_probability
+    original_ai_label = clf.sif_label
+    original_model_version = clf.model_version
+
+    resp = client.post(
+        f"/v1/reports/{report_id}/confirm",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"notes": "Confirmed SIF assessment"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # AI prediction must be preserved
+    assert data["sif_probability"] == original_ai_probability
+    assert data["sif_label"] == original_ai_label
+    assert data["model_version"] == original_model_version
+    assert data["ai_prediction"]["ai_probability"] == original_ai_probability
+    assert data["ai_prediction"]["ai_label"] == original_ai_label
+    assert data["ai_prediction"]["model_version"] == original_model_version
+
+    # Analyst decision must be recorded
+    assert data["analyst_decision"] is not None
+    assert data["analyst_decision"]["review_action"] == "CONFIRMED"
+    assert data["analyst_decision"]["analyst_label"] == original_ai_label
+
+    # AnalystDecision record must exist
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == report_id).order_by(AnalystDecision.reviewed_at.desc()).all()
+    assert len(decisions) >= 1
+    assert decisions[0].review_action == "CONFIRMED"
+    assert decisions[0].ai_sif_probability_at_time == original_ai_probability
+
+    # SifClassification must NOT be modified
+    db.refresh(clf)
+    assert clf.sif_probability == original_ai_probability
+    assert clf.sif_label == original_ai_label
+    assert clf.model_version == original_model_version
+
+
+def test_overridden_sif_preserves_ai_prediction(client, setup_db):
+    """When analyst overrides SIF, AI prediction must be preserved unchanged."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+
+    # Create a separate report for override testing
+    report_id = "rep-label-005"
+    report = Report(
+        id=report_id,
+        source_report_id="INC-LAB-005",
+        report_type="incident",
+        site_id="site-test-lab",
+        department="Operations",
+        raw_text_redacted="Pressure vessel showing signs of fatigue cracking.",
+        reported_at=utcnow(),
+        lifecycle_status="AI_ANALYZED",
+        human_label="UNLABELED",
+        validated_label=None,
+        label_source="UNLABELED",
+        validation_status="UNLABELED",
+        data_type="synthetic",
+    )
+    report.classification = SifClassification(
+        sif_probability=0.75,
+        sif_label=True,
+        model_version="heuristic-v1",
+        classified_at=utcnow(),
+    )
+    db.add(report)
+    db.commit()
+    # Reload with classification joined
+    report = db.query(Report).options(joinedload(Report.classification)).filter(Report.id == report_id).first()
+    clf = report.classification
+    original_ai_probability = clf.sif_probability
+    original_ai_label = clf.sif_label
+
+    resp = client.post(
+        f"/v1/reports/{report_id}/override",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"final_sif_label": False, "reason": "False positive - no credible fatal exposure", "notes": "Surface hazard only"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    # AI prediction must be preserved
+    assert data["sif_probability"] == original_ai_probability
+    assert data["sif_label"] == original_ai_label
+    assert data["ai_prediction"]["ai_probability"] == original_ai_probability
+    assert data["ai_prediction"]["ai_label"] == original_ai_label
+
+    # Analyst decision must reflect override
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == report_id).order_by(AnalystDecision.reviewed_at.desc()).all()
+    assert len(decisions) >= 1
+    assert decisions[0].review_action == "OVERRIDDEN"
+    assert decisions[0].analyst_label is False
+
+    # SifClassification must NOT be modified
+    db.refresh(clf)
+    assert clf.sif_probability == original_ai_probability
+    assert clf.sif_label == original_ai_label
+
+    # AI prediction must be preserved
+    assert data["sif_probability"] == original_ai_probability
+    assert data["sif_label"] == original_ai_label
+    assert data["ai_prediction"]["ai_probability"] == original_ai_probability
+    assert data["ai_prediction"]["ai_label"] == original_ai_label
+
+    # Analyst decision must reflect override
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == report_id).order_by(AnalystDecision.reviewed_at.desc()).all()
+    assert len(decisions) >= 1
+    assert decisions[0].review_action == "OVERRIDDEN"
+    assert decisions[0].analyst_label is False
+
+    # SifClassification must NOT be modified
+    db.refresh(clf)
+    assert clf.sif_probability == original_ai_probability
+    assert clf.sif_label == original_ai_label
+
+
+def test_confirmed_non_sif_preserves_ai_prediction(client, setup_db):
+    """When analyst confirms NON-SIF, AI prediction must be preserved."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+
+    # Create a non-SIF report
+    rep2 = Report(
+        id="rep-label-003",
+        source_report_id="INC-LAB-003",
+        report_type="incident",
+        site_id="site-test-lab",
+        department="Maintenance",
+        raw_text_redacted="Minor spill on walkway. Wet floor sign deployed.",
+        reported_at=utcnow(),
+        lifecycle_status="AI_ANALYZED",
+    )
+    rep2.classification = SifClassification(
+        sif_probability=0.15,
+        sif_label=False,
+        model_version="heuristic-v1",
+        classified_at=utcnow(),
+    )
+    db.add(rep2)
+    db.commit()
+
+    resp = client.post(
+        f"/v1/reports/rep-label-003/confirm",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"notes": "Confirmed non-SIF assessment"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # AI prediction must be preserved
+    assert data["sif_probability"] == 0.15
+    assert data["sif_label"] is False
+    assert data["ai_prediction"]["ai_probability"] == 0.15
+    assert data["ai_prediction"]["ai_label"] is False
+
+    # Analyst decision must be recorded
+    assert data["analyst_decision"] is not None
+    assert data["analyst_decision"]["review_action"] == "CONFIRMED"
+    assert data["analyst_decision"]["analyst_label"] is False
+
+    # SifClassification must NOT be modified
+    clf = rep2.classification
+    db.refresh(clf)
+    assert clf.sif_probability == 0.15
+    assert clf.sif_label is False
+
+
+def test_analyst_decision_without_ai_prediction(client, setup_db):
+    """When analyst submits a label review on a report with no AI classification,
+    the analyst decision must still be recorded with null AI fields."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+
+    # Create a report without AI classification
+    rep_no_ai = Report(
+        id="rep-label-004",
+        source_report_id="INC-LAB-004",
+        report_type="incident",
+        site_id="site-test-lab",
+        department="Operations",
+        raw_text_redacted="Incident text without AI analysis.",
+        reported_at=utcnow(),
+        lifecycle_status="AI_ANALYZED",
+    )
+    db.add(rep_no_ai)
+    db.commit()
+
+    resp = client.post(
+        f"/v1/reports/rep-label-004/label-review",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"label": "SIF", "reason": "Analyst determination without AI prediction"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # AI prediction should be None
+    assert data["ai_prediction"] is None
+
+    # Analyst decision must still be recorded
+    assert data["analyst_decision"] is not None
+    assert data["analyst_decision"]["review_action"] == "LABELED"
+    assert data["analyst_decision"]["analyst_label"] is True
+
+    # AnalystDecision record must have null AI fields
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == "rep-label-004").all()
+    assert len(decisions) >= 1
+    assert decisions[0].ai_sif_label_at_time is None
+    assert decisions[0].ai_sif_probability_at_time is None
+    assert decisions[0].analyst_label is True
+
+
+def test_feedback_does_not_modify_ai_probability(client, setup_db):
+    """The /feedback endpoint must NOT modify SifClassification sif_probability or sif_label."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+    report_id = "rep-label-001"
+    report = db.get(Report, report_id)
+    clf = report.classification
+    original_probability = clf.sif_probability
+    original_label = clf.sif_label
+
+    resp = client.post(
+        "/v1/feedback",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "report_id": report_id,
+            "feedback_type": "confirm_sif",
+            "new_value": {"sif_label": True, "confirmed": True},
+            "comment": "Confirming SIF",
+            "review_action": "CONFIRMED",
+        },
+    )
+    assert resp.status_code == 201
+
+    # SifClassification must NOT be modified
+    db.refresh(clf)
+    assert clf.sif_probability == original_probability
+    assert clf.sif_label == original_label
+
+# AnalystDecision must exist
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == report_id).order_by(AnalystDecision.reviewed_at.desc()).all()
+    assert len(decisions) >= 1
+    assert decisions[0].review_action == "CONFIRMED"
+
+
+def test_ai_prediction_immutability_through_label_review(client, setup_db):
+    """Label review must not modify the SifClassification table."""
+    db = setup_db
+    token = create_token("user-analyst-1", "access", 60)
+    report_id = "rep-label-001"
+    report = db.get(Report, report_id)
+    clf = report.classification
+    original_probability = clf.sif_probability
+    original_label = clf.sif_label
+
+    resp = client.post(
+        f"/v1/reports/{report_id}/label-review",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"label": "NON_SIF", "reason": "Analyst disagrees with AI"},
+    )
+    assert resp.status_code == 200
+
+    # SifClassification must NOT be modified
+    db.refresh(clf)
+    assert clf.sif_probability == original_probability
+    assert clf.sif_label == original_label
+
+    # AnalystDecision must have recorded the original AI prediction
+    decisions = db.query(AnalystDecision).filter(AnalystDecision.report_id == report_id).order_by(AnalystDecision.reviewed_at.desc()).all()
+    assert len(decisions) >= 1
+    last_decision = decisions[0]
+    assert last_decision.ai_sif_probability_at_time == original_probability
+    assert last_decision.ai_sif_label_at_time == original_label

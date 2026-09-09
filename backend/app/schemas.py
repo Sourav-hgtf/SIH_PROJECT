@@ -88,6 +88,8 @@ class ReportSummary(BaseModel):
     label_source: str = "UNLABELED"
     validation_status: str = "UNLABELED"
     data_type: str = "synthetic"
+    ai_prediction: AiPredictionOut | None = None
+    analyst_decision: AnalystDecisionOut | None = None
 
 
 class LabelReviewIn(BaseModel):
@@ -223,6 +225,33 @@ class FeedbackCreate(BaseModel):
     feedback_type: FeedbackType
     new_value: dict[str, Any] | None = None
     comment: str | None = None
+    review_action: str | None = None  # CONFIRMED, OVERRIDDEN, LABELED - for analyst decision separation
+
+
+class AiPredictionOut(BaseModel):
+    ai_label: bool | None = None
+    ai_probability: float | None = None
+    model_version: str | None = None
+    model_timestamp: datetime | None = None
+
+
+class AnalystDecisionOut(BaseModel):
+    id: str
+    report_id: str
+    analyst_id: str
+    analyst_label: bool | None = None
+    review_action: str
+    analyst_comment: str | None = None
+    ai_sif_label_at_time: bool | None = None
+    ai_sif_probability_at_time: float | None = None
+    reviewed_at: datetime
+
+
+class AnalystDecisionIn(BaseModel):
+    report_id: str
+    review_action: str  # CONFIRMED, OVERRIDDEN, LABELED
+    analyst_label: bool | None = None
+    analyst_comment: str | None = None
 
 
 class FeedbackRecord(FeedbackCreate):

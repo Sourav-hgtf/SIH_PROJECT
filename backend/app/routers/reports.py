@@ -9,6 +9,7 @@ from app.auth import get_current_user, require_roles, scoped_site_ids
 from app.database import get_db
 from app.lifecycle import transition_report_lifecycle
 from app.models import (
+    AnalystDecision,
     AnalystFeedback,
     AuditLog,
     ClusterMember,
@@ -27,6 +28,8 @@ from app.models import (
 from app.nlp.lsr import get_canonical_rule_metadata, get_rule_by_id, get_rule_by_name
 from app.priority.engine import score_report
 from app.schemas import (
+    AiPredictionOut,
+    AnalystDecisionOut,
     CaseReopenIn,
     CaseResolutionIn,
     LabelReviewIn,
@@ -88,6 +91,28 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
     tags = [_to_lsr_tag_out(t) for t in report.lsr_tags]
     text = report.raw_text_redacted or ""
     priority_out = score_report(report, db)
+    ai_prediction = None
+    if clf:
+        ai_prediction = AiPredictionOut(
+            ai_label=clf.sif_label,
+            ai_probability=clf.sif_probability,
+            model_version=clf.model_version,
+            model_timestamp=clf.classified_at,
+        )
+    analyst_decision = None
+    if report.analyst_decisions:
+        ad = report.analyst_decisions[0]
+        analyst_decision = AnalystDecisionOut(
+            id=ad.id,
+            report_id=ad.report_id,
+            analyst_id=ad.analyst_id,
+            analyst_label=ad.analyst_label,
+            review_action=ad.review_action,
+            analyst_comment=ad.analyst_comment,
+            ai_sif_label_at_time=ad.ai_sif_label_at_time,
+            ai_sif_probability_at_time=ad.ai_sif_probability_at_time,
+            reviewed_at=ad.reviewed_at,
+        )
     return ReportSummary(
         id=report.id,
         report_type=report.report_type,
@@ -109,6 +134,8 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
         label_source=report.label_source or "UNLABELED",
         validation_status=report.validation_status or "UNLABELED",
         data_type=getattr(report, "data_type", "synthetic") or "synthetic",
+        ai_prediction=ai_prediction,
+        analyst_decision=analyst_decision,
     )
 
 
@@ -318,6 +345,7 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: User = Depen
             joinedload(Report.triples),
             joinedload(Report.reviews),
             joinedload(Report.label_reviews),
+            joinedload(Report.analyst_decisions),
         )
         .filter(Report.id == report_id)
         .first()
@@ -340,6 +368,11 @@ def submit_label_review(
     """Submits a human review for SIF potential, versioning history and applying consensus policies."""
     from app.services.label_service import record_label_review
 
+    report = db.get(Report, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    clf = report.classification
+
     try:
         record_label_review(
             db=db,
@@ -355,6 +388,25 @@ def submit_label_review(
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
+    # Create immutable AnalystDecision separating human decision from AI prediction
+    label_bool = None
+    if body.label == "SIF":
+        label_bool = True
+    elif body.label == "NON_SIF":
+        label_bool = False
+    db.add(
+        AnalystDecision(
+            report_id=report.id,
+            analyst_id=user.id,
+            analyst_label=label_bool,
+            review_action="LABELED",
+            analyst_comment=body.reason,
+            ai_sif_label_at_time=clf.sif_label if clf else None,
+            ai_sif_probability_at_time=clf.sif_probability if clf else None,
+        )
+    )
+    db.commit()
+
     report = (
         db.query(Report)
         .options(
@@ -365,6 +417,7 @@ def submit_label_review(
             joinedload(Report.triples),
             joinedload(Report.reviews),
             joinedload(Report.label_reviews),
+            joinedload(Report.analyst_decisions),
         )
         .filter(Report.id == report_id)
         .first()
@@ -430,6 +483,19 @@ def confirm_report_sif(
         )
     )
 
+    # Create immutable AnalystDecision separating human decision from AI prediction
+    db.add(
+        AnalystDecision(
+            report_id=report.id,
+            analyst_id=user.id,
+            analyst_label=clf.sif_label,
+            review_action="CONFIRMED",
+            analyst_comment=body.notes,
+            ai_sif_label_at_time=clf.sif_label,
+            ai_sif_probability_at_time=clf.sif_probability,
+        )
+    )
+
     try:
         transition_report_lifecycle(db, report, "CONFIRMED", user.id, reason="Confirmed SIF assessment", notes=body.notes)
     except ValueError as e:
@@ -483,6 +549,19 @@ def override_report_sif(
             previous_value={"sif_label": clf.sif_label, "sif_probability": clf.sif_probability},
             new_value={"sif_label": body.final_sif_label, "override_reason": body.reason},
             comment=f"{body.reason}: {body.notes or ''}".strip(),
+        )
+    )
+
+    # Create immutable AnalystDecision separating human decision from AI prediction
+    db.add(
+        AnalystDecision(
+            report_id=report.id,
+            analyst_id=user.id,
+            analyst_label=body.final_sif_label,
+            review_action="OVERRIDDEN",
+            analyst_comment=body.reason,
+            ai_sif_label_at_time=clf.sif_label,
+            ai_sif_probability_at_time=clf.sif_probability,
         )
     )
 
