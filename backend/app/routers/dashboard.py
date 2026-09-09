@@ -1,5 +1,16 @@
 from datetime import date, datetime, timezone
 
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class FilterParams(BaseModel):
+    start_date: Optional[date] = Field(None, description="Start of date range filter")
+    end_date: Optional[date] = Field(None, description="End of date range filter")
+    site_id: Optional[str] = Field(None, description="Site identifier filter")
+    department: Optional[str] = Field(None, description="Department filter")
+    lsr_category: Optional[str] = Field(None, description="LSR category filter")
+    min_confidence: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum SIF confidence/probability")
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
@@ -34,6 +45,22 @@ def _scoped(q, user: User):
         q = q.filter(Report.site_id.in_(allowed or ["__none__"]))
     return q
 
+def _apply_filters(q, filters: 'FilterParams'):
+    """Apply common filter parameters to a SQLAlchemy query.
+    All params are optional.
+    """
+    if filters.start_date:
+        q = q.filter(func.date(Report.reported_at) >= filters.start_date)
+    if filters.end_date:
+        q = q.filter(func.date(Report.reported_at) <= filters.end_date)
+    if filters.site_id:
+        q = q.filter(Report.site_id == filters.site_id)
+    if hasattr(Report, "department") and filters.department:
+        q = q.filter(Report.department == filters.department)
+    if filters.min_confidence is not None:
+        q = q.filter(SifClassification.sif_probability >= filters.min_confidence)
+    return q
+
 
 @router.get("/sites", response_model=list[SiteOut])
 def list_sites(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -46,8 +73,7 @@ def list_sites(db: Session = Depends(get_db), user: User = Depends(get_current_u
 
 @router.get("/sif-density", response_model=list[DensityRow])
 def sif_density(
-    date_from: date | None = None,
-    date_to: date | None = None,
+    filters: FilterParams = Depends(),
     group_by: str = Query("site", pattern="^(site|department|activity)$"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -56,10 +82,7 @@ def sif_density(
     total = func.count(Report.id)
     q = db.query(Report).join(SifClassification, SifClassification.report_id == Report.id)
     q = _scoped(q, user)
-    if date_from:
-        q = q.filter(func.date(Report.reported_at) >= date_from)
-    if date_to:
-        q = q.filter(func.date(Report.reported_at) <= date_to)
+    q = _apply_filters(q, filters)
 
     if group_by == "department":
         rows = (
@@ -87,10 +110,7 @@ def sif_density(
             .outerjoin(SifClassification, SifClassification.report_id == Report.id)
         )
         q2 = _scoped(q2, user)
-        if date_from:
-            q2 = q2.filter(func.date(Report.reported_at) >= date_from)
-        if date_to:
-            q2 = q2.filter(func.date(Report.reported_at) <= date_to)
+        q2 = _apply_filters(q2, filters)
         rows = q2.group_by(PrecursorTriple.activity).all()
         out = [
             DensityRow(
@@ -125,9 +145,7 @@ def sif_density(
 
 @router.get("/lsr-distribution", response_model=list[LsrDistributionRow])
 def lsr_distribution(
-    site_id: str | None = None,
-    date_from: date | None = None,
-    date_to: date | None = None,
+    filters: FilterParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -138,12 +156,7 @@ def lsr_distribution(
         .join(Report, Report.id == LsrTag.report_id)
     )
     q = _scoped(q, user)
-    if site_id:
-        q = q.filter(Report.site_id == site_id)
-    if date_from:
-        q = q.filter(func.date(Report.reported_at) >= date_from)
-    if date_to:
-        q = q.filter(func.date(Report.reported_at) <= date_to)
+    q = _apply_filters(q, filters)
 
     rows = q.group_by(LsrTag.lsr_category, LsrTag.rule_id).all()
 
@@ -166,7 +179,7 @@ def lsr_distribution(
 
 @router.get("/trend", response_model=list[TrendRow])
 def trend(
-    site_id: str | None = None,
+    filters: FilterParams = Depends(),
     interval: str = Query("week", pattern="^(day|week|month)$"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -189,8 +202,7 @@ def trend(
         func.count(Report.id),
     ).join(SifClassification, SifClassification.report_id == Report.id)
     q = _scoped(q, user)
-    if site_id:
-        q = q.filter(Report.site_id == site_id)
+    q = _apply_filters(q, filters)
     rows = q.group_by("period").order_by("period").all()
     return [
         TrendRow(period=str(p), sif_count=int(s or 0), total_count=int(t or 0))
@@ -200,15 +212,17 @@ def trend(
 
 
 @router.get("/kpis")
-def kpis(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def kpis(filters: FilterParams = Depends(), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     q = db.query(Report).join(SifClassification, SifClassification.report_id == Report.id)
     q = _scoped(q, user)
+    q = _apply_filters(q, filters)
     total = q.count()
     sif = q.filter(SifClassification.sif_label.is_(True)).count()
     avg = db.query(func.avg(SifClassification.sif_probability)).join(Report).filter(
         SifClassification.report_id == Report.id
     )
-    avg = _scoped(avg, user).scalar() or 0
+    avg = _scoped(avg, user)
+    avg = _apply_filters(avg, filters).scalar() or 0
     pending = q.filter(Report.lifecycle_status.in_(["INGESTED", "AI_ANALYZED", "HSE_REVIEW", "REOPENED"])).count()
     return {
         "total_reports": total,
@@ -327,7 +341,7 @@ def get_agreement_analytics(db: Session = Depends(get_db), user: User = Depends(
 
 @router.get("/priority-summary", response_model=list[PrioritySummaryRow])
 def priority_summary(
-    site_id: str | None = None,
+    filters: FilterParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -338,8 +352,7 @@ def priority_summary(
         joinedload(Report.site),
     )
     q = _scoped(q, user)
-    if site_id:
-        q = q.filter(Report.site_id == site_id)
+    q = _apply_filters(q, filters)
     reports = q.all()
     tier_counts: dict[str, int] = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
     for r in reports:
