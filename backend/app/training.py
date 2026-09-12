@@ -515,8 +515,10 @@ def run_ml_training(
 
         # 3. Probability Calibration on Validation set
         calibrator, calibration_version, calib_diag = calibrate_classifier(
-            base_pipeline, X_val_proc, y_val, method="sigmoid"
+            base_pipeline, X_val_proc, y_val, method=None
         )
+        is_calibrated = calib_diag.get("is_calibrated", False)
+        calibration_method = calib_diag.get("method", "none")
 
         # 4. Threshold Optimization on Validation set only
         val_proba = calibrator.predict_proba(X_val_proc)[:, 1] if len(X_val_proc) > 0 else []
@@ -524,28 +526,51 @@ def run_ml_training(
             y_val, val_proba, target_recall=0.85, fallback_threshold=settings.sif_threshold
         )
 
-        # 5. Final Holdout Evaluation strictly on untouched Test set
-        y_test_proba = calibrator.predict_proba(X_test_proc)[:, 1]
-        y_test_pred = [bool(p >= optimal_threshold) for p in y_test_proba]
+        # 5. Final Holdout Evaluation strictly on untouched Test set (Both Uncalibrated & Calibrated)
+        y_test_proba_uncal = base_pipeline.predict_proba(X_test_proc)[:, 1]
+        y_test_proba_cal = calibrator.predict_proba(X_test_proc)[:, 1]
+        y_test_pred = [bool(p >= optimal_threshold) for p in y_test_proba_cal]
 
+        # Test metrics for calibrated model
         precision, recall, f1, _ = precision_recall_fscore_support(
             y_test, y_test_pred, average="binary", zero_division=0
         )
         accuracy = accuracy_score(y_test, y_test_pred)
 
         try:
-            roc_auc = roc_auc_score(y_test, y_test_proba)
+            roc_auc_cal = round(float(roc_auc_score(y_test, y_test_proba_cal)), 4)
         except ValueError:
-            roc_auc = None
+            roc_auc_cal = None
 
         try:
-            pr_auc = average_precision_score(y_test, y_test_proba)
+            pr_auc_cal = round(float(average_precision_score(y_test, y_test_proba_cal)), 4)
         except ValueError:
-            pr_auc = None
+            pr_auc_cal = None
 
-        brier = compute_brier_score(y_test, y_test_proba)
-        ece = compute_expected_calibration_error(y_test, y_test_proba)
-        logloss = compute_log_loss(y_test, y_test_proba)
+        brier_cal = compute_brier_score(y_test, y_test_proba_cal)
+        ece_cal = compute_expected_calibration_error(y_test, y_test_proba_cal)
+        logloss_cal = compute_log_loss(y_test, y_test_proba_cal)
+
+        # Test metrics for uncalibrated baseline
+        try:
+            roc_auc_uncal = round(float(roc_auc_score(y_test, y_test_proba_uncal)), 4)
+        except ValueError:
+            roc_auc_uncal = None
+
+        try:
+            pr_auc_uncal = round(float(average_precision_score(y_test, y_test_proba_uncal)), 4)
+        except ValueError:
+            pr_auc_uncal = None
+
+        brier_uncal = compute_brier_score(y_test, y_test_proba_uncal)
+        ece_uncal = compute_expected_calibration_error(y_test, y_test_proba_uncal)
+        logloss_uncal = compute_log_loss(y_test, y_test_proba_uncal)
+
+        brier_improvement = (
+            round(float(brier_uncal - brier_cal), 4)
+            if brier_uncal is not None and brier_cal is not None
+            else None
+        )
 
         tn, fp, fn, tp = confusion_matrix(y_test, y_test_pred, labels=[False, True]).ravel()
         specificity = round(float(tn / (tn + fp)), 3) if (tn + fp) > 0 else 0.0
@@ -558,6 +583,7 @@ def run_ml_training(
         metrics = {
             "status": "VALIDATED",
             "evaluation_trusted": True,
+            "is_calibrated": is_calibrated,
             "sample_size": len(records),
             "train_size": len(train_records),
             "val_size": len(val_records),
@@ -566,11 +592,29 @@ def run_ml_training(
             "recall": round(float(recall), 3),
             "f1": round(float(f1), 3),
             "accuracy": round(float(accuracy), 3),
-            "roc_auc": round(float(roc_auc), 3) if roc_auc is not None else None,
-            "pr_auc": round(float(pr_auc), 3) if pr_auc is not None else None,
-            "brier_score": brier,
-            "expected_calibration_error": ece,
-            "log_loss": logloss,
+            "roc_auc": roc_auc_cal,
+            "pr_auc": pr_auc_cal,
+            "brier_score": brier_cal,
+            "brier_score_uncalibrated": brier_uncal,
+            "brier_score_improvement": brier_improvement,
+            "expected_calibration_error": ece_cal,
+            "expected_calibration_error_uncalibrated": ece_uncal,
+            "log_loss": logloss_cal,
+            "log_loss_uncalibrated": logloss_uncal,
+            "test_metrics_before_calibration": {
+                "brier_score": brier_uncal,
+                "expected_calibration_error": ece_uncal,
+                "log_loss": logloss_uncal,
+                "roc_auc": roc_auc_uncal,
+                "pr_auc": pr_auc_uncal,
+            },
+            "test_metrics_after_calibration": {
+                "brier_score": brier_cal,
+                "expected_calibration_error": ece_cal,
+                "log_loss": logloss_cal,
+                "roc_auc": roc_auc_cal,
+                "pr_auc": pr_auc_cal,
+            },
             "specificity": specificity,
             "false_positive_rate": false_positive_rate,
             "false_negative_rate": false_negative_rate,
@@ -592,6 +636,8 @@ def run_ml_training(
                 "dataset_version": DATASET_VERSION,
                 "label_schema_version": LABEL_SCHEMA_VERSION,
                 "calibration_version": calibration_version,
+                "calibration_method": calibration_method,
+                "is_calibrated": is_calibrated,
                 "threshold_version": threshold_version,
                 "optimal_threshold": optimal_threshold,
                 "training_run_id": training_run_id,
@@ -621,6 +667,8 @@ def run_ml_training(
         "dataset_version": DATASET_VERSION,
         "label_schema_version": LABEL_SCHEMA_VERSION,
         "calibration_version": calibration_version,
+        "calibration_method": calibration_method,
+        "is_calibrated": is_calibrated,
         "threshold_version": threshold_version,
         "optimal_threshold": optimal_threshold,
         "training_run_id": training_run_id,
@@ -644,6 +692,8 @@ def run_ml_training(
                 "feature_version": FEATURE_VERSION,
                 "preprocessing_version": PREPROCESSING_VERSION,
                 "calibration_version": calibration_version,
+                "calibration_method": calibration_method,
+                "is_calibrated": is_calibrated,
                 "threshold_version": threshold_version,
                 "optimal_threshold": optimal_threshold,
                 "training_run_id": training_run_id,

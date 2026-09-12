@@ -157,9 +157,6 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
     processed_text = prep["processed_text"]
 
     model_data = load_sif_model()
-    # Use calibrated estimator if available, else base pipeline
-    estimator = model_data.get("calibrator") or model_data.get("pipeline")
-
     model_version = model_data.get("model_version", "unknown")
     feature_version = model_data.get("feature_version", "tfidf-unigram-bigram-v1")
     preprocessing_version = model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1")
@@ -169,9 +166,23 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
     training_run_id = model_data.get("training_run_id", "")
     dataset_version = model_data.get("dataset_version", "sih-safety-ds-v1")
 
+    calibrator = model_data.get("calibrator")
+    pipeline = model_data.get("pipeline")
+    is_calibrated = bool(
+        calibrator is not None
+        and "sklearn-ccv" in calibration_version
+        and not calibration_version.startswith("uncalibrated")
+    )
+    calibration_status = "CALIBRATED" if is_calibrated else "UNCALIBRATED_FALLBACK"
+
+    estimator = calibrator if is_calibrated else (pipeline or calibrator)
+
     if estimator is None:
         return {
             "sif_probability": 0.0,
+            "calibrated_sif_probability": None,
+            "is_calibrated": False,
+            "calibration_status": "NO_MODEL_LOADED",
             "sif_potential": False,
             "model_version": model_version,
             "feature_version": feature_version,
@@ -189,10 +200,14 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
         classes = list(estimator.classes_)
         positive_idx = classes.index(True) if True in classes else 1
         proba = float(estimator.predict_proba([processed_text])[0][positive_idx])
-        is_sif = proba >= optimal_threshold
+        proba_clamped = max(0.0, min(1.0, proba))
+        is_sif = proba_clamped >= optimal_threshold
 
         return {
-            "sif_probability": round(proba, 4),
+            "sif_probability": round(proba_clamped, 4),
+            "calibrated_sif_probability": round(proba_clamped, 4) if is_calibrated else None,
+            "is_calibrated": is_calibrated,
+            "calibration_status": calibration_status,
             "sif_potential": is_sif,
             "model_version": model_version,
             "feature_version": feature_version,
@@ -209,6 +224,9 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
         logger.error(f"Prediction inference failed: {e}")
         return {
             "sif_probability": 0.0,
+            "calibrated_sif_probability": None,
+            "is_calibrated": False,
+            "calibration_status": "PREDICTION_ERROR",
             "sif_potential": False,
             "model_version": model_version,
             "feature_version": feature_version,

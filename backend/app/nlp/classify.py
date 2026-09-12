@@ -164,16 +164,18 @@ def classify_sif(text: str, threshold: float | None = None) -> dict:
     features = extract_features(text)
     weak = apply_labeling_functions(text)
 
-    # Get ML prediction
-    score, model_version = predict_sif_probability(text)
-
-    # Load version details from active model
-    model_data = load_sif_model()
-    feature_version = model_data.get("feature_version", "tfidf-unigram-bigram-v1")
-    preprocessing_version = model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1")
-    calibration_version = model_data.get("calibration_version", "platt-sigmoid-v1")
-    threshold_version = model_data.get("threshold_version", "thresh-recall-prioritized-v1")
-    opt_threshold = float(model_data.get("optimal_threshold", settings.sif_threshold))
+    # Get ML prediction with calibrated probability details
+    details = predict_sif_details(text)
+    score = details["sif_probability"]
+    calibrated_score = details.get("calibrated_sif_probability")
+    is_calibrated = details.get("is_calibrated", False)
+    calibration_status = details.get("calibration_status", "UNCALIBRATED_FALLBACK")
+    model_version = details.get("model_version", "unknown")
+    feature_version = details.get("feature_version", "tfidf-unigram-bigram-v1")
+    preprocessing_version = details.get("preprocessing_version", "prep-pii-spell-abbr-v1")
+    calibration_version = details.get("calibration_version", "uncalibrated-v0")
+    threshold_version = details.get("threshold_version", "thresh-recall-prioritized-v1")
+    opt_threshold = float(details.get("threshold", settings.sif_threshold))
     effective_threshold = threshold if threshold is not None else opt_threshold
 
     phrases = []
@@ -186,6 +188,9 @@ def classify_sif(text: str, threshold: float | None = None) -> dict:
 
     return {
         "sif_probability": round(score, 4),
+        "calibrated_sif_probability": calibrated_score,
+        "is_calibrated": is_calibrated,
+        "calibration_status": calibration_status,
         "sif_label": score >= effective_threshold,
         "model_version": model_version,
         "feature_version": feature_version,

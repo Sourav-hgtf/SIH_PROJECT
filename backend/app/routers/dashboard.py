@@ -49,13 +49,15 @@ def _apply_filters(q, filters: 'FilterParams'):
     """Apply common filter parameters to a SQLAlchemy query.
     All params are optional.
     """
+    if not hasattr(filters, "start_date"):
+        return q
     if filters.start_date:
         q = q.filter(func.date(Report.reported_at) >= filters.start_date)
     if filters.end_date:
         q = q.filter(func.date(Report.reported_at) <= filters.end_date)
     if filters.site_id:
         q = q.filter(Report.site_id == filters.site_id)
-    if hasattr(Report, "department") and filters.department:
+    if hasattr(Report, "department") and getattr(filters, "department", None):
         q = q.filter(Report.department == filters.department)
     if filters.min_confidence is not None:
         q = q.filter(SifClassification.sif_probability >= filters.min_confidence)

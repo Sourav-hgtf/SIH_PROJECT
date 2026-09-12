@@ -165,7 +165,8 @@ def _is_excluded(span: str) -> bool:
 def _load_spacy_nlp():
     """Load spaCy en_core_web_sm. Returns None if unavailable."""
     try:
-        import spacy  # noqa: PLC0415
+        import importlib
+        spacy = importlib.import_module("spacy")
         nlp = spacy.load(
             "en_core_web_sm",
             disable=["parser", "lemmatizer", "attribute_ruler"],

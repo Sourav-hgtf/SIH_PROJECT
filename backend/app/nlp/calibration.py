@@ -39,7 +39,7 @@ from sklearn.metrics import brier_score_loss, log_loss
 
 logger = logging.getLogger(__name__)
 
-BASE_CALIBRATION_VERSION = "sklearn-ccv-sigmoid-prefit-v1"
+BASE_CALIBRATION_VERSION = "sklearn-ccv-sigmoid-v1"
 BASE_THRESHOLD_VERSION = "thresh-recall-prioritized-v1"
 ARTIFACT_PATH = Path(__file__).resolve().parents[2] / "data" / "model_artifacts" / "sif_calibration.json"
 
@@ -103,37 +103,80 @@ def compute_log_loss(y_true: Sequence[bool], y_prob: Sequence[float]) -> float |
         return None
 
 
+def compute_calibration_curve_data(
+    y_true: Sequence[bool],
+    y_prob: Sequence[float],
+    n_bins: int = 5,
+) -> dict[str, list[float]] | None:
+    """Compute calibration curve reliability points (fraction of positives vs mean predicted value)."""
+    if len(y_true) < 2 or len(y_prob) < 2 or len(set(y_true)) < 2:
+        return None
+    try:
+        from sklearn.calibration import calibration_curve
+
+        prob_true, prob_pred = calibration_curve(
+            [1 if y else 0 for y in y_true],
+            list(y_prob),
+            n_bins=n_bins,
+        )
+        return {
+            "prob_true": [round(float(v), 4) for v in prob_true],
+            "prob_pred": [round(float(v), 4) for v in prob_pred],
+        }
+    except Exception as e:
+        logger.warning(f"Error computing calibration curve: {e}")
+        return None
+
+
+def select_calibration_method(val_sample_size: int, requested_method: str | None = None) -> str:
+    """Select appropriate calibration method based on validation set size.
+
+    - Sigmoid (Platt scaling) for smaller validation sets (< 1000 samples) to prevent overfitting.
+    - Isotonic regression only if validation sample size is sufficiently large (>= 1000 samples).
+    """
+    if requested_method in ("sigmoid", "isotonic"):
+        return requested_method
+    return "isotonic" if val_sample_size >= 1000 else "sigmoid"
+
+
 def calibrate_classifier(
     base_estimator: Any,
     X_val: Sequence[str],
     y_val: Sequence[bool],
-    method: str = "sigmoid",
+    method: str | None = None,
 ) -> tuple[Any, str, dict[str, Any]]:
-    """Fits sklearn CalibratedClassifierCV(cv='prefit') on held-out validation data.
+    """Fits sklearn CalibratedClassifierCV with FrozenEstimator on held-out validation data.
 
     The base_estimator must already be fitted on the TRAINING partition.
-    CalibratedClassifierCV with cv='prefit' wraps the fitted estimator and fits
-    only the sigmoid calibration layer on X_val / y_val, never re-fitting the
-    base model weights or TF-IDF vocabulary.
+    FrozenEstimator wraps the fitted pipeline so CalibratedClassifierCV fits
+    ONLY the calibration mapping (sigmoid / Platt scaling or isotonic) on X_val / y_val,
+    never re-fitting the base model weights or TF-IDF vocabulary.
 
     Returns:
         (calibrated_estimator, calibration_version, calibration_diagnostics)
-
-    calibration_version format: sklearn-ccv-{method}-prefit-v1
     """
+    selected_method = select_calibration_method(len(X_val), method)
+
     if len(X_val) < 4 or len(set(y_val)) < 2:
         logger.warning(
-            "Validation set insufficient for CalibratedClassifierCV (need >=4 samples, both classes present); "
+            "Validation set insufficient for probability calibration (need >=4 samples, both classes present); "
             "returning base estimator uncalibrated."
         )
         return base_estimator, "uncalibrated-insufficient-val-v0", {
             "method": "none",
             "calibrator": "none",
+            "is_calibrated": False,
+            "status": "INSUFFICIENT_VALIDATION_DATA",
+            "val_samples_used": len(X_val),
             "brier_score_before": None,
             "brier_score_after": None,
             "ece_before": None,
             "ece_after": None,
+            "log_loss_before": None,
+            "log_loss_after": None,
         }
+
+    y_val_binary = [1 if y else 0 for y in y_val]
 
     # Measure uncalibrated probabilities on validation set
     try:
@@ -141,48 +184,61 @@ def calibrate_classifier(
         brier_before = compute_brier_score(y_val, uncal_prob)
         ece_before = compute_expected_calibration_error(y_val, uncal_prob)
         logloss_before = compute_log_loss(y_val, uncal_prob)
+        curve_before = compute_calibration_curve_data(y_val, uncal_prob)
     except Exception as e:
         logger.warning(f"Failed to measure uncalibrated metrics: {e}")
-        brier_before = ece_before = logloss_before = None
+        brier_before = ece_before = logloss_before = curve_before = None
 
-    # Fit CalibratedClassifierCV(cv='prefit') on validation partition only
+    # Fit CalibratedClassifierCV with FrozenEstimator on validation partition only
     try:
+        from sklearn.frozen import FrozenEstimator
+
+        n_val = len(X_val)
+        cv_single_split = [(np.arange(n_val), np.arange(n_val))]
+
         calibrated = CalibratedClassifierCV(
-            estimator=base_estimator,
-            method=method,       # 'sigmoid' = Platt scaling
-            cv="prefit",         # base estimator is already fitted; only the sigmoid layer is trained here
+            estimator=FrozenEstimator(base_estimator),
+            method=selected_method,
+            cv=cv_single_split,
         )
-        calibrated.fit(X_val, [1 if y else 0 for y in y_val])
+        calibrated.fit(X_val, y_val_binary)
 
         cal_prob = calibrated.predict_proba(X_val)[:, 1]
         brier_after = compute_brier_score(y_val, cal_prob)
         ece_after = compute_expected_calibration_error(y_val, cal_prob)
         logloss_after = compute_log_loss(y_val, cal_prob)
+        curve_after = compute_calibration_curve_data(y_val, cal_prob)
 
-        cal_version = f"sklearn-ccv-{method}-prefit-v1"
-
-        metrics = {
-            "method": method,
-            "calibrator": "CalibratedClassifierCV",
-            "cv": "prefit",
-            "brier_score_before": brier_before,
-            "brier_score_after": brier_after,
-            "ece_before": ece_before,
-            "ece_after": ece_after,
-            "log_loss_before": logloss_before,
-            "log_loss_after": logloss_after,
-            "val_samples_used": len(X_val),
-        }
+        cal_version = f"sklearn-ccv-{selected_method}-v1"
 
         improvement = (
             round(float(brier_before - brier_after), 4)
             if brier_before is not None and brier_after is not None
             else None
         )
-        metrics["brier_score_improvement"] = improvement
+
+        metrics = {
+            "method": selected_method,
+            "calibrator": "CalibratedClassifierCV",
+            "estimator_wrapper": "FrozenEstimator",
+            "is_calibrated": True,
+            "status": "CALIBRATED",
+            "brier_score_before": brier_before,
+            "brier_score_after": brier_after,
+            "brier_score_improvement": improvement,
+            "ece_before": ece_before,
+            "ece_after": ece_after,
+            "log_loss_before": logloss_before,
+            "log_loss_after": logloss_after,
+            "calibration_curve_before": curve_before,
+            "calibration_curve_after": curve_after,
+            "val_samples_used": n_val,
+            "val_positives": int(sum(y_val_binary)),
+            "val_negatives": int(n_val - sum(y_val_binary)),
+        }
 
         logger.info(
-            f"CalibratedClassifierCV(method={method}, cv='prefit') fitted on {len(X_val)} validation samples. "
+            f"CalibratedClassifierCV(FrozenEstimator, method={selected_method}) fitted on {n_val} validation samples. "
             f"Brier: {brier_before} → {brier_after}  ECE: {ece_before} → {ece_after}"
         )
         return calibrated, cal_version, metrics
@@ -194,9 +250,12 @@ def calibrate_classifier(
         return base_estimator, "uncalibrated-fit-error-v0", {
             "method": "failed",
             "calibrator": "none",
+            "is_calibrated": False,
+            "status": "CALIBRATION_FAILED",
             "error": str(e),
             "brier_score_before": brier_before,
             "brier_score_after": None,
+            "val_samples_used": len(X_val),
         }
 
 
