@@ -279,6 +279,8 @@ def get_lifecycle_kpis(db: Session = Depends(get_db), user: User = Depends(get_c
     else:
         agreement_rate = 100.0
 
+    total_cases = base_q.count()
+
     return LifecycleKpiOut(
         pending_review=pending,
         confirmed_sif=confirmed,
@@ -288,6 +290,7 @@ def get_lifecycle_kpis(db: Session = Depends(get_db), user: User = Depends(get_c
         resolved_cases=resolved,
         reopened_cases=reopened,
         agreement_rate=agreement_rate,
+        total_cases=total_cases,
     )
 
 

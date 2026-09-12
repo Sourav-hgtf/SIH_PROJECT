@@ -425,6 +425,7 @@ class LifecycleKpiOut(BaseModel):
     resolved_cases: int
     reopened_cases: int
     agreement_rate: float
+    total_cases: int = 0
 
 
 class AgreementAnalyticsOut(BaseModel):
