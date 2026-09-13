@@ -98,7 +98,7 @@ Split function: `create_leak_free_split` (backend/app/training.py)
 
 | Property | Value |
 |---|---|
-| Model version | sif-logreg-v1-20260913175850 |
+| Model version | sif-logreg-v1-20260913180843 |
 | Calibration version | sklearn-ccv-sigmoid-v1 |
 | Threshold version | thresh-opt-recall-0.85-v1 |
 | Optimal threshold | 0.45 |
@@ -115,9 +115,9 @@ Split function: `create_leak_free_split` (backend/app/training.py)
 | specificity | 0.0 |
 | roc_auc | 1.0 |
 | pr_auc | 1.0 |
-| brier_score | 0.1573 |
-| expected_calibration_error | 0.3829 |
-| log_loss | 0.4979 |
+| brier_score | 0.1618 |
+| expected_calibration_error | 0.0375 |
+| log_loss | 0.4956 |
 | false_positive_count | 1 |
 | false_negative_count | 0 |
 | SIF recall (priority metric) | 1.0 |
@@ -132,11 +132,11 @@ Split function: `create_leak_free_split` (backend/app/training.py)
 | recall | 1.0 |
 | f1 | 0.8 |
 | specificity | 0.0 |
-| roc_auc | 0.25 |
-| pr_auc | 0.5833 |
-| brier_score | 0.2589 |
-| expected_calibration_error | 0.2652 |
-| log_loss | 0.7128 |
+| roc_auc | 0.5 |
+| pr_auc | 0.8333 |
+| brier_score | 0.2194 |
+| expected_calibration_error | 0.011 |
+| log_loss | 0.629 |
 | false_positive_count | 1 |
 | false_negative_count | 0 |
 | SIF recall (priority metric) | 1.0 |
@@ -151,11 +151,11 @@ Split function: `create_leak_free_split` (backend/app/training.py)
 | recall | 1.0 |
 | f1 | 0.8 |
 | specificity | 0.0 |
-| roc_auc | 0.6875 |
-| pr_auc | 0.7917 |
-| brier_score | 0.2081 |
-| expected_calibration_error | 0.0588 |
-| log_loss | 0.6054 |
+| roc_auc | 0.875 |
+| pr_auc | 0.95 |
+| brier_score | 0.1906 |
+| expected_calibration_error | 0.0132 |
+| log_loss | 0.5623 |
 | false_positive_count | 2 |
 | false_negative_count | 0 |
 | SIF recall (priority metric) | 1.0 |
@@ -181,7 +181,7 @@ Split function: `create_leak_free_split` (backend/app/training.py)
 
 ### Model — 1 false positives on test set
 
-- **CER-INC2022-033** (prob=0.5007, cal=0.5254)
+- **CER-INC2022-033** (prob=0.6169, cal=0.6025)
   Text: Slope inclinometer detected accelerated thaw settlement ground movement on right-of-way kilometer post 142. Preventative line depressurization conducted after high bending strains observed. Minor seep
 
 ### Baseline — 0 false positives on test set
@@ -206,7 +206,7 @@ No false negatives detected.
 
 ### Model False Positives
 
-1. **CER-INC2022-033**: Prob=0.5007, Cal=0.5254
+1. **CER-INC2022-033**: Prob=0.6169, Cal=0.6025
    Text: "Slope inclinometer detected accelerated thaw settlement ground movement on right-of-way kilometer post 142. Preventative line depressurization conducted after high bending strains observed. Minor seepage identified at girth weld during investigative bell hole excavation."
 
 ### Baseline False Negatives (Missed SIF Precursors)

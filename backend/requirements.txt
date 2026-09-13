@@ -16,3 +16,5 @@ joblib
 # NER-based PII detection (PERSON entities). Model download:
 #   python -m spacy download en_core_web_sm
 spacy>=3.7,<4
+sentence-transformers>=3.0.0
+torch

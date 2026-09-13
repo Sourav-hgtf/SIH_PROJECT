@@ -1,5 +1,5 @@
 {
-  "model_version": "sif-logreg-v1-20260913175850",
+  "model_version": "sif-logreg-v1-20260913180843",
   "calibration_version": "sklearn-ccv-sigmoid-v1",
   "threshold_version": "thresh-opt-recall-0.85-v1",
   "optimal_threshold": 0.45,
@@ -88,9 +88,9 @@
       "specificity": 0.0,
       "roc_auc": 1.0,
       "pr_auc": 1.0,
-      "brier_score": 0.1429,
-      "expected_calibration_error": 0.3645,
-      "log_loss": 0.4666,
+      "brier_score": 0.1634,
+      "expected_calibration_error": 0.1827,
+      "log_loss": 0.4961,
       "confusion_matrix": {
         "tn": 0,
         "fp": 1,
@@ -107,25 +107,25 @@
         true
       ],
       "probabilities": [
-        0.669776738202027,
-        0.7375806566120536,
-        0.5007154137947921
+        0.7339594902621133,
+        0.8028532340105606,
+        0.6168676441084138
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7339594902621133,
+          "cal_proba": 0.7198547354977919
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.7375806566120536,
-          "cal_proba": 0.7163647349906013
+          "raw_proba": 0.8028532340105606,
+          "cal_proba": 0.7901037312422499
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6168676441084138,
+          "cal_proba": 0.6024614852621965
         }
       ]
     },
@@ -137,9 +137,9 @@
       "specificity": 0.0,
       "roc_auc": 1.0,
       "pr_auc": 1.0,
-      "brier_score": 0.1573,
-      "expected_calibration_error": 0.3829,
-      "log_loss": 0.4979,
+      "brier_score": 0.1618,
+      "expected_calibration_error": 0.0375,
+      "log_loss": 0.4956,
       "confusion_matrix": {
         "tn": 0,
         "fp": 1,
@@ -156,25 +156,25 @@
         true
       ],
       "probabilities": [
-        0.6604785722508341,
-        0.7163647349906013,
-        0.5254356274698693
+        0.7198547354977919,
+        0.7901037312422499,
+        0.6024614852621965
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7339594902621133,
+          "cal_proba": 0.7198547354977919
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.7375806566120536,
-          "cal_proba": 0.7163647349906013
+          "raw_proba": 0.8028532340105606,
+          "cal_proba": 0.7901037312422499
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6168676441084138,
+          "cal_proba": 0.6024614852621965
         }
       ]
     }
@@ -253,11 +253,11 @@
       "recall": 1.0,
       "f1": 0.8,
       "specificity": 0.0,
-      "roc_auc": 0.25,
-      "pr_auc": 0.5833,
-      "brier_score": 0.269,
-      "expected_calibration_error": 0.2796,
-      "log_loss": 0.7335,
+      "roc_auc": 0.5,
+      "pr_auc": 0.8333,
+      "brier_score": 0.2193,
+      "expected_calibration_error": 0.0034,
+      "log_loss": 0.6286,
       "confusion_matrix": {
         "tn": 0,
         "fp": 1,
@@ -274,25 +274,25 @@
         true
       ],
       "probabilities": [
-        0.669776738202027,
-        0.669776738202027,
-        0.5007154137947921
+        0.6639011837079339,
+        0.7158999808425023,
+        0.6304591890773806
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.6639011837079339,
+          "cal_proba": 0.649351834414975
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7158999808425023,
+          "cal_proba": 0.7015982114278585
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6304591890773806,
+          "cal_proba": 0.6159785305612945
         }
       ]
     },
@@ -302,11 +302,11 @@
       "recall": 1.0,
       "f1": 0.8,
       "specificity": 0.0,
-      "roc_auc": 0.25,
-      "pr_auc": 0.5833,
-      "brier_score": 0.2589,
-      "expected_calibration_error": 0.2652,
-      "log_loss": 0.7128,
+      "roc_auc": 0.5,
+      "pr_auc": 0.8333,
+      "brier_score": 0.2194,
+      "expected_calibration_error": 0.011,
+      "log_loss": 0.629,
       "confusion_matrix": {
         "tn": 0,
         "fp": 1,
@@ -323,25 +323,25 @@
         true
       ],
       "probabilities": [
-        0.6604785722508341,
-        0.6604785722508341,
-        0.5254356274698693
+        0.649351834414975,
+        0.7015982114278585,
+        0.6159785305612945
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.6639011837079339,
+          "cal_proba": 0.649351834414975
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7158999808425023,
+          "cal_proba": 0.7015982114278585
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6304591890773806,
+          "cal_proba": 0.6159785305612945
         }
       ]
     }
@@ -452,11 +452,11 @@
       "recall": 1.0,
       "f1": 0.8,
       "specificity": 0.0,
-      "roc_auc": 0.6875,
-      "pr_auc": 0.7917,
-      "brier_score": 0.2059,
-      "expected_calibration_error": 0.0424,
-      "log_loss": 0.6,
+      "roc_auc": 0.875,
+      "pr_auc": 0.95,
+      "brier_score": 0.1914,
+      "expected_calibration_error": 0.093,
+      "log_loss": 0.5624,
       "confusion_matrix": {
         "tn": 0,
         "fp": 2,
@@ -476,43 +476,43 @@
         true
       ],
       "probabilities": [
-        0.669776738202027,
-        0.669776738202027,
-        0.5007154137947921,
-        0.669776738202027,
-        0.7375806566120536,
-        0.5007154137947921
+        0.6639011837079339,
+        0.7158999808425023,
+        0.6304591890773806,
+        0.7339594902621133,
+        0.8028532340105606,
+        0.6168676441084138
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.6639011837079339,
+          "cal_proba": 0.649351834414975
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7158999808425023,
+          "cal_proba": 0.7015982114278585
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6304591890773806,
+          "cal_proba": 0.6159785305612945
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7339594902621133,
+          "cal_proba": 0.7198547354977919
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.7375806566120536,
-          "cal_proba": 0.7163647349906013
+          "raw_proba": 0.8028532340105606,
+          "cal_proba": 0.7901037312422499
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6168676441084138,
+          "cal_proba": 0.6024614852621965
         }
       ]
     },
@@ -522,11 +522,11 @@
       "recall": 1.0,
       "f1": 0.8,
       "specificity": 0.0,
-      "roc_auc": 0.6875,
-      "pr_auc": 0.7917,
-      "brier_score": 0.2081,
-      "expected_calibration_error": 0.0588,
-      "log_loss": 0.6054,
+      "roc_auc": 0.875,
+      "pr_auc": 0.95,
+      "brier_score": 0.1906,
+      "expected_calibration_error": 0.0132,
+      "log_loss": 0.5623,
       "confusion_matrix": {
         "tn": 0,
         "fp": 2,
@@ -546,43 +546,43 @@
         true
       ],
       "probabilities": [
-        0.6604785722508341,
-        0.6604785722508341,
-        0.5254356274698693,
-        0.6604785722508341,
-        0.7163647349906013,
-        0.5254356274698693
+        0.649351834414975,
+        0.7015982114278585,
+        0.6159785305612945,
+        0.7198547354977919,
+        0.7901037312422499,
+        0.6024614852621965
       ],
       "metadata": [
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.6639011837079339,
+          "cal_proba": 0.649351834414975
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7158999808425023,
+          "cal_proba": 0.7015982114278585
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6304591890773806,
+          "cal_proba": 0.6159785305612945
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7339594902621133,
+          "cal_proba": 0.7198547354977919
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.7375806566120536,
-          "cal_proba": 0.7163647349906013
+          "raw_proba": 0.8028532340105606,
+          "cal_proba": 0.7901037312422499
         },
         {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6168676441084138,
+          "cal_proba": 0.6024614852621965
         }
       ]
     }
@@ -593,13 +593,13 @@
         "report_id": "CER-INC2022-033",
         "label": false,
         "prediction": true,
-        "probability": 0.5007,
-        "calibrated_probability": 0.5254,
+        "probability": 0.6169,
+        "calibrated_probability": 0.6025,
         "text": "Slope inclinometer detected accelerated thaw settlement ground movement on right-of-way kilometer post 142. Preventative line depressurization conducted after high bending strains observed. Minor seepage identified at girth weld during investigative bell hole excavation.",
         "model_meta": {
           "is_calibrated": true,
-          "raw_proba": 0.5007154137947921,
-          "cal_proba": 0.5254356274698693
+          "raw_proba": 0.6168676441084138,
+          "cal_proba": 0.6024614852621965
         }
       }
     ],
@@ -609,26 +609,26 @@
         "report_id": "PHMSA-20210034",
         "label": true,
         "prediction": true,
-        "probability": 0.6698,
-        "calibrated_probability": 0.6605,
+        "probability": 0.734,
+        "calibrated_probability": 0.7199,
         "text": "High pressure ethylene release occurred at booster pump P-104 due to mechanical seal degradation. Hydrocarbon vapor ignited resulting in a flash fire. One maintenance technician suffered second degree burns and was hospitalized. PTW was active but seal flush line isolation had not been verified.",
         "model_meta": {
           "is_calibrated": true,
-          "raw_proba": 0.669776738202027,
-          "cal_proba": 0.6604785722508341
+          "raw_proba": 0.7339594902621133,
+          "cal_proba": 0.7198547354977919
         }
       },
       {
         "report_id": "CER-INC2021-087",
         "label": true,
         "prediction": true,
-        "probability": 0.7376,
-        "calibrated_probability": 0.7164,
+        "probability": 0.8029,
+        "calibrated_probability": 0.7901,
         "text": "Sour natural gas release occurred from a 1/2-inch instrument tubing fitting downstream of separator vessel V-12. Ambient H2S detection monitors alarmed at 10 ppm, triggering automatic facility ESD and deluge. Station personnel evacuated safely to designated muster points. Zero injuries.",
         "model_meta": {
           "is_calibrated": true,
-          "raw_proba": 0.7375806566120536,
-          "cal_proba": 0.7163647349906013
+          "raw_proba": 0.8028532340105606,
+          "cal_proba": 0.7901037312422499
         }
       }
     ],
