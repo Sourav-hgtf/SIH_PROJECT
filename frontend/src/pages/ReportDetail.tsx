@@ -22,10 +22,12 @@ import {
   RiskBadge,
 } from "../components/Badges";
 
-function HighlightedText({ text, phrases }: { text: string; phrases: Array<{ phrase: string; weight: number }> }) {
-  if (!phrases.length) return <p className="whitespace-pre-wrap">{text}</p>;
-  const sorted = [...phrases].sort((a, b) => b.phrase.length - a.phrase.length);
-  let remaining = text;
+function HighlightedText({ text, phrases }: { text?: string | null; phrases?: Array<{ phrase: string; weight: number }> | null }) {
+  const safeText = text || "";
+  const safePhrases = phrases || [];
+  if (!safePhrases.length || !safeText) return <p className="whitespace-pre-wrap">{safeText || "No description text available."}</p>;
+  const sorted = [...safePhrases].sort((a, b) => b.phrase.length - a.phrase.length);
+  let remaining = safeText;
   const parts: Array<{ text: string; hit?: { phrase: string; weight: number } }> = [];
   while (remaining.length) {
     let earliest = -1;
@@ -134,7 +136,7 @@ export function ReportDetailPage() {
       .then((data) => {
         setReport(data);
         setOverrideLabel(!data.sif_label);
-        const ruleIds = data.lsr_tags.map((t) => t.rule_id).filter(Boolean) as string[];
+        const ruleIds = (data.lsr_tags || []).map((t) => t.rule_id).filter(Boolean) as string[];
         setSelectedLsrIds(ruleIds);
       })
       .catch((e) => setError(e.message));
@@ -182,7 +184,7 @@ export function ReportDetailPage() {
   useEffect(() => {
     reload();
     loadRecs();
-    api.lsrRules().then(setLsrRules).catch(console.error);
+    api.lsrRules?.()?.then(setLsrRules).catch(console.error);
   }, [id]);
 
   // SIF Confirm
@@ -420,7 +422,7 @@ export function ReportDetailPage() {
             Site: <strong className="text-ink">{report.site_name || report.site_id}</strong> · Department:{" "}
             <strong className="text-ink">{report.department || "General"}</strong> · Shift:{" "}
             <strong className="text-ink">{report.shift || "—"}</strong> · Type:{" "}
-            <strong className="text-ink">{report.report_type.replace("_", "/")}</strong>
+            <strong className="text-ink">{(report.report_type || "incident").replace("_", "/")}</strong>
           </p>
         </div>
 
@@ -473,11 +475,11 @@ export function ReportDetailPage() {
             <div className="mt-3 text-sm text-ink leading-relaxed">
               <HighlightedText text={report.raw_text_redacted} phrases={report.contributing_phrases} />
             </div>
-            {report.contributing_phrases.length > 0 && (
+            {(report.contributing_phrases || []).length > 0 && (
               <div className="mt-4 pt-3 border-t border-border/60">
                 <span className="text-xs font-semibold text-warm">Top ML Salient Terms: </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {report.contributing_phrases.map((p, i) => (
+                  {(report.contributing_phrases || []).map((p, i) => (
                     <span
                       key={i}
                       className="rounded bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-medium text-rose-800"
@@ -1176,8 +1178,8 @@ export function ReportDetailPage() {
             </div>
 
             <div className="mt-3 space-y-2.5">
-              {report.lsr_tags.length > 0 ? (
-                report.lsr_tags.map((t) => (
+              {(report.lsr_tags || []).length > 0 ? (
+                (report.lsr_tags || []).map((t) => (
                   <div
                     key={`${t.rule_id || t.lsr_category}-${t.source}`}
                     className="rounded-lg border border-border bg-slate-50/70 p-3"

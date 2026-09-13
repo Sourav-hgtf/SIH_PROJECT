@@ -473,7 +473,8 @@ export const api = {
 
   // Dashboard data endpoints
   kpis: () => request<{ total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number }>("/v1/dashboard/kpis"),
-  sites: () => request<Array<{ id: string; name: string }>>("/v1/dashboard/sites"),
+  sites: () => request<Array<{ id: string; name: string; region?: string }>>("/v1/dashboard/sites"),
+  lsrRules: () => request<LsrRuleMetadata[]>("/v1/lsr-rules"),
   density: (group_by: "site" | "department" | "activity" = "site") =>
     request<Array<{ group_label: string; sif_count: number; total_count: number; sif_rate: number }>>(`/v1/dashboard/sif-density?group_by=${group_by}`),
   lsr: () =>

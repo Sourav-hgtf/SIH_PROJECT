@@ -30,7 +30,7 @@ export function IngestionPage() {
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [sourceName, setSourceName] = useState<string>("Manual Ingestion");
   const [validatedRows, setValidatedRows] = useState<ReportUploadItem[]>([]);
-  const [sites, setSites] = useState<Array<{ id: string; name: string; region: string }>>([]);
+  const [sites, setSites] = useState<Array<{ id: string; name: string; region?: string }>>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
 
   // Job progress tracking
