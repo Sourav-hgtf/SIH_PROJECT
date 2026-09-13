@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.nlp.features import extract_features
@@ -66,6 +69,20 @@ def tag_life_saving_rules(
     features = extract_features(text)
     tags: list[dict[str, Any]] = []
 
+    # Attempt semantic matching via local sentence embeddings with graceful fallback
+    semantic_scores: dict[str, dict[str, Any]] = {}
+    try:
+        from app.nlp.lsr_semantic import (
+            SEMANTIC_KEYWORD_CONFIRMATION_THRESHOLD,
+            SEMANTIC_PARAPHRASE_THRESHOLD,
+            compute_semantic_lsr_scores,
+        )
+        semantic_scores = compute_semantic_lsr_scores(text)
+    except Exception as e:
+        logger.warning(f"Semantic LSR scoring unavailable, falling back to rule engine: {e}")
+        SEMANTIC_PARAPHRASE_THRESHOLD = 0.52
+        SEMANTIC_KEYWORD_CONFIRMATION_THRESHOLD = 0.48
+
     for rule in canonical_rules:
         evidence: list[dict[str, str]] = []
         phrase_hits: list[str] = []
@@ -81,7 +98,6 @@ def tag_life_saving_rules(
         # 2. Single keyword matching with word boundaries
         for kw in rule.keywords:
             kw_lower = kw.lower()
-            # Avoid duplicating phrase matches
             if any(kw_lower in p.lower() for p in phrase_hits):
                 continue
             if re.search(r"\b" + re.escape(kw_lower) + r"\b", lowered):
@@ -115,23 +131,75 @@ def tag_life_saving_rules(
                     evidence.append({"text": f"Exposure detected: {prox}", "type": "exposure"})
                     break
 
-        # 6. Calculate deterministic confidence
+        # 6. Retrieve semantic match signals for this rule
+        sem_info = semantic_scores.get(rule.id, {})
+        sem_sim = float(sem_info.get("similarity", 0.0))
+        is_sem_match = bool(sem_info.get("is_semantic_match", False))
+        sem_snippet = sem_info.get("best_snippet", "")
+
+        # 7. Calculate confidence & assign source
         confidence = 0.0
         source = "rule"
 
+        has_cross_signals = bool(
+            (matched_energies and matched_barriers) or (matched_energies and matched_exposures)
+        )
+
         if phrase_hits:
-            # Strong direct phrase match
-            confidence = 0.62 + min(0.22, 0.07 * len(phrase_hits))
+            # Deterministic high-confidence phrase match
+            confidence = 0.65 + min(0.20, 0.06 * len(phrase_hits))
+            if is_sem_match:
+                source = "hybrid"
+                confidence = min(0.95, confidence + 0.10)
+                evidence.append(
+                    {
+                        "text": f"Semantic alignment: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "type": "semantic",
+                    }
+                )
+            else:
+                source = "rule"
+
+        elif is_sem_match:
+            # Strong semantic paraphrase match
+            if kw_hits:
+                source = "hybrid"
+                confidence = 0.58 + min(0.25, (sem_sim - 0.45) * 1.5)
+                evidence.append(
+                    {
+                        "text": f"Semantic match: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "type": "semantic",
+                    }
+                )
+            else:
+                source = "semantic"
+                confidence = 0.54 + min(0.30, (sem_sim - 0.48) * 1.6)
+                evidence.append(
+                    {
+                        "text": f"Semantic paraphrase: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "type": "semantic",
+                    }
+                )
+
         elif kw_hits:
-            # Moderate direct keyword match
-            confidence = 0.48 + min(0.16, 0.05 * len(kw_hits))
-        elif (matched_energies and matched_barriers) or (matched_energies and matched_exposures):
-            # Purely implied via energy + barrier / exposure correlation
+            # Isolated keyword match: verify against weak keyword suppression guard
+            # Rejects isolated keywords if semantic similarity is below confirmation threshold
+            # and no supporting cross-signals exist
+            if sem_sim < SEMANTIC_KEYWORD_CONFIRMATION_THRESHOLD and not has_cross_signals:
+                # Suppress weak unrelated keyword
+                confidence = 0.0
+                evidence.clear()
+            else:
+                confidence = 0.48 + min(0.16, 0.05 * len(kw_hits))
+                source = "rule"
+
+        elif has_cross_signals:
+            # Purely implied via correlated energy + barrier / exposure
             confidence = 0.58
             source = "model"
 
-        # Apply cross-signal boosts when direct evidence exists
-        if confidence > 0.0 and source == "rule":
+        # Apply cross-signal boosts when direct or semantic evidence exists
+        if confidence > 0.0 and source in ("rule", "hybrid", "model"):
             boost = 0.0
             if matched_energies:
                 boost += 0.06
@@ -141,7 +209,7 @@ def tag_life_saving_rules(
                 boost += 0.05
             confidence = min(0.98, confidence + boost)
 
-        # 7. Check threshold
+        # 8. Check threshold and filter
         if confidence >= threshold and evidence:
             tags.append(
                 {
