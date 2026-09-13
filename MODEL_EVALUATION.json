@@ -1,0 +1,693 @@
+{
+  "model_version": "sif-logreg-v1-20260913175850",
+  "calibration_version": "sklearn-ccv-sigmoid-v1",
+  "threshold_version": "thresh-opt-recall-0.85-v1",
+  "optimal_threshold": 0.45,
+  "is_calibrated": true,
+  "dataset": {
+    "total_records": 29,
+    "label_source": "IMPORTED (real, authority-labeled)",
+    "sif_positive": 19,
+    "sif_negative": 10,
+    "train_size": 23,
+    "val_size": 3,
+    "test_size": 3,
+    "leak_prevention": "grouped-split via create_leak_free_split (text_hash + group_id + near-duplicate Jaccard 0.85)"
+  },
+  "split_status": "VALIDATED",
+  "test_results": {
+    "split": "test",
+    "sample_size": 3,
+    "positives": 2,
+    "negatives": 1,
+    "baseline": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "brier_score": 0.0742,
+      "expected_calibration_error": 0.2167,
+      "log_loss": 0.2662,
+      "confusion_matrix": {
+        "tn": 1,
+        "fp": 0,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 1,
+      "predictions": [
+        true,
+        true,
+        false
+      ],
+      "probabilities": [
+        0.75,
+        0.6,
+        0.0
+      ],
+      "metadata": [
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.75,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Work Authorization",
+            "Energy Isolation"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.6,
+          "lsr_count": 1,
+          "lsr_names": [
+            "Confined Space"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 0,
+          "weak_confidence": 0.0,
+          "lsr_count": 0,
+          "lsr_names": [],
+          "positive_votes": 0
+        }
+      ]
+    },
+    "model_uncalibrated": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "brier_score": 0.1429,
+      "expected_calibration_error": 0.3645,
+      "log_loss": 0.4666,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 1,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.669776738202027,
+        0.7375806566120536,
+        0.5007154137947921
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.7375806566120536,
+          "cal_proba": 0.7163647349906013
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    },
+    "model": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "brier_score": 0.1573,
+      "expected_calibration_error": 0.3829,
+      "log_loss": 0.4979,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 1,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.6604785722508341,
+        0.7163647349906013,
+        0.5254356274698693
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.7375806566120536,
+          "cal_proba": 0.7163647349906013
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    }
+  },
+  "validation_results": {
+    "split": "validation",
+    "sample_size": 3,
+    "positives": 2,
+    "negatives": 1,
+    "baseline": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "brier_score": 0.1297,
+      "expected_calibration_error": 0.3167,
+      "log_loss": 0.4142,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 1,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.53,
+        0.89,
+        0.69
+      ],
+      "metadata": [
+        {
+          "weak_label": 0,
+          "weak_confidence": 0.53,
+          "lsr_count": 1,
+          "lsr_names": [
+            "Confined Space"
+          ],
+          "positive_votes": 0
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.89,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Hot Work",
+            "Confined Space"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.69,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Personal Protective Equipment",
+            "Energy Isolation"
+          ],
+          "positive_votes": 1
+        }
+      ]
+    },
+    "model_uncalibrated": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 0.25,
+      "pr_auc": 0.5833,
+      "brier_score": 0.269,
+      "expected_calibration_error": 0.2796,
+      "log_loss": 0.7335,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 1,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.669776738202027,
+        0.669776738202027,
+        0.5007154137947921
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    },
+    "model": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 0.25,
+      "pr_auc": 0.5833,
+      "brier_score": 0.2589,
+      "expected_calibration_error": 0.2652,
+      "log_loss": 0.7128,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 1,
+        "fn": 0,
+        "tp": 2
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 2,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.6604785722508341,
+        0.6604785722508341,
+        0.5254356274698693
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    }
+  },
+  "val_test_combined_results": {
+    "split": "val_test_combined",
+    "sample_size": 6,
+    "positives": 4,
+    "negatives": 2,
+    "baseline": {
+      "accuracy": 0.8333,
+      "precision": 0.8,
+      "recall": 1.0,
+      "f1": 0.8889,
+      "specificity": 0.5,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "brier_score": 0.1019,
+      "expected_calibration_error": 0.1333,
+      "log_loss": 0.3402,
+      "confusion_matrix": {
+        "tn": 1,
+        "fp": 1,
+        "fn": 0,
+        "tp": 4
+      },
+      "false_positive_count": 1,
+      "false_negative_count": 0,
+      "true_positive_count": 4,
+      "true_negative_count": 1,
+      "predictions": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "probabilities": [
+        0.53,
+        0.89,
+        0.69,
+        0.75,
+        0.6,
+        0.0
+      ],
+      "metadata": [
+        {
+          "weak_label": 0,
+          "weak_confidence": 0.53,
+          "lsr_count": 1,
+          "lsr_names": [
+            "Confined Space"
+          ],
+          "positive_votes": 0
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.89,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Hot Work",
+            "Confined Space"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.69,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Personal Protective Equipment",
+            "Energy Isolation"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.75,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Work Authorization",
+            "Energy Isolation"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 1,
+          "weak_confidence": 0.6,
+          "lsr_count": 1,
+          "lsr_names": [
+            "Confined Space"
+          ],
+          "positive_votes": 1
+        },
+        {
+          "weak_label": 0,
+          "weak_confidence": 0.0,
+          "lsr_count": 0,
+          "lsr_names": [],
+          "positive_votes": 0
+        }
+      ]
+    },
+    "model_uncalibrated": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 0.6875,
+      "pr_auc": 0.7917,
+      "brier_score": 0.2059,
+      "expected_calibration_error": 0.0424,
+      "log_loss": 0.6,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 2,
+        "fn": 0,
+        "tp": 4
+      },
+      "false_positive_count": 2,
+      "false_negative_count": 0,
+      "true_positive_count": 4,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.669776738202027,
+        0.669776738202027,
+        0.5007154137947921,
+        0.669776738202027,
+        0.7375806566120536,
+        0.5007154137947921
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.7375806566120536,
+          "cal_proba": 0.7163647349906013
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    },
+    "model": {
+      "accuracy": 0.6667,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "specificity": 0.0,
+      "roc_auc": 0.6875,
+      "pr_auc": 0.7917,
+      "brier_score": 0.2081,
+      "expected_calibration_error": 0.0588,
+      "log_loss": 0.6054,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 2,
+        "fn": 0,
+        "tp": 4
+      },
+      "false_positive_count": 2,
+      "false_negative_count": 0,
+      "true_positive_count": 4,
+      "true_negative_count": 0,
+      "predictions": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "probabilities": [
+        0.6604785722508341,
+        0.6604785722508341,
+        0.5254356274698693,
+        0.6604785722508341,
+        0.7163647349906013,
+        0.5254356274698693
+      ],
+      "metadata": [
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.7375806566120536,
+          "cal_proba": 0.7163647349906013
+        },
+        {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      ]
+    }
+  },
+  "model_error_analysis": {
+    "false_positives": [
+      {
+        "report_id": "CER-INC2022-033",
+        "label": false,
+        "prediction": true,
+        "probability": 0.5007,
+        "calibrated_probability": 0.5254,
+        "text": "Slope inclinometer detected accelerated thaw settlement ground movement on right-of-way kilometer post 142. Preventative line depressurization conducted after high bending strains observed. Minor seepage identified at girth weld during investigative bell hole excavation.",
+        "model_meta": {
+          "is_calibrated": true,
+          "raw_proba": 0.5007154137947921,
+          "cal_proba": 0.5254356274698693
+        }
+      }
+    ],
+    "false_negatives": [],
+    "correct_predictions": [
+      {
+        "report_id": "PHMSA-20210034",
+        "label": true,
+        "prediction": true,
+        "probability": 0.6698,
+        "calibrated_probability": 0.6605,
+        "text": "High pressure ethylene release occurred at booster pump P-104 due to mechanical seal degradation. Hydrocarbon vapor ignited resulting in a flash fire. One maintenance technician suffered second degree burns and was hospitalized. PTW was active but seal flush line isolation had not been verified.",
+        "model_meta": {
+          "is_calibrated": true,
+          "raw_proba": 0.669776738202027,
+          "cal_proba": 0.6604785722508341
+        }
+      },
+      {
+        "report_id": "CER-INC2021-087",
+        "label": true,
+        "prediction": true,
+        "probability": 0.7376,
+        "calibrated_probability": 0.7164,
+        "text": "Sour natural gas release occurred from a 1/2-inch instrument tubing fitting downstream of separator vessel V-12. Ambient H2S detection monitors alarmed at 10 ppm, triggering automatic facility ESD and deluge. Station personnel evacuated safely to designated muster points. Zero injuries.",
+        "model_meta": {
+          "is_calibrated": true,
+          "raw_proba": 0.7375806566120536,
+          "cal_proba": 0.7163647349906013
+        }
+      }
+    ],
+    "total_false_positives": 1,
+    "total_false_negatives": 0
+  },
+  "baseline_error_analysis": {
+    "false_positives": [],
+    "false_negatives": [],
+    "correct_predictions": [
+      {
+        "report_id": "PHMSA-20210034",
+        "label": true,
+        "prediction": true,
+        "confidence": 0.75,
+        "text": "High pressure ethylene release occurred at booster pump P-104 due to mechanical seal degradation. Hydrocarbon vapor ignited resulting in a flash fire. One maintenance technician suffered second degree burns and was hospitalized. PTW was active but seal flush line isolation had not been verified.",
+        "meta": {
+          "weak_label": 1,
+          "weak_confidence": 0.75,
+          "lsr_count": 2,
+          "lsr_names": [
+            "Work Authorization",
+            "Energy Isolation"
+          ],
+          "positive_votes": 1
+        }
+      },
+      {
+        "report_id": "CER-INC2021-087",
+        "label": true,
+        "prediction": true,
+        "confidence": 0.6,
+        "text": "Sour natural gas release occurred from a 1/2-inch instrument tubing fitting downstream of separator vessel V-12. Ambient H2S detection monitors alarmed at 10 ppm, triggering automatic facility ESD and deluge. Station personnel evacuated safely to designated muster points. Zero injuries.",
+        "meta": {
+          "weak_label": 1,
+          "weak_confidence": 0.6,
+          "lsr_count": 1,
+          "lsr_names": [
+            "Confined Space"
+          ],
+          "positive_votes": 1
+        }
+      },
+      {
+        "report_id": "CER-INC2022-033",
+        "label": false,
+        "prediction": false,
+        "confidence": 0.0,
+        "text": "Slope inclinometer detected accelerated thaw settlement ground movement on right-of-way kilometer post 142. Preventative line depressurization conducted after high bending strains observed. Minor seepage identified at girth weld during investigative bell hole excavation.",
+        "meta": {
+          "weak_label": 0,
+          "weak_confidence": 0.0,
+          "lsr_count": 0,
+          "lsr_names": [],
+          "positive_votes": 0
+        }
+      }
+    ],
+    "total_false_positives": 0,
+    "total_false_negatives": 0
+  }
+}
