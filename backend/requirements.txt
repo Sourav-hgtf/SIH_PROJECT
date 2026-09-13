@@ -18,3 +18,4 @@ joblib
 spacy>=3.7,<4
 sentence-transformers>=3.0.0
 torch
+python-dateutil
