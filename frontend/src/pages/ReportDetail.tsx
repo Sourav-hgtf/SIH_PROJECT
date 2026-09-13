@@ -4,6 +4,7 @@ import {
   api,
   getStoredUser,
   type LsrRuleMetadata,
+  type PrecursorTriple,
   type Recommendation,
   type ReportDetail,
   type TimelineEventOut,
@@ -65,6 +66,42 @@ function HighlightedText({ text, phrases }: { text?: string | null; phrases?: Ar
         ),
       )}
     </p>
+  );
+}
+
+type PrecursorHighlight = "default" | "rose" | "orange" | "indigo";
+const HIGHLIGHT_CLASSES: Record<PrecursorHighlight, { border: string; bg: string; label: string; value: string }> = {
+  default: { border: "border-amber-100", bg: "bg-white", label: "text-warm", value: "text-ink" },
+  rose:    { border: "border-rose-200", bg: "bg-rose-50/40", label: "text-rose-600", value: "text-rose-900" },
+  orange:  { border: "border-orange-200", bg: "bg-orange-50/40", label: "text-orange-600", value: "text-orange-900" },
+  indigo:  { border: "border-indigo-200", bg: "bg-indigo-50/40", label: "text-indigo-600", value: "text-indigo-900" },
+};
+
+function PrecursorDimCard({
+  icon, label, value, evidence, highlight = "default", nullLabel = "Not detected",
+}: {
+  icon: string; label: string; value?: string | null; evidence?: string | null;
+  highlight?: PrecursorHighlight; nullLabel?: string;
+}) {
+  const cls = HIGHLIGHT_CLASSES[highlight];
+  return (
+    <div className={`rounded-lg border p-3 ${cls.border} ${cls.bg}`}>
+      <div className={`flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider ${cls.label}`}>
+        <span>{icon}</span> {label}
+      </div>
+      {value ? (
+        <>
+          <div className={`mt-1.5 text-[13px] font-semibold leading-snug ${cls.value}`}>{value}</div>
+          {evidence && (
+            <div className="mt-1 text-[10px] text-warm/80 italic leading-snug truncate" title={evidence}>
+              📎 {evidence}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="mt-1.5 text-[11px] text-warm/60 italic">{nullLabel}</div>
+      )}
+    </div>
   );
 }
 
@@ -573,6 +610,96 @@ export function ReportDetailPage() {
                )}
              </div>
            </section>
+
+          {/* Section 2b: SIF Precursor Pattern — 6-Dimension Extraction */}
+          {(report.precursor_triples ?? []).length > 0 && (
+            <section className="rounded-xl border border-amber-200 bg-amber-50/20 p-5 shadow-card">
+              <div className="flex items-center justify-between border-b border-amber-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">
+                    Precursor Pattern
+                  </span>
+                  <h2 className="text-sm font-semibold text-amber-950">
+                    SIF Precursor — 6-Dimension Extraction
+                  </h2>
+                </div>
+                {report.precursor_triples[0]?.confidence != null && (
+                  <span className="text-xs font-mono text-amber-800">
+                    Confidence: {Math.round((report.precursor_triples[0].confidence ?? 0) * 100)}%
+                  </span>
+                )}
+              </div>
+
+              {report.precursor_triples.map((t: PrecursorTriple) => (
+                <div key={t.id} className="mt-4 space-y-3">
+                  {/* Row 1: Activity + Location */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <PrecursorDimCard
+                      icon="⚙️"
+                      label="Activity"
+                      value={t.activity}
+                      evidence={t.evidence?.activity ?? null}
+                    />
+                    <PrecursorDimCard
+                      icon="📍"
+                      label="Location / Asset"
+                      value={t.location_asset !== "unspecified location" ? t.location_asset : null}
+                      evidence={t.evidence?.location ?? null}
+                      nullLabel="Not stated in report"
+                    />
+                  </div>
+
+                  {/* Row 2: Barrier Failure + Hazard */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <PrecursorDimCard
+                      icon="🛡️"
+                      label="Barrier Failure"
+                      value={t.barrier_failure !== "barrier not identified" ? t.barrier_failure : null}
+                      evidence={t.evidence?.barrier_failure ?? null}
+                      highlight="rose"
+                    />
+                    <PrecursorDimCard
+                      icon="⚡"
+                      label="Hazard / Exposure"
+                      value={t.hazard_exposure ?? null}
+                      evidence={t.evidence?.hazard_exposure ?? null}
+                      highlight="orange"
+                    />
+                  </div>
+
+                  {/* Row 3: LSR + Evidence Phrase */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <PrecursorDimCard
+                      icon="📋"
+                      label="Relevant Life-Saving Rule"
+                      value={t.relevant_lsr ? `${t.relevant_lsr_id ?? ''} — ${t.relevant_lsr}` : null}
+                      evidence={null}
+                      highlight="indigo"
+                    />
+                    <div className="rounded-lg bg-white border border-amber-100 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-warm uppercase tracking-wider">
+                        <span>💬</span> Evidence Phrase
+                      </div>
+                      {t.evidence_phrase ? (
+                        <blockquote className="mt-1.5 text-[12px] italic text-ink leading-snug border-l-2 border-amber-400 pl-2">
+                          "{t.evidence_phrase}"
+                        </blockquote>
+                      ) : (
+                        <div className="mt-1.5 text-[11px] text-warm/70 italic">No direct evidence phrase extracted</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Extraction method tag */}
+                  {t.extraction_method && (
+                    <div className="text-[10px] text-amber-700/70 font-mono text-right">
+                      Extracted via: {t.extraction_method}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* Section 3: AI-Assisted Corrective Actions & Implementation */}
           <section className="rounded-xl border border-border bg-white p-5 shadow-card">

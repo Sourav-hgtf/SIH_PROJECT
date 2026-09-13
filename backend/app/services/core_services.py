@@ -101,7 +101,25 @@ def ingest_and_process(
                 evidence=tag.get("evidence", []),
             )
         )
-    if result["triple"]:
+    if result.get("precursor"):
+        p = result["precursor"]
+        db.add(
+            PrecursorTriple(
+                report_id=report.id,
+                activity=p.activity or "unspecified activity",
+                location_asset=p.location or "unspecified location",
+                barrier_failure=p.barrier_failure or "barrier not identified",
+                hazard_exposure=p.hazard_exposure,
+                relevant_lsr=p.relevant_lsr,
+                relevant_lsr_id=p.relevant_lsr_id,
+                evidence_phrase=p.evidence_phrase,
+                evidence=p.evidence or {},
+                confidence=p.confidence,
+                extraction_method=p.extraction_method,
+            )
+        )
+    elif result.get("triple"):
+        # Fallback: legacy triple dict (activity/location_asset/barrier_failure only)
         db.add(
             PrecursorTriple(
                 report_id=report.id,
@@ -110,6 +128,7 @@ def ingest_and_process(
                 barrier_failure=result["triple"]["barrier_failure"],
             )
         )
+
     write_audit(
         db,
         action_type="ingest_report",

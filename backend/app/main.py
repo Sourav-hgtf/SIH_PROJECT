@@ -13,6 +13,7 @@ from app.migrations import (
     run_lsr_migrations,
     run_recommendation_migrations,
     run_feedback_migrations,
+    run_precursor_migrations,
 )
 from app.nlp.lsr import load_canonical_lsr_rules
 from app.nlp.model import get_model_health_status, load_sif_model
@@ -36,6 +37,9 @@ run_lsr_migrations(engine)
 run_recommendation_migrations(engine)
 run_ingestion_migrations(engine)
 run_lifecycle_migrations(engine)
+run_labeling_migrations(engine)
+run_feedback_migrations(engine)
+run_precursor_migrations(engine)
 
 # Fail fast if canonical Life-Saving Rules config is missing or invalid
 load_canonical_lsr_rules()

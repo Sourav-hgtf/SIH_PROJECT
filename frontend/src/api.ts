@@ -163,6 +163,21 @@ export type ReviewerAgreementSummaryOut = {
 
 export type Phrase = { phrase: string; weight: number };
 
+export type PrecursorTriple = {
+  id: string;
+  activity: string;
+  location_asset: string;
+  barrier_failure: string;
+  hazard_exposure?: string | null;
+  relevant_lsr?: string | null;
+  relevant_lsr_id?: string | null;
+  evidence_phrase?: string | null;
+  evidence?: Record<string, string | null>;
+  confidence?: number | null;
+  extraction_method?: string | null;
+  extracted_at: string;
+};
+
 export type AiPredictionOut = {
   ai_label?: boolean | null;
   ai_probability?: number | null;
@@ -222,6 +237,7 @@ export type ReportDetail = ReportSummary & {
   features: Record<string, unknown>;
   feedback_history: Array<Record<string, unknown>>;
   label_reviews: LabelReviewOut[];
+  precursor_triples: PrecursorTriple[];
 };
 
 export type Cluster = {

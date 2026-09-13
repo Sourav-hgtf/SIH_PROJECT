@@ -123,6 +123,13 @@ class PrecursorTriple(Base):
     activity: Mapped[str] = mapped_column(String(255), nullable=False)
     location_asset: Mapped[str] = mapped_column(String(255), nullable=False)
     barrier_failure: Mapped[str] = mapped_column(String(255), nullable=False)
+    hazard_exposure: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    relevant_lsr: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    relevant_lsr_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    evidence_phrase: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evidence: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    extraction_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
     vector_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     extracted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

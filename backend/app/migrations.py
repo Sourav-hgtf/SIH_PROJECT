@@ -177,6 +177,40 @@ def run_labeling_migrations(engine: Engine) -> None:
     logger.info("Checked / migrated human labeling tables and report columns.")
 
 
+def run_precursor_migrations(engine: Engine) -> None:
+    """Safely adds Phase 6 semantic extraction columns to precursor_triples table."""
+    inspector = inspect(engine)
+    if "precursor_triples" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("precursor_triples")}
+
+    with engine.connect() as conn:
+        if "hazard_exposure" not in columns:
+            logger.info("Migrating precursor_triples: Adding hazard_exposure column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN hazard_exposure VARCHAR(255)"))
+        if "relevant_lsr" not in columns:
+            logger.info("Migrating precursor_triples: Adding relevant_lsr column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN relevant_lsr VARCHAR(255)"))
+        if "relevant_lsr_id" not in columns:
+            logger.info("Migrating precursor_triples: Adding relevant_lsr_id column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN relevant_lsr_id VARCHAR(20)"))
+        if "evidence_phrase" not in columns:
+            logger.info("Migrating precursor_triples: Adding evidence_phrase column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN evidence_phrase TEXT"))
+        if "evidence" not in columns:
+            logger.info("Migrating precursor_triples: Adding evidence JSON column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN evidence JSON"))
+        if "confidence" not in columns:
+            logger.info("Migrating precursor_triples: Adding confidence column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN confidence FLOAT"))
+        if "extraction_method" not in columns:
+            logger.info("Migrating precursor_triples: Adding extraction_method column")
+            conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN extraction_method VARCHAR(50) DEFAULT 'rule_fallback_v1'"))
+        conn.commit()
+    logger.info("Checked / migrated precursor_triples Phase 6 columns.")
+
+
 def run_feedback_migrations(engine: Engine) -> None:
     """Creates analyst_decisions table and ensures AI prediction immutability.
 

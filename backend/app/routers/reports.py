@@ -265,7 +265,7 @@ def _build_report_detail(report: Report, db: Session) -> ReportDetail:
             updated_at=latest_review.updated_at,
         )
 
-    # Precursors list
+    # Precursors list — serialize all 6 Phase 6 dimensions
     triples_out = []
     for t in report.triples:
         triples_out.append(
@@ -274,9 +274,17 @@ def _build_report_detail(report: Report, db: Session) -> ReportDetail:
                 "activity": t.activity,
                 "location_asset": t.location_asset,
                 "barrier_failure": t.barrier_failure,
+                "hazard_exposure": getattr(t, "hazard_exposure", None),
+                "relevant_lsr": getattr(t, "relevant_lsr", None),
+                "relevant_lsr_id": getattr(t, "relevant_lsr_id", None),
+                "evidence_phrase": getattr(t, "evidence_phrase", None),
+                "evidence": getattr(t, "evidence", None) or {},
+                "confidence": getattr(t, "confidence", None),
+                "extraction_method": getattr(t, "extraction_method", None),
                 "extracted_at": t.extracted_at.isoformat(),
             }
         )
+
 
     return ReportDetail(
         **base.model_dump(),
