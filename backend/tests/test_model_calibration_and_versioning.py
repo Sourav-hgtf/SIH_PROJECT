@@ -47,6 +47,7 @@ def setup_training_db():
                 raw_text_redacted=f"High pressure gas blowout and fire at drilling rig wellhead cell {i}",
                 validated_label="SIF",
                 label_source="CONSENSUS_VALIDATED",
+                data_type="real",
                 reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
             )
         )
@@ -58,6 +59,7 @@ def setup_training_db():
                 raw_text_redacted=f"Routine daily housekeeping observation: safety cones positioned at walkway {i}",
                 validated_label="NON_SIF",
                 label_source="CONSENSUS_VALIDATED",
+                data_type="real",
                 reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
             )
         )

@@ -206,6 +206,7 @@ def test_full_ml_training_leak_free_pipeline(db_session: Session):
             raw_text_redacted=f"Dangerous hydrogen sulfide gas release at wellhead platform {i}",
             validated_label="SIF",
             label_source="CONSENSUS_VALIDATED",
+            data_type="real",
             reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
         db_session.add(r_sif)
@@ -218,6 +219,7 @@ def test_full_ml_training_leak_free_pipeline(db_session: Session):
             raw_text_redacted=f"Clean toolbox talk regarding PPE compliance and safe hydration {i}",
             validated_label="NON_SIF",
             label_source="CONSENSUS_VALIDATED",
+            data_type="real",
             reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
         db_session.add(r_safe)

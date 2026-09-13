@@ -105,3 +105,16 @@ This runs schema validation, duplicate detection, completeness scoring, and outp
 - Source and data_type distributions
 - Label availability breakdown (sif_potential, fatalities, injuries)
 - Data quality score out of 100
+
+### Phase-2 evaluation / labeling validation
+
+Build a trustworthy evaluation corpus (does **not** invent labels; gold = `HUMAN_VALIDATED` only):
+
+```bash
+python3 backend/scripts/validate_dataset.py --write-corpus
+python3 backend/scripts/build_evaluation_dataset.py
+```
+
+Outputs land in `data/processed/evaluation/`. See repository root `DATASET_CARD.md` and `LABELING_GUIDE.md`.
+Public `sif_potential` values are tagged `IMPORTED` and are **not** treated as gold-standard evaluation labels.
+Synthetic records remain `SYNTHETIC` / unlabeled and cannot enter the gold test set.

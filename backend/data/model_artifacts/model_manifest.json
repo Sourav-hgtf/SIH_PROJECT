@@ -1,15 +1,15 @@
 {
   "model_file": "sif_model.joblib",
-  "model_version": "sif-logreg-v1-20260912152717",
+  "model_version": "sif-logreg-v1-20260913175850",
   "feature_version": "tfidf-unigram-bigram-v1",
   "preprocessing_version": "prep-pii-spell-abbr-v1",
   "calibration_version": "sklearn-ccv-sigmoid-v1",
   "calibration_method": "sigmoid",
   "is_calibrated": true,
   "threshold_version": "thresh-opt-recall-0.85-v1",
-  "optimal_threshold": 0.5,
-  "training_run_id": "ad530150-2d6a-4905-a8b9-f409b4eeff3a",
-  "sha256": "a6ccc858372e09fb09bfeba07794d1cffd9a6ea25bacbcf91b372ac1a0520958",
-  "training_date": "2026-09-12T15:27:19.249073+00:00",
+  "optimal_threshold": 0.45,
+  "training_run_id": "c9d72904-5704-4fda-9238-8f27ff6caada",
+  "sha256": "965093be51b375553693a6e4fd0596717bca23b14061731ebb498fd4d89f3e29",
+  "training_date": "2026-09-13T17:58:51.002723+00:00",
   "evaluation_status": "VALIDATED"
 }

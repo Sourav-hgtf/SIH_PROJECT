@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from ingestion.cer import CERIngestionAdapter
+from ingestion.dataset_labels import EvaluationLabelRecord, filter_gold_standard
+from ingestion.dataset_quality import build_evaluation_corpus, compute_validation_stats
 from ingestion.normalizer import (
     DataQualityReport,
     IncidentNormalizer,
@@ -34,6 +36,11 @@ __all__ = [
     "OISDIngestionAdapter",
     "OSHAIngestionAdapter",
     "ingest_dataset",
+    # Phase-2 evaluation labeling
+    "EvaluationLabelRecord",
+    "filter_gold_standard",
+    "build_evaluation_corpus",
+    "compute_validation_stats",
 ]
 
 

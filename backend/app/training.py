@@ -82,6 +82,30 @@ PREPROCESSING_VERSION = "prep-pii-spell-abbr-v1"
 DATASET_VERSION = "sih-safety-ds-v1"
 LABEL_SCHEMA_VERSION = "sif-binary-v1"
 
+# Evaluation taxonomy: only HUMAN_VALIDATED (non-synthetic) may enter gold train/test.
+GOLD_EVAL_LABEL_SOURCES = frozenset(
+    {
+        "HUMAN_VALIDATED",
+        "CONSENSUS_VALIDATED",
+        "SENIOR_HSE_OVERRIDE",
+        "HUMAN_REVIEW",
+    }
+)
+NON_GOLD_EVAL_LABEL_SOURCES = frozenset(
+    {
+        "SYNTHETIC",
+        "HEURISTIC",
+        "HEURISTIC_PREDICTION",
+        "HEURISTIC_DEMO",
+        "IMPORTED",
+        "UNKNOWN",
+        "UNLABELED",
+        "DISAGREEMENT",
+    }
+)
+NEAR_DUP_JACCARD_THRESHOLD = 0.85
+MIN_TOKENS_FOR_NEAR_DUP = 6
+
 
 @dataclass
 class IncidentDataRecord:
@@ -108,6 +132,62 @@ def compute_text_hash(norm_text: str) -> str:
     if not norm_text:
         return ""
     return hashlib.sha256(norm_text.encode("utf-8")).hexdigest()[:16]
+
+
+def _token_set(norm_text: str) -> set[str]:
+    return {t for t in norm_text.split() if t}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
+def is_gold_standard_training_record(record: IncidentDataRecord) -> bool:
+    """True only for human-validated, non-synthetic labeled records."""
+    if record.label is None:
+        return False
+    dtype = (record.data_type or "").lower()
+    if dtype in ("synthetic", "demo_synthetic", "demo", "real_heuristic"):
+        return False
+    src = (record.label_source or "").upper()
+    if src in NON_GOLD_EVAL_LABEL_SOURCES:
+        return False
+    return src in GOLD_EVAL_LABEL_SOURCES
+
+
+def filter_gold_standard_training_records(
+    records: list[IncidentDataRecord],
+) -> list[IncidentDataRecord]:
+    """Exclude synthetic/heuristic/imported records from gold evaluation sets."""
+    return [r for r in records if is_gold_standard_training_record(r)]
+
+
+def assert_no_synthetic_in_split(
+    records: list[IncidentDataRecord],
+    *,
+    split_name: str = "test",
+) -> None:
+    """Hard guard: synthetic / non-gold provenance must never enter gold splits."""
+    offenders = []
+    for r in records:
+        dtype = (r.data_type or "").lower()
+        src = (r.label_source or "").upper()
+        if dtype in ("synthetic", "demo_synthetic", "demo") or src in (
+            "SYNTHETIC",
+            "HEURISTIC_DEMO",
+            "HEURISTIC",
+            "IMPORTED",
+        ):
+            offenders.append(f"{r.id}:{dtype}/{src}")
+    if offenders:
+        raise ValueError(
+            f"Synthetic or non-gold records leaked into gold-standard {split_name} set: "
+            f"{offenders[:8]}"
+        )
 
 
 def create_leak_free_split(
@@ -162,7 +242,7 @@ def create_leak_free_split(
         if root_i != root_j:
             parent[root_i] = root_j
 
-    # Group by text_hash
+    # Group by text_hash (exact duplicates)
     hash_to_first_id: dict[str, str] = {}
     for r in records:
         if r.text_hash:
@@ -179,6 +259,21 @@ def create_leak_free_split(
                 union(r.id, group_to_first_id[r.group_id])
             else:
                 group_to_first_id[r.group_id] = r.id
+
+    # Near-duplicate grouping (token Jaccard) so paraphrases cannot cross splits
+    prepared: list[tuple[IncidentDataRecord, set[str]]] = []
+    for r in records:
+        toks = _token_set(r.norm_text or normalize_incident_text(r.raw_text))
+        if len(toks) >= MIN_TOKENS_FOR_NEAR_DUP:
+            prepared.append((r, toks))
+    for i in range(len(prepared)):
+        rec_a, toks_a = prepared[i]
+        for j in range(i + 1, len(prepared)):
+            rec_b, toks_b = prepared[j]
+            if rec_a.text_hash and rec_a.text_hash == rec_b.text_hash:
+                continue
+            if _jaccard(toks_a, toks_b) >= NEAR_DUP_JACCARD_THRESHOLD:
+                union(rec_a.id, rec_b.id)
 
     # Collect merged groups
     groups: dict[str, list[IncidentDataRecord]] = {}
@@ -298,8 +393,13 @@ def run_ml_training(
         human_lbl = getattr(report, "human_label", None)
         label_source = getattr(report, "label_source", "")
 
-        # 1. Check validated gold label first
-        if val_lbl in ("SIF", "NON_SIF"):
+        # 1. Gold path: human-validated labels on NON-synthetic reports only.
+        #    Synthetic/demo records are never admitted to the gold-standard set,
+        #    even if a practice human label exists on them.
+        if is_synthetic:
+            # Fall through to demo fallback only; never gold.
+            pass
+        elif val_lbl in ("SIF", "NON_SIF"):
             validated_records.append(
                 IncidentDataRecord(
                     id=report.id,
@@ -309,10 +409,10 @@ def run_ml_training(
                     text_hash=text_hash,
                     label=True if val_lbl == "SIF" else False,
                     data_type="human_validated",
-                    label_source="CONSENSUS_VALIDATED",
+                    label_source="HUMAN_VALIDATED",
                 )
             )
-        elif human_lbl in ("SIF", "NON_SIF") and not is_synthetic:
+        elif human_lbl in ("SIF", "NON_SIF"):
             validated_records.append(
                 IncidentDataRecord(
                     id=report.id,
@@ -322,13 +422,14 @@ def run_ml_training(
                     text_hash=text_hash,
                     label=True if human_lbl == "SIF" else False,
                     data_type="human_validated",
-                    label_source="HUMAN_REVIEW",
+                    label_source="HUMAN_VALIDATED",
                 )
             )
         elif report.final_sif_label is not None and label_source in (
             "CONSENSUS_VALIDATED",
             "SENIOR_HSE_OVERRIDE",
             "HUMAN_REVIEW",
+            "HUMAN_VALIDATED",
         ):
             validated_records.append(
                 IncidentDataRecord(
@@ -339,10 +440,17 @@ def run_ml_training(
                     text_hash=text_hash,
                     label=bool(report.final_sif_label),
                     data_type="human_validated",
-                    label_source=label_source,
+                    label_source="HUMAN_VALIDATED",
                 )
             )
-        elif force_demo_fallback and report.classification is not None:
+
+        # Demo / heuristic fallback only — never mixed into gold-standard evaluation.
+        already_gold = any(v.id == report.id for v in validated_records)
+        if (
+            force_demo_fallback
+            and not already_gold
+            and report.classification is not None
+        ):
             demo_fallback_records.append(
                 IncidentDataRecord(
                     id=report.id,
@@ -357,7 +465,7 @@ def run_ml_training(
             )
 
     if validated_records:
-        records = validated_records
+        records = filter_gold_standard_training_records(validated_records)
         data_source = "HUMAN_VALIDATED"
         is_demo_evaluation = False
     elif force_demo_fallback and demo_fallback_records:
@@ -378,6 +486,12 @@ def run_ml_training(
         test_ratio=0.15,
         random_seed=random_seed,
     )
+
+    # Hard guard: synthetic / heuristic provenance must never enter gold-standard splits.
+    if not is_demo_evaluation:
+        assert_no_synthetic_in_split(train_records, split_name="train")
+        assert_no_synthetic_in_split(val_records, split_name="val")
+        assert_no_synthetic_in_split(test_records, split_name="test")
 
     training_run_id = str(uuid.uuid4())
     model_version = f"sif-logreg-v1-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
