@@ -24,6 +24,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent
+PREPROCESSING_VERSION = "prep-pii-spell-abbr-v1"
 
 # ---------------------------------------------------------------------------
 # Spell-correction map (unchanged)
@@ -235,6 +236,7 @@ def _redact_persons(text: str) -> tuple[str, int]:
 # ---------------------------------------------------------------------------
 _NON_PERSON_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bEMP[- ]?\d{3,8}\b", re.IGNORECASE), "[ID]"),
+    (re.compile(r"\b(?:OIL|EMP)[- ]?\d{4,10}\b", re.IGNORECASE), "[ID]"),
     (re.compile(r"\b(?:OIL|EMP)ID[:\s-]*\d{4,10}\b", re.IGNORECASE), "[ID]"),
     (re.compile(r"\b\d{10}\b"), "[PHONE]"),
     (re.compile(r"\+91[-\s]?\d{10}\b"), "[PHONE]"),
@@ -258,6 +260,19 @@ def redact_pii(text: str) -> tuple[str, int]:
         count += n
 
     return redacted, count
+
+
+def contains_detectable_pii(text: str) -> bool:
+    """Return whether the current detector finds PII in text without retaining it.
+
+    This is the final privacy-boundary guard used immediately before model
+    feature generation. It deliberately returns only a boolean so callers
+    cannot accidentally log detected identity values.
+    """
+    if not text:
+        return False
+    _redacted, replacements = redact_pii(text)
+    return replacements > 0
 
 
 # ---------------------------------------------------------------------------
@@ -306,5 +321,6 @@ def preprocess(raw_text: str) -> dict:
         "raw_text_redacted": redacted,
         "processed_text": expanded,
         "pii_replacements": pii_count,
+        "pii_redacted": True,
+        "preprocessing_version": PREPROCESSING_VERSION,
     }
-

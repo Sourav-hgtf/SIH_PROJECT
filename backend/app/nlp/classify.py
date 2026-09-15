@@ -136,6 +136,8 @@ def tag_life_saving_rules(
         sem_sim = float(sem_info.get("similarity", 0.0))
         is_sem_match = bool(sem_info.get("is_semantic_match", False))
         sem_snippet = sem_info.get("best_snippet", "")
+        sem_concepts = sem_info.get("matched_concepts", [])
+        semantic_detail = f"; concepts: {', '.join(sem_concepts)}" if sem_concepts else ""
 
         # 7. Calculate confidence & assign source
         confidence = 0.0
@@ -153,7 +155,7 @@ def tag_life_saving_rules(
                 confidence = min(0.95, confidence + 0.10)
                 evidence.append(
                     {
-                        "text": f"Semantic alignment: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "text": f"Semantic alignment: '{sem_snippet}' (similarity: {sem_sim:.2f}{semantic_detail})",
                         "type": "semantic",
                     }
                 )
@@ -167,7 +169,7 @@ def tag_life_saving_rules(
                 confidence = 0.58 + min(0.25, (sem_sim - 0.45) * 1.5)
                 evidence.append(
                     {
-                        "text": f"Semantic match: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "text": f"Semantic match: '{sem_snippet}' (similarity: {sem_sim:.2f}{semantic_detail})",
                         "type": "semantic",
                     }
                 )
@@ -176,7 +178,7 @@ def tag_life_saving_rules(
                 confidence = 0.54 + min(0.30, (sem_sim - 0.48) * 1.6)
                 evidence.append(
                     {
-                        "text": f"Semantic paraphrase: '{sem_snippet}' (similarity: {sem_sim:.2f})",
+                        "text": f"Semantic paraphrase: '{sem_snippet}' (similarity: {sem_sim:.2f}{semantic_detail})",
                         "type": "semantic",
                     }
                 )

@@ -197,6 +197,13 @@ export type AnalystDecisionOut = {
   reviewed_at: string;
 };
 
+export type TriageProgress = {
+  reviewed: number;
+  remaining: number;
+  confirmed_sif: number;
+  overridden: number;
+};
+
 export type ReportSummary = {
   id: string;
   report_type: string;
@@ -223,6 +230,7 @@ export type ReportSummary = {
   data_type?: string;
   ai_prediction?: AiPredictionOut | null;
   analyst_decision?: AnalystDecisionOut | null;
+  precursor_summary?: string | null;
 };
 
 export type ReportDetail = ReportSummary & {
@@ -485,18 +493,37 @@ export type IngestionJobOut = {
   completed_at?: string | null;
 };
 
+export type DashboardFilters = {
+  start_date?: string;
+  end_date?: string;
+  site_id?: string;
+  department?: string;
+  lsr_category?: string;
+  min_confidence?: number;
+};
+
+const dashboardQuery = (filters: DashboardFilters = {}, extra: Record<string, string> = {}) => {
+  const params = new URLSearchParams();
+  Object.entries({ ...filters, ...extra }).forEach(([key, value]) => {
+    if (value !== undefined && value !== "" && value !== "all") params.set(key, String(value));
+  });
+  const query = params.toString();
+  return query ? `?${query}` : "";
+};
+
 export const api = {
 
   // Dashboard data endpoints
-  kpis: () => request<{ total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number }>("/v1/dashboard/kpis"),
+  kpis: (filters: DashboardFilters = {}) => request<{ total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number; high_risk_reports: number; top_risk_site: string | null; top_lsr: string | null; top_precursor_pattern: string | null }>(`/v1/dashboard/kpis${dashboardQuery(filters)}`),
   sites: () => request<Array<{ id: string; name: string; region?: string }>>("/v1/dashboard/sites"),
+  dashboardFilterOptions: () => request<{ departments: string[] }>("/v1/dashboard/filter-options"),
   lsrRules: () => request<LsrRuleMetadata[]>("/v1/lsr-rules"),
-  density: (group_by: "site" | "department" | "activity" = "site") =>
-    request<Array<{ group_label: string; sif_count: number; total_count: number; sif_rate: number }>>(`/v1/dashboard/sif-density?group_by=${group_by}`),
-  lsr: () =>
-    request<Array<{ lsr_category: string; count: number }>>("/v1/dashboard/lsr-distribution"),
-  trend: () =>
-    request<Array<{ period: string; sif_count: number; total_count: number }>>("/v1/dashboard/trend"),
+  density: (group_by: "site" | "department" | "activity" = "site", filters: DashboardFilters = {}) =>
+    request<Array<{ group_label: string; sif_count: number; total_count: number; sif_rate: number }>>(`/v1/dashboard/sif-density${dashboardQuery(filters, { group_by })}`),
+  lsr: (filters: DashboardFilters = {}) =>
+    request<Array<{ lsr_category: string; count: number }>>(`/v1/dashboard/lsr-distribution${dashboardQuery(filters)}`),
+  trend: (filters: DashboardFilters = {}) =>
+    request<Array<{ period: string; sif_count: number; total_count: number; sif_rate: number }>>(`/v1/dashboard/trend${dashboardQuery(filters)}`),
 
   reports: (params: Record<string, string | number | boolean | undefined>) => {
     const q = new URLSearchParams();
@@ -519,8 +546,8 @@ export const api = {
       "/v1/admin/training-runs",
     ),
   createTrainingRun: () => request<{ model_version: string }>("/v1/admin/training-runs", { method: "POST" }),
-  prioritySummary: (site_id?: string) =>
-    request<PrioritySummaryRow[]>(`/v1/dashboard/priority-summary${site_id ? `?site_id=${site_id}` : ""}`),
+  prioritySummary: (filters: DashboardFilters = {}) =>
+    request<PrioritySummaryRow[]>(`/v1/dashboard/priority-summary${dashboardQuery(filters)}`),
   priorityConfig: () => request<Record<string, unknown>>("/v1/admin/priority-config"),
   reportRecommendations: (reportId: string) =>
     request<Recommendation[]>(`/v1/reports/${reportId}/recommendations`),
@@ -589,6 +616,8 @@ export const api = {
     request<TimelineEventOut[]>(`/v1/reports/${reportId}/timeline`),
   lifecycleKpis: (site_id?: string) =>
     request<LifecycleKpiOut>(`/v1/dashboard/lifecycle-kpis${site_id ? `?site_id=${site_id}` : ""}`),
+  triageProgress: (site_id?: string) =>
+    request<TriageProgress>(`/v1/reports/triage-progress${site_id ? `?site_id=${site_id}` : ""}`),
   agreementAnalytics: () =>
     request<AgreementAnalyticsOut>("/v1/dashboard/agreement-analytics"),
 
@@ -606,4 +635,3 @@ export const api = {
   reviewerAgreement: () =>
     request<ReviewerAgreementSummaryOut>("/v1/reports/reviewer-agreement"),
 };
-

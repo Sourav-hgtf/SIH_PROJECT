@@ -46,8 +46,11 @@ def _scoped(q, user: User):
     return q
 
 def _apply_filters(q, filters: 'FilterParams'):
-    """Apply common filter parameters to a SQLAlchemy query.
-    All params are optional.
+    """Apply one report-level filter contract without multiplying rows.
+
+    Relationship ``EXISTS`` predicates deliberately avoid joins for LSR and
+    probability filters. This keeps all dashboard aggregates report-based even
+    where a report has multiple LSR tags or precursor triples.
     """
     if not hasattr(filters, "start_date"):
         return q
@@ -60,7 +63,9 @@ def _apply_filters(q, filters: 'FilterParams'):
     if hasattr(Report, "department") and getattr(filters, "department", None):
         q = q.filter(Report.department == filters.department)
     if filters.min_confidence is not None:
-        q = q.filter(SifClassification.sif_probability >= filters.min_confidence)
+        q = q.filter(Report.classification.has(SifClassification.sif_probability >= filters.min_confidence))
+    if filters.lsr_category:
+        q = q.filter(Report.lsr_tags.any(LsrTag.lsr_category == filters.lsr_category))
     return q
 
 
@@ -73,6 +78,21 @@ def list_sites(db: Session = Depends(get_db), user: User = Depends(get_current_u
     return [SiteOut(id=s.id, name=s.name, region=s.region) for s in q.order_by(Site.name).all()]
 
 
+@router.get("/filter-options")
+def filter_options(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Database-backed values for the dashboard's global filter controls."""
+    reports = _scoped(db.query(Report), user)
+    departments = [
+        row[0]
+        for row in reports.with_entities(Report.department)
+        .filter(Report.department.isnot(None), Report.department != "")
+        .distinct()
+        .order_by(Report.department)
+        .all()
+    ]
+    return {"departments": departments}
+
+
 @router.get("/sif-density", response_model=list[DensityRow])
 def sif_density(
     filters: FilterParams = Depends(),
@@ -81,7 +101,7 @@ def sif_density(
     user: User = Depends(get_current_user),
 ):
     sif_sum = func.sum(case((SifClassification.sif_label.is_(True), 1), else_=0))
-    total = func.count(Report.id)
+    total = func.count(func.distinct(Report.id))
     q = db.query(Report).join(SifClassification, SifClassification.report_id == Report.id)
     q = _scoped(q, user)
     q = _apply_filters(q, filters)
@@ -102,18 +122,28 @@ def sif_density(
             for label, sif, tot in rows
         ]
     if group_by == "activity":
-        q2 = (
+        # Deduplicate (report, activity) before aggregating. A report can
+        # legitimately contain multiple triples and must remain one report.
+        member_rows = (
             db.query(
+                Report.id.label("report_id"),
                 PrecursorTriple.activity,
-                func.sum(case((SifClassification.sif_label.is_(True), 1), else_=0)).label("sif_cnt"),
-                func.count(func.distinct(Report.id)).label("tot_cnt"),
+                SifClassification.sif_label.label("sif_label"),
             )
             .join(Report, Report.id == PrecursorTriple.report_id)
-            .outerjoin(SifClassification, SifClassification.report_id == Report.id)
+            .join(SifClassification, SifClassification.report_id == Report.id)
         )
-        q2 = _scoped(q2, user)
-        q2 = _apply_filters(q2, filters)
-        rows = q2.group_by(PrecursorTriple.activity).all()
+        member_rows = _scoped(member_rows, user)
+        member_rows = _apply_filters(member_rows, filters).distinct().subquery()
+        rows = (
+            db.query(
+                member_rows.c.activity,
+                func.sum(case((member_rows.c.sif_label.is_(True), 1), else_=0)),
+                func.count(member_rows.c.report_id),
+            )
+            .group_by(member_rows.c.activity)
+            .all()
+        )
         out = [
             DensityRow(
                 group_label=a or "Unspecified",
@@ -207,7 +237,12 @@ def trend(
     q = _apply_filters(q, filters)
     rows = q.group_by("period").order_by("period").all()
     return [
-        TrendRow(period=str(p), sif_count=int(s or 0), total_count=int(t or 0))
+        TrendRow(
+            period=str(p),
+            sif_count=int(s or 0),
+            total_count=int(t or 0),
+            sif_rate=round((s or 0) / t, 3) if t else 0.0,
+        )
         for p, s, t in rows
         if p is not None
     ]
@@ -226,12 +261,56 @@ def kpis(filters: FilterParams = Depends(), db: Session = Depends(get_db), user:
     avg = _scoped(avg, user)
     avg = _apply_filters(avg, filters).scalar() or 0
     pending = q.filter(Report.lifecycle_status.in_(["INGESTED", "AI_ANALYZED", "HSE_REVIEW", "REOPENED"])).count()
+    density_rows = sif_density(filters=filters, group_by="site", db=db, user=user)
+    top_site = density_rows[0].group_label if density_rows else None
+    lsr_rows = lsr_distribution(filters=filters, db=db, user=user)
+    populated_lsr_rows = [row for row in lsr_rows if row.count > 0]
+    top_lsr = max(populated_lsr_rows, key=lambda row: (row.count, row.lsr_category)).lsr_category if populated_lsr_rows else None
+    # The top pattern is an exact normalized triple. Semantic clusters remain
+    # available in the cluster explorer; this KPI stays filterable at report
+    # level and never treats triples as the denominator.
+    patterns = (
+        db.query(
+            PrecursorTriple.activity,
+            PrecursorTriple.location_asset,
+            PrecursorTriple.barrier_failure,
+            func.count(func.distinct(Report.id)).label("report_count"),
+            func.count(func.distinct(case((SifClassification.sif_label.is_(True), Report.id)))).label("sif_count"),
+        )
+        .join(Report, Report.id == PrecursorTriple.report_id)
+        .join(SifClassification, SifClassification.report_id == Report.id)
+    )
+    patterns = _scoped(patterns, user)
+    patterns = _apply_filters(patterns, filters)
+    top_pattern_row = (
+        patterns.group_by(PrecursorTriple.activity, PrecursorTriple.location_asset, PrecursorTriple.barrier_failure)
+        .order_by(func.count(func.distinct(case((SifClassification.sif_label.is_(True), Report.id)))).desc(), func.count(func.distinct(Report.id)).desc())
+        .first()
+    )
+    top_pattern = None
+    if top_pattern_row:
+        top_pattern = " | ".join(str(value) for value in top_pattern_row[:3])
+
+    # The priority engine operates on report records after database filtering.
+    # It provides the existing configurable HIGH/CRITICAL definition.
+    priority_reports = _apply_filters(
+        _scoped(
+            db.query(Report).options(joinedload(Report.classification), joinedload(Report.lsr_tags), joinedload(Report.triples)),
+            user,
+        ),
+        filters,
+    ).all()
+    high_risk = sum(1 for report in priority_reports if score_report(report, db).tier in {"HIGH", "CRITICAL"})
     return {
         "total_reports": total,
         "sif_flagged": sif,
         "sif_rate": round(sif / total, 3) if total else 0,
         "avg_confidence": round(float(avg), 3),
         "queue_size": pending,
+        "high_risk_reports": high_risk,
+        "top_risk_site": top_site,
+        "top_lsr": top_lsr,
+        "top_precursor_pattern": top_pattern,
     }
 
 
@@ -395,5 +474,3 @@ def get_model_drift(db: Session = Depends(get_db), user: User = Depends(get_curr
 def get_intervention_effectiveness(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     allowed = scoped_site_ids(user)
     return analytics_service.compute_intervention_effectiveness(db, allowed)
-
-

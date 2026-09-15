@@ -79,6 +79,36 @@ def _to_lsr_tag_out(t: LsrTag) -> LsrTagOut:
     )
 
 
+@router.get("/reports/triage-progress")
+def triage_progress(
+    site_id: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "analyst", "site_manager", "leadership")),
+):
+    """Queue progress from distinct reports and immutable analyst decisions."""
+    reports = _apply_site_scope(db.query(Report), user)
+    if site_id:
+        reports = reports.filter(Report.site_id == site_id)
+    report_ids = reports.with_entities(Report.id).subquery()
+    pending_states = ["INGESTED", "AI_ANALYZED", "HSE_REVIEW", "REOPENED"]
+    remaining = db.query(func.count()).select_from(report_ids).join(Report, Report.id == report_ids.c.id).filter(Report.lifecycle_status.in_(pending_states)).scalar() or 0
+    reviewed = db.query(func.count(func.distinct(AnalystDecision.report_id))).filter(AnalystDecision.report_id.in_(db.query(report_ids.c.id))).scalar() or 0
+    confirmed_sif = db.query(func.count(func.distinct(AnalystDecision.report_id))).filter(
+        AnalystDecision.report_id.in_(db.query(report_ids.c.id)),
+        AnalystDecision.analyst_label.is_(True),
+    ).scalar() or 0
+    overridden = db.query(func.count(func.distinct(AnalystDecision.report_id))).filter(
+        AnalystDecision.report_id.in_(db.query(report_ids.c.id)),
+        AnalystDecision.review_action == "OVERRIDDEN",
+    ).scalar() or 0
+    return {
+        "reviewed": int(reviewed),
+        "remaining": int(remaining),
+        "confirmed_sif": int(confirmed_sif),
+        "overridden": int(overridden),
+    }
+
+
 def _apply_site_scope(query, user: User):
     allowed = scoped_site_ids(user)
     if allowed is not None:
@@ -113,6 +143,10 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
             ai_sif_probability_at_time=ad.ai_sif_probability_at_time,
             reviewed_at=ad.reviewed_at,
         )
+    precursor_summary = None
+    if report.triples:
+        triple = report.triples[0]
+        precursor_summary = " | ".join((triple.activity, triple.location_asset, triple.barrier_failure))
     return ReportSummary(
         id=report.id,
         report_type=report.report_type,
@@ -136,6 +170,7 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
         data_type=getattr(report, "data_type", "synthetic") or "synthetic",
         ai_prediction=ai_prediction,
         analyst_decision=analyst_decision,
+        precursor_summary=precursor_summary,
     )
 
 
@@ -274,6 +309,12 @@ def _build_report_detail(report: Report, db: Session) -> ReportDetail:
                 "activity": t.activity,
                 "location_asset": t.location_asset,
                 "barrier_failure": t.barrier_failure,
+                "original_activity": getattr(t, "original_activity", None),
+                "original_location_asset": getattr(t, "original_location_asset", None),
+                "original_barrier_failure": getattr(t, "original_barrier_failure", None),
+                "normalized_activity": getattr(t, "normalized_activity", None) or t.activity,
+                "normalized_location_asset": getattr(t, "normalized_location_asset", None) or t.location_asset,
+                "normalized_barrier_failure": getattr(t, "normalized_barrier_failure", None) or t.barrier_failure,
                 "hazard_exposure": getattr(t, "hazard_exposure", None),
                 "relevant_lsr": getattr(t, "relevant_lsr", None),
                 "relevant_lsr_id": getattr(t, "relevant_lsr_id", None),
@@ -940,4 +981,3 @@ def get_tags(report_id: str, db: Session = Depends(get_db), user: User = Depends
 def get_canonical_rules(user: User = Depends(get_current_user)):
     """Returns the canonical 12 IOGP Life-Saving Rules metadata."""
     return get_canonical_rule_metadata()
-

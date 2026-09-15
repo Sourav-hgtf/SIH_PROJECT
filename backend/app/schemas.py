@@ -92,6 +92,7 @@ class ReportSummary(BaseModel):
     data_type: str = "synthetic"
     ai_prediction: AiPredictionOut | None = None
     analyst_decision: AnalystDecisionOut | None = None
+    precursor_summary: str | None = None
 
 
 class LabelReviewIn(BaseModel):
@@ -193,6 +194,13 @@ class PrecursorClusterOut(BaseModel):
     representative_barrier_failure: str
     cluster_size: int
     trend_status: str
+    semantic_cluster_key: str | None = None
+    summary: str | None = None
+    clustering_model_version: str | None = None
+    cluster_confidence: float | None = None
+    report_count: int = 0
+    sif_count: int = 0
+    sif_rate: float | None = None
     first_seen_at: datetime | None = None
     last_updated_at: datetime | None = None
     priority: PriorityOut | None = None
@@ -220,6 +228,7 @@ class TrendRow(BaseModel):
     period: str
     sif_count: int
     total_count: int
+    sif_rate: float
 
 
 class FeedbackCreate(BaseModel):
@@ -522,5 +531,3 @@ class AgreementTrendRow(BaseModel):
     agreement_rate: float
     false_positive_rate: float
     false_negative_rate: float
-
-

@@ -12,10 +12,11 @@ import {
   type ModelHealthOut,
   type PrioritySummaryRow,
   type ReviewerAgreementSummaryOut,
+  type DashboardFilters,
 } from "../api";
 import { PriorityBadge } from "../components/Badges";
 
-type Kpis = { total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number };
+type Kpis = { total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number; high_risk_reports: number; top_risk_site: string | null; top_lsr: string | null; top_precursor_pattern: string | null };
 
 export function DashboardPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null);
@@ -33,20 +34,32 @@ export function DashboardPage() {
   const [trend, setTrend] = useState<Array<{ period: string; sif_count: number; total_count: number; sif_rate: number }>>([]);
   const [humanAgreement, setHumanAgreement] = useState<ReviewerAgreementSummaryOut | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sites, setSites] = useState<Array<{ id: string; name: string }>>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [lsrRules, setLsrRules] = useState<Array<{ name: string }>>([]);
+  const [filters, setFilters] = useState<DashboardFilters>({});
+
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined && value !== "");
+  const updateFilter = (key: keyof DashboardFilters, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value === "" ? undefined : key === "min_confidence" ? Number(value) : value }));
+  };
+  const clearFilters = () => setFilters({});
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      api.kpis(),
+      api.kpis(filters),
       api.lifecycleKpis(),
       api.agreementAnalytics(),
       api.modelHealth(),
       api.errorAnalysis(),
       api.modelDrift(),
       api.interventionEffectiveness(),
-      api.prioritySummary(),
-      api.density(groupBy),
-      api.lsr(),
-      api.trend(),
+      api.prioritySummary(filters),
+      api.density(groupBy, filters),
+      api.lsr(filters),
+      api.trend(filters),
       api.recommendedFocusAreas(),
       api.reviewerAgreement(),
     ])
@@ -62,20 +75,28 @@ export function DashboardPage() {
         setDensity(d);
         setLsr(l);
         setFocusAreas(f);
-        setTrend(
-          t.map((row) => ({
-            ...row,
-            sif_rate: row.total_count ? Math.round((row.sif_count / row.total_count) * 100) : 0,
-          })),
-        );
+        setTrend(t.map((row) => ({ ...row, sif_rate: row.sif_rate * 100 })));
         setHumanAgreement(ra);
+        setError("");
+      })
+      .catch((e) => setError(String(e.message)))
+      .finally(() => setLoading(false));
+  }, [groupBy, filters]);
+
+  useEffect(() => {
+    Promise.all([api.sites(), api.dashboardFilterOptions(), api.lsrRules()])
+      .then(([siteRows, options, rules]) => {
+        setSites(siteRows);
+        setDepartments(options.departments);
+        setLsrRules(rules);
       })
       .catch((e) => setError(String(e.message)));
-  }, [groupBy]);
+  }, []);
 
 
-  if (error) return <p className="text-risk-critical p-6">{error}</p>;
-  if (!kpis) return <p className="text-warm p-6">Loading executive dashboard…</p>;
+  if (loading && !kpis) return <p className="text-warm p-6">Loading executive dashboard…</p>;
+  if (error && !kpis) return <div className="p-6 text-risk-critical">Unable to load the dashboard: {error}</div>;
+  if (!kpis) return null;
 
   return (
     <div className="space-y-6 pb-12">
@@ -85,6 +106,38 @@ export function DashboardPage() {
           Human-in-the-loop decision support: Precursor risk monitoring, formal case lifecycle status, and AI governance metrics.
         </p>
       </div>
+
+      <section className="rounded-xl border border-border bg-white p-4 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Decision filters</h2>
+            <p className="text-xs text-warm">Applied consistently to precursor KPIs, rankings, LSR distribution, trend, and priority summary.</p>
+          </div>
+          <button onClick={clearFilters} disabled={!hasActiveFilters} className="rounded border border-border px-3 py-1.5 text-xs font-medium text-ink disabled:cursor-not-allowed disabled:opacity-40">
+            Clear filters
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <input aria-label="Start date" type="date" value={filters.start_date || ""} onChange={(e) => updateFilter("start_date", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
+          <input aria-label="End date" type="date" value={filters.end_date || ""} onChange={(e) => updateFilter("end_date", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
+          <select aria-label="Site" value={filters.site_id || ""} onChange={(e) => updateFilter("site_id", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All sites</option>{sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select>
+          <select aria-label="Department" value={filters.department || ""} onChange={(e) => updateFilter("department", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All departments</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select>
+          <select aria-label="LSR category" value={filters.lsr_category || ""} onChange={(e) => updateFilter("lsr_category", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All LSR categories</option>{lsrRules.map((rule) => <option key={rule.name} value={rule.name}>{rule.name}</option>)}</select>
+          <input aria-label="Minimum SIF probability" type="number" min="0" max="1" step="0.05" placeholder="Min SIF probability" value={filters.min_confidence ?? ""} onChange={(e) => updateFilter("min_confidence", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
+        </div>
+        {hasActiveFilters && <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-warm">{Object.entries(filters).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => <span key={key} className="rounded bg-slate-100 px-2 py-1">{key.replaceAll("_", " ")}: {String(value)}</span>)}</div>}
+      </section>
+
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-risk-critical">Some dashboard data could not be refreshed: {error}</div>}
+
+      {kpis.total_reports === 0 && <div className="rounded-lg border border-dashed border-border bg-white p-6 text-center text-sm text-warm">No reports match the active filters. Clear filters or broaden the date range to review precursor patterns.</div>}
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          ["Total Reports", kpis.total_reports], ["SIF Potential Reports", kpis.sif_flagged], ["SIF Rate", `${Math.round(kpis.sif_rate * 100)}%`], ["High Risk Reports", kpis.high_risk_reports],
+          ["Top Risk Site", kpis.top_risk_site || "None"], ["Top LSR", kpis.top_lsr || "None"], ["Top Precursor Pattern", kpis.top_precursor_pattern || "None"],
+        ].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-border bg-white p-3 shadow-card"><div className="text-[11px] font-medium text-warm">{label}</div><div className="mt-1 truncate text-lg font-bold text-ink" title={String(value)}>{value}</div></div>)}
+      </section>
 
       {/* Primary Lifecycle KPI Cards */}
       {lifecycleKpis && (

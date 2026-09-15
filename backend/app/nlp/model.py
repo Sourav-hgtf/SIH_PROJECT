@@ -28,7 +28,7 @@ from typing import Any
 import joblib
 
 from app.config import settings
-from app.nlp.preprocess import preprocess
+from app.nlp.preprocess import contains_detectable_pii, preprocess
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,12 @@ MANIFEST_PATH = ARTIFACT_DIR / "model_manifest.json"
 
 _MODEL_CACHE: dict[str, Any] | None = None
 _MODEL_INTEGRITY_STATUS: str = "UNCHECKED"
+
+
+class PrivacyBoundaryError(ValueError):
+    """Raised when text is not safe to send to the SIF model."""
+
+    safe_code = "PII_REDACTION_REQUIRED"
 
 
 def verify_model_integrity() -> tuple[bool, str]:
@@ -147,14 +153,36 @@ def load_sif_model() -> dict[str, Any]:
         }
 
 
-def predict_sif_details(raw_text: str) -> dict[str, Any]:
+def predict_sif_details(text: str) -> dict[str, Any]:
     """Predict SIF probability using the calibrated ML model with uniform preprocessing.
 
     Returns structured inference payload with complete version and threshold metadata.
     """
     # 1. Consistent preprocessing (PII redaction, spelling, abbreviation expansion)
-    prep = preprocess(raw_text)
+    prep = preprocess(text)
     processed_text = prep["processed_text"]
+
+    # This must occur before vectorization or estimator prediction. Do not log
+    # the rejected content: callers receive a stable, non-sensitive code only.
+    if contains_detectable_pii(processed_text):
+        logger.warning("SIF inference blocked at privacy boundary (PII_REDACTION_REQUIRED)")
+        return {
+            "sif_probability": 0.0,
+            "calibrated_sif_probability": None,
+            "is_calibrated": False,
+            "calibration_status": PrivacyBoundaryError.safe_code,
+            "sif_potential": False,
+            "model_version": "not-invoked-privacy-boundary",
+            "feature_version": "not-invoked",
+            "preprocessing_version": "prep-pii-spell-abbr-v1",
+            "dataset_version": "not-invoked",
+            "calibration_version": "not-invoked",
+            "threshold_version": "not-invoked",
+            "threshold": settings.sif_threshold,
+            "training_run_id": "",
+            "processed_text": processed_text,
+            "processing_error": PrivacyBoundaryError.safe_code,
+        }
 
     model_data = load_sif_model()
     model_version = model_data.get("model_version", "unknown")
@@ -192,7 +220,6 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
             "threshold_version": threshold_version,
             "threshold": optimal_threshold,
             "training_run_id": training_run_id,
-            "raw_text": raw_text,
             "processed_text": processed_text,
         }
 
@@ -217,11 +244,10 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
             "threshold_version": threshold_version,
             "threshold": optimal_threshold,
             "training_run_id": training_run_id,
-            "raw_text": raw_text,
             "processed_text": processed_text,
         }
     except Exception as e:
-        logger.error(f"Prediction inference failed: {e}")
+        logger.error("SIF prediction inference failed: %s", type(e).__name__)
         return {
             "sif_probability": 0.0,
             "calibrated_sif_probability": None,
@@ -236,7 +262,6 @@ def predict_sif_details(raw_text: str) -> dict[str, Any]:
             "threshold_version": threshold_version,
             "threshold": optimal_threshold,
             "training_run_id": training_run_id,
-            "raw_text": raw_text,
             "processed_text": processed_text,
             "error": str(e),
         }

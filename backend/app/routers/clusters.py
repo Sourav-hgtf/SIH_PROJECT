@@ -5,11 +5,31 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user, scoped_site_ids
 from app.database import get_db
-from app.models import ClusterMember, PrecursorCluster, PrecursorTriple, Report, User
+from app.models import ClusterMember, PrecursorCluster, PrecursorTriple, Report, SifClassification, User
 from app.priority.engine import score_cluster, score_report
 from app.schemas import PrecursorClusterDetail, PrecursorClusterOut, ReportSummary, LsrTagOut
 
 router = APIRouter(tags=["Clusters"])
+
+
+def _cluster_report_metrics(db: Session, cluster_id: str) -> dict[str, int | float | None]:
+    """Aggregate from distinct underlying reports, never precursor rows."""
+    rows = (
+        db.query(Report.id, SifClassification.sif_label)
+        .join(PrecursorTriple, PrecursorTriple.report_id == Report.id)
+        .join(ClusterMember, ClusterMember.triple_id == PrecursorTriple.id)
+        .outerjoin(SifClassification, SifClassification.report_id == Report.id)
+        .filter(ClusterMember.cluster_id == cluster_id)
+        .all()
+    )
+    labels = {report_id: label for report_id, label in rows}
+    report_count = len(labels)
+    sif_count = sum(1 for label in labels.values() if label is True)
+    return {
+        "report_count": report_count,
+        "sif_count": sif_count,
+        "sif_rate": round(sif_count / report_count, 4) if report_count else None,
+    }
 
 
 def _visible_cluster_ids(db: Session, user: User) -> set[str] | None:
@@ -63,6 +83,11 @@ def list_clusters(
             representative_barrier_failure=c.representative_barrier_failure,
             cluster_size=c.cluster_size,
             trend_status=c.trend_status,
+            semantic_cluster_key=c.semantic_cluster_key,
+            summary=c.summary,
+            clustering_model_version=c.clustering_model_version,
+            cluster_confidence=c.cluster_confidence,
+            **_cluster_report_metrics(db, c.id),
             first_seen_at=c.first_seen_at,
             last_updated_at=c.last_updated_at,
             priority=score_cluster(c, db),
@@ -127,6 +152,11 @@ def cluster_detail(cluster_id: str, db: Session = Depends(get_db), user: User = 
         representative_barrier_failure=cluster.representative_barrier_failure,
         cluster_size=len(summaries),
         trend_status=cluster.trend_status,
+        semantic_cluster_key=cluster.semantic_cluster_key,
+        summary=cluster.summary,
+        clustering_model_version=cluster.clustering_model_version,
+        cluster_confidence=cluster.cluster_confidence,
+        **_cluster_report_metrics(db, cluster.id),
         first_seen_at=cluster.first_seen_at,
         last_updated_at=cluster.last_updated_at,
         priority=cluster_priority,

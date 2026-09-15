@@ -46,7 +46,7 @@ from app.nlp.preprocess import preprocess
 logger = logging.getLogger(__name__)
 
 # Extraction version identifier
-EXTRACTION_VERSION = "hybrid_semantic_v1"
+EXTRACTION_VERSION = "hybrid_semantic_v2"
 FALLBACK_VERSION = "rule_fallback_v1"
 
 # Semantic similarity threshold for precursor concept matching
@@ -63,6 +63,8 @@ class PrecursorRecord:
     relevant_lsr_id: str | None
     evidence_phrase: str | None
     evidence: dict[str, str | None] = field(default_factory=dict)
+    field_confidence: dict[str, float] = field(default_factory=dict)
+    field_methods: dict[str, str] = field(default_factory=dict)
     confidence: float = 0.85
     extraction_method: str = EXTRACTION_VERSION
     secondary_activities: list[str] = field(default_factory=list)
@@ -89,9 +91,12 @@ CANONICAL_ACTIVITIES: list[dict[str, Any]] = [
         "name": "Line dismantling / piping break",
         "lsr_id": "LSR04",
         "patterns": [
-            r"\b(dismantl|disassembl|uncoupl|remov|disconnect|break(ing)?)\w*\s+(the\s+)?(pressur\w+|pipe|line|flange|tubing|manifold)",
+            r"\b(dismantl|disassembl|uncoupl|remov|disconnect|break(ing)?)\w*\s+(the\s+)?(?:(?:pressur\w+|live|process)\s+)?(pipe|line|flange|tubing|manifold)",
             r"\bline\s+break(ing)?\b",
             r"\bflange\s+(opening|removal|unbolting)\b",
+        ],
+        "semantic_patterns": [
+            r"\b(opened|broke\s+open|separated)\s+(the\s+)?(?:(?:pressur\w+|process)\s+)?(pipe|line|flange)\b",
         ],
         "exemplars": [
             "dismantled the pressurized line",
@@ -105,7 +110,7 @@ CANONICAL_ACTIVITIES: list[dict[str, Any]] = [
         "name": "Hot work / welding",
         "lsr_id": "LSR05",
         "patterns": [
-            r"\b(weld(ing)?|torch\s+cut(ting)?|grind(ing)?|flame\s+work|brazing)\b",
+            r"\b(weld(ed|ing)?|torch\s+cut(ting)?|grind(ing)?|flame\s+work|brazing)\b",
         ],
         "exemplars": [
             "welding structural joint",
@@ -244,6 +249,9 @@ CANONICAL_BARRIERS: list[dict[str, Any]] = [
             r"\b(not\s+isolated|unisolated|residual\s+pressure\s+remained)\b",
             r"\b(loto\s+not\s+applied|lockout\s+not\s+applied|no\s+loto)\b",
             r"\b(unverified\s+zero\s+energy)\b",
+        ],
+        "semantic_patterns": [
+            r"\b(without|before)\s+(proving|ensuring|confirming|verifying)\s+(?:that\s+)?(?:it|the\s+(?:line|system))\s+(?:was\s+)?isolat\w*\b",
         ],
         "exemplars": [
             "without confirming isolation",
@@ -394,6 +402,9 @@ CANONICAL_HAZARDS: list[dict[str, Any]] = [
         "patterns": [
             r"\b(pressur\w+\s+(line|gas|liquid|fluid|circuit|vessel)|residual\s+pressure|hydraulic\s+pressure|compressed\s+air)\b",
             r"\bpressur(ized|e)\b",
+        ],
+        "semantic_patterns": [
+            r"\b(pressure\s+(?:had\s+)?not\s+been\s+(?:released|bled\s+down|vented)|trapped\s+pressure)\b",
         ],
         "exemplars": [
             "stored pressurized energy in hydraulic line",
@@ -634,35 +645,59 @@ def extract_precursor(
         )
 
     # 1. First, check rule patterns for deterministic high-confidence extraction
-    matched_activities: list[tuple[str, str, str | None, str | None]] = []  # (name, lsr_id, sent_evidence, clause)
+    matched_activities: list[tuple[str, str, str | None, str | None, str]] = []  # (name, lsr_id, sentence evidence, clause, method)
     for act in CANONICAL_ACTIVITIES:
         for pat in act["patterns"]:
             m = re.search(pat, text, re.IGNORECASE)
             if m:
                 clause = m.group(0)
                 ev = _extract_evidence_span(text, match_pattern=pat) or clause
-                matched_activities.append((act["name"], act["lsr_id"], ev, clause))
+                matched_activities.append((act["name"], act["lsr_id"], ev, clause, "rule"))
                 break
+        else:
+            for pat in act.get("semantic_patterns", []):
+                m = re.search(pat, text, re.IGNORECASE)
+                if m:
+                    clause = m.group(0)
+                    ev = _extract_evidence_span(text, match_pattern=pat) or clause
+                    matched_activities.append((act["name"], act["lsr_id"], ev, clause, "semantic_pattern"))
+                    break
 
-    matched_barriers: list[tuple[str, str, str | None, str | None]] = []  # (name, lsr_id, sent_evidence, clause)
+    matched_barriers: list[tuple[str, str, str | None, str | None, str]] = []  # (name, lsr_id, sentence evidence, clause, method)
     for bar in CANONICAL_BARRIERS:
         for pat in bar["patterns"]:
             m = re.search(pat, text, re.IGNORECASE)
             if m:
                 clause = m.group(0)
                 ev = _extract_evidence_span(text, match_pattern=pat) or clause
-                matched_barriers.append((bar["name"], bar["lsr_id"], ev, clause))
+                matched_barriers.append((bar["name"], bar["lsr_id"], ev, clause, "rule"))
                 break
+        else:
+            for pat in bar.get("semantic_patterns", []):
+                m = re.search(pat, text, re.IGNORECASE)
+                if m:
+                    clause = m.group(0)
+                    ev = _extract_evidence_span(text, match_pattern=pat) or clause
+                    matched_barriers.append((bar["name"], bar["lsr_id"], ev, clause, "semantic_pattern"))
+                    break
 
-    matched_hazards: list[tuple[str, str, str | None, str | None]] = []  # (name, lsr_id, sent_evidence, clause)
+    matched_hazards: list[tuple[str, str, str | None, str | None, str]] = []  # (name, lsr_id, sentence evidence, clause, method)
     for haz in CANONICAL_HAZARDS:
         for pat in haz["patterns"]:
             m = re.search(pat, text, re.IGNORECASE)
             if m:
                 clause = m.group(0)
                 ev = _extract_evidence_span(text, match_pattern=pat) or clause
-                matched_hazards.append((haz["name"], haz["lsr_id"], ev, clause))
+                matched_hazards.append((haz["name"], haz["lsr_id"], ev, clause, "rule"))
                 break
+        else:
+            for pat in haz.get("semantic_patterns", []):
+                m = re.search(pat, text, re.IGNORECASE)
+                if m:
+                    clause = m.group(0)
+                    ev = _extract_evidence_span(text, match_pattern=pat) or clause
+                    matched_hazards.append((haz["name"], haz["lsr_id"], ev, clause, "semantic_pattern"))
+                    break
 
     # 2. Strict location detection (anti-hallucination)
     location_val, location_ev = extract_location(text, equipment=equipment)
@@ -696,7 +731,7 @@ def extract_precursor(
                 best_act_sent = sentences[best_s_idx]
 
         if best_act and best_act_sim >= PRECURSOR_SEMANTIC_THRESHOLD:
-            matched_activities.append((best_act, best_act_lsr, best_act_sent, best_act_sent))
+            matched_activities.append((best_act, best_act_lsr, best_act_sent, best_act_sent, "dense_semantic"))
 
     # Semantic Barrier matching if not matched by rules
     if not matched_barriers and sent_vecs is not None and len(sent_vecs) > 0 and concept_cache.get("barriers"):
@@ -714,7 +749,7 @@ def extract_precursor(
                 best_bar_sent = sentences[best_s_idx]
 
         if best_bar and best_bar_sim >= PRECURSOR_SEMANTIC_THRESHOLD:
-            matched_barriers.append((best_bar, best_bar_lsr, best_bar_sent, best_bar_sent))
+            matched_barriers.append((best_bar, best_bar_lsr, best_bar_sent, best_bar_sent, "dense_semantic"))
 
     # Semantic Hazard matching if not matched by rules
     if not matched_hazards and sent_vecs is not None and len(sent_vecs) > 0 and concept_cache.get("hazards"):
@@ -732,36 +767,40 @@ def extract_precursor(
                 best_haz_sent = sentences[best_s_idx]
 
         if best_haz and best_haz_sim >= PRECURSOR_SEMANTIC_THRESHOLD:
-            matched_hazards.append((best_haz, best_haz_lsr, best_haz_sent, best_haz_sent))
+            matched_hazards.append((best_haz, best_haz_lsr, best_haz_sent, best_haz_sent, "dense_semantic"))
 
     # 4. Fallback to metadata job_type or legacy rules if still missing
     primary_activity: str | None = None
     activity_ev: str | None = None
     activity_clause: str | None = None
     activity_lsr_id: str | None = None
+    activity_method = "unknown"
 
     if matched_activities:
-        primary_activity, activity_lsr_id, activity_ev, activity_clause = matched_activities[0]
+        primary_activity, activity_lsr_id, activity_ev, activity_clause, activity_method = matched_activities[0]
     elif job_type and job_type.strip().lower() not in {"general", "unspecified", "none", "n/a", "unknown"}:
         primary_activity = job_type.strip()
         activity_ev = f"Job metadata: {job_type}"
         activity_clause = activity_ev
+        activity_method = "metadata"
 
     primary_barrier: str | None = None
     barrier_ev: str | None = None
     barrier_clause: str | None = None
     barrier_lsr_id: str | None = None
+    barrier_method = "unknown"
 
     if matched_barriers:
-        primary_barrier, barrier_lsr_id, barrier_ev, barrier_clause = matched_barriers[0]
+        primary_barrier, barrier_lsr_id, barrier_ev, barrier_clause, barrier_method = matched_barriers[0]
 
     primary_hazard: str | None = None
     hazard_ev: str | None = None
     hazard_clause: str | None = None
     hazard_lsr_id: str | None = None
+    hazard_method = "unknown"
 
     if matched_hazards:
-        primary_hazard, hazard_lsr_id, hazard_ev, hazard_clause = matched_hazards[0]
+        primary_hazard, hazard_lsr_id, hazard_ev, hazard_clause, hazard_method = matched_hazards[0]
 
     # Fallback to legacy extraction if everything is missing and fallback enabled
     is_fallback = False
@@ -771,11 +810,13 @@ def extract_precursor(
             primary_activity = legacy["activity"]
             activity_ev = text[:60]
             activity_clause = activity_ev
+            activity_method = "legacy_rule_fallback"
             is_fallback = True
         if legacy["barrier_failure"] != "barrier not identified":
             primary_barrier = legacy["barrier_failure"]
             barrier_ev = text[:60]
             barrier_clause = barrier_ev
+            barrier_method = "legacy_rule_fallback"
             is_fallback = True
 
     # 5. Resolve Relevant Life-Saving Rule (LSR)
@@ -792,6 +833,21 @@ def extract_precursor(
         "location": location_ev,
         "barrier_failure": barrier_clause or barrier_ev,
         "hazard_exposure": hazard_clause or hazard_ev,
+    }
+    field_methods = {
+        "activity": activity_method,
+        "location": "rule" if location_ev else "unknown",
+        "barrier_failure": barrier_method,
+        "hazard_exposure": hazard_method,
+        "relevant_lsr": "barrier_then_activity_then_hazard" if resolved_lsr_id else "unknown",
+    }
+    method_confidence = {"rule": 0.98, "semantic_pattern": 0.86, "dense_semantic": 0.75, "metadata": 0.75, "legacy_rule_fallback": 0.65, "unknown": 0.0}
+    field_confidence = {
+        "activity": method_confidence[activity_method] if primary_activity else 0.0,
+        "location": 0.98 if location_val and location_ev else 0.0,
+        "barrier_failure": method_confidence[barrier_method] if primary_barrier else 0.0,
+        "hazard_exposure": method_confidence[hazard_method] if primary_hazard else 0.0,
+        "relevant_lsr": 0.98 if resolved_lsr_id and barrier_lsr_id else (0.86 if resolved_lsr_id else 0.0),
     }
 
     # Combined evidence phrase prioritizing the concise barrier clause or hazard/activity
@@ -824,6 +880,8 @@ def extract_precursor(
         relevant_lsr_id=resolved_lsr_id,
         evidence_phrase=key_evidence,
         evidence=evidence_dict,
+        field_confidence=field_confidence,
+        field_methods=field_methods,
         confidence=conf,
         extraction_method=method,
         secondary_activities=[a[0] for a in matched_activities[1:]],

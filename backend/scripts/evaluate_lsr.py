@@ -497,13 +497,16 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
     macro = summary["macro_metrics"]
     micro = summary["micro_metrics"]
     cat = summary["category_metrics"]
+    prompt_case = next(case for case in summary["case_details"] if case["id"] == "PARA-01")
+    prompt_tag = next(tag for tag in prompt_case["hybrid_tags"] if tag["rule_id"] == "LSR02")
+    prompt_evidence = next(ev for ev in prompt_tag["evidence"] if ev["type"] == "semantic")
 
     lines = [
         "# LSR_EVALUATION.md — Life-Saving Rule Classification Evaluation",
         "",
         "## 1. Executive Summary & Architecture",
         "",
-        "In Phase 5, we enhanced the Life-Saving Rule (LSR) classification engine by augmenting the deterministic rule-based classifier with a local semantic similarity engine. The architecture preserves all 12 canonical IOGP rules, ensures high-confidence deterministic triggers remain primary, adds dense sentence embedding matching for paraphrased hazard reports, and suppresses false alarms caused by weak isolated keywords.",
+        "The classifier retains the deterministic LSR rules as the safety fallback and adds a local semantic layer for paraphrases. The taxonomy remains the canonical 12 IOGP rules; the semantic layer can only score those existing IDs. Dense sentence embeddings are used when available. A conservative, multi-concept local matcher keeps paraphrase detection available when that optional dependency is unavailable.",
         "",
         "```",
         "Raw Incident Report",
@@ -512,7 +515,7 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
         "       ↓",
         "Parallel Detection Engines:",
         "  ├─ Deterministic Rule Engine (exact phrases, multi-token keywords, cross-signals)",
-        "  └─ Local Semantic Matcher (sentence embeddings via all-MiniLM-L6-v2 vs 12 canonical vectors)",
+        "  └─ Local Semantic Matcher (dense embeddings when installed; otherwise rule-scoped multi-concept matching)",
         "       ↓",
         "Evidence & Confidence Aggregator + Weak Keyword Suppressor",
         "       ↓",
@@ -531,7 +534,7 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
         f"| **Micro Average** | **Precision** | {micro['rule_baseline']['precision']} | **{micro['hybrid_semantic']['precision']}** | {micro['hybrid_semantic']['precision'] - micro['rule_baseline']['precision']:+.4f} |",
         f"| **Micro Average** | **Recall** | {micro['rule_baseline']['recall']} | **{micro['hybrid_semantic']['recall']}** | {micro['hybrid_semantic']['recall'] - micro['rule_baseline']['recall']:+.4f} |",
         f"| **Micro Average** | **F1 Score** | {micro['rule_baseline']['f1']} | **{micro['hybrid_semantic']['f1']}** | **{micro['hybrid_semantic']['f1'] - micro['rule_baseline']['f1']:+.4f}** |",
-        f"| **Counts** | **Total True Positives (TP)** | {micro['rule_baseline']['tp']} | **{micro['hybrid_semantic']['tp']}** | +{micro['hybrid_semantic']['tp'] - micro['rule_baseline']['tp']} |",
+        f"| **Counts** | **Total True Positives (TP)** | {micro['rule_baseline']['tp']} | **{micro['hybrid_semantic']['tp']}** | {micro['hybrid_semantic']['tp'] - micro['rule_baseline']['tp']:+d} |",
         f"| **Counts** | **Total False Negatives (FN)** | {micro['rule_baseline']['fn']} | **{micro['hybrid_semantic']['fn']}** | {micro['hybrid_semantic']['fn'] - micro['rule_baseline']['fn']} |",
         f"| **Counts** | **Total False Positives (FP)** | {micro['rule_baseline']['fp']} | **{micro['hybrid_semantic']['fp']}** | {micro['hybrid_semantic']['fp'] - micro['rule_baseline']['fp']} |",
         "",
@@ -566,15 +569,15 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
         "**Input Text**: *\"Atmospheric conditions were not verified before entry.\"*",
         "",
         "- **Rule-Based Baseline**: Assigned `[]` (Missed! Exact phrases like 'atmosphere not tested' or 'no gas test' failed string matching).",
-        "- **Hybrid Semantic Engine**: Successfully detected **`LSR02: Confined Space`** with **confidence: 0.777** (`source: 'semantic'`).",
-        "- **Extracted Evidence**: `{'text': \"Semantic match: 'Atmospheric conditions were not verified before entry.' (similarity: 0.63)\", 'type': 'semantic'}`.",
+        f"- **Hybrid Semantic Engine**: Successfully detected **`LSR02: Confined Space`** with **confidence: {prompt_tag['confidence']:.3f}** (`source: '{prompt_tag['source']}'`).",
+        f"- **Extracted Evidence**: `{prompt_evidence}`.",
         "- **Outcome**: Eliminates safety-critical blind spots when personnel report hazard conditions using synonyms or operational field phrasing.",
         "",
         "### Weak Keyword Suppression Case Study",
         "**Input Text**: *\"Security guard signed the visitor log at the entrance gate and greeted incoming personnel.\"*",
         "",
         "- **Rule Baseline**: Risk of false alarm due to single keyword `'guard'` matching `LSR01: Bypassing Safety Controls`.",
-        "- **Hybrid Semantic Engine**: Verified semantic similarity (similarity = 0.12 < threshold 0.35) and absence of machinery barrier cross-signals. **Suppressed false positive completely** (0 tags returned).",
+        "- **Hybrid Semantic Engine**: Requires multiple category-specific concepts before assigning an LSR. It therefore returns no LSR tag for this isolated, non-safety use of `guard`.",
         "",
         "---",
         "",
@@ -584,8 +587,8 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
         "2. **Deterministic Trigger Preservation**: Whenever a direct canonical multi-word phrase is matched, the rule engine triggers with high confidence (`0.70 - 0.95`). If semantic agreement exists, it is marked `hybrid` with boosted confidence (`0.95 - 0.98`).",
         "3. **Multi-Category Detection**: Compound incidents (e.g. welding near fuel tanks without clearance) correctly yield multiple tags (`LSR05: Hot Work` and `LSR10: Work Authorization`).",
         "4. **Separation of LSR Confidence and SIF Probability**: LSR confidence reflects rule-violation evidence strength and is computed independently from SIF probability.",
-        "5. **Offline & Privacy-Preserving**: Runs 100% locally on CPU / Apple Silicon MPS without external API calls.",
-        "6. **Graceful Fallback**: If embedding model weights are unavailable, the classifier cleanly falls back to the deterministic rule engine without throwing exceptions.",
+        "5. **Offline & Privacy-Preserving**: Both the optional dense matcher and the conservative concept matcher run locally, with no external classification API call.",
+        "6. **Graceful Fallback**: If the optional embedding dependency or weights are unavailable, the deterministic rules remain active and the multi-concept semantic matcher continues paraphrase detection without throwing exceptions.",
         "",
         "---",
         "",

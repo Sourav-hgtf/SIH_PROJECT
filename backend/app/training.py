@@ -377,9 +377,22 @@ def run_ml_training(
 
     validated_records: list[IncidentDataRecord] = []
     demo_fallback_records: list[IncidentDataRecord] = []
+    privacy_rejected_records: list[dict[str, str]] = []
 
     for report in reports:
-        raw_text = report.raw_text_redacted or report.processed_text or ""
+        # Strict privacy boundary: training text must originate from the
+        # persisted, PII-redacted report. Never substitute processed_text,
+        # which may have been imported by an older path with unknown lineage.
+        if not report.raw_text_redacted:
+            privacy_rejected_records.append(
+                {"report_id": report.id, "reason": "PII_REDACTED_TEXT_REQUIRED"}
+            )
+            logger.warning(
+                "Training record excluded at privacy boundary: report_id=%s reason=PII_REDACTED_TEXT_REQUIRED",
+                report.id,
+            )
+            continue
+        raw_text = report.raw_text_redacted
         # Apply standard uniform preprocessing
         prep = preprocess(raw_text)
         processed_text = prep["processed_text"]
@@ -516,6 +529,8 @@ def run_ml_training(
 
         calibrator = base_pipeline
         calibration_version = "uncalibrated-insufficient-data-v0"
+        calibration_method = "none"
+        is_calibrated = False
         threshold_version = "thresh-fallback-default-v1"
         optimal_threshold = settings.sif_threshold
 
@@ -770,6 +785,15 @@ def run_ml_training(
                 },
             },
         }
+
+    # Training audit contains only safe report identifiers and reason codes,
+    # never report narrative or detected identity values.
+    metrics["privacy"] = {
+        "training_text_source": "raw_text_redacted_only",
+        "rejected_record_count": len(privacy_rejected_records),
+        "rejected_records": privacy_rejected_records,
+        "preprocessing_version": PREPROCESSING_VERSION,
+    }
 
     # Save model artifact with complete version metadata
     model_artifact_data = {

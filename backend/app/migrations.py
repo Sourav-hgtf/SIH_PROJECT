@@ -207,6 +207,40 @@ def run_precursor_migrations(engine: Engine) -> None:
         if "extraction_method" not in columns:
             logger.info("Migrating precursor_triples: Adding extraction_method column")
             conn.execute(text("ALTER TABLE precursor_triples ADD COLUMN extraction_method VARCHAR(50) DEFAULT 'rule_fallback_v1'"))
+        # Keep historical canonical triples intact while making both the source
+        # phrase and the explicit normalized form available to clustering.
+        for column, sql_type in (
+            ("original_activity", "TEXT"),
+            ("original_location_asset", "TEXT"),
+            ("original_barrier_failure", "TEXT"),
+            ("normalized_activity", "VARCHAR(255)"),
+            ("normalized_location_asset", "VARCHAR(255)"),
+            ("normalized_barrier_failure", "VARCHAR(255)"),
+        ):
+            if column not in columns:
+                conn.execute(text(f"ALTER TABLE precursor_triples ADD COLUMN {column} {sql_type}"))
+        # Backfill normalized values from the legacy canonical columns. Source
+        # phrase is unavailable for historical rows, so retain the historical
+        # value rather than inventing a raw phrase.
+        conn.execute(text("UPDATE precursor_triples SET normalized_activity = activity WHERE normalized_activity IS NULL"))
+        conn.execute(text("UPDATE precursor_triples SET normalized_location_asset = location_asset WHERE normalized_location_asset IS NULL"))
+        conn.execute(text("UPDATE precursor_triples SET normalized_barrier_failure = barrier_failure WHERE normalized_barrier_failure IS NULL"))
+        cluster_columns = {col["name"] for col in inspect(engine).get_columns("precursor_clusters")} if "precursor_clusters" in inspector.get_table_names() else set()
+        if cluster_columns:
+            if "semantic_cluster_key" not in cluster_columns:
+                conn.execute(text("ALTER TABLE precursor_clusters ADD COLUMN semantic_cluster_key VARCHAR(40)"))
+            if "summary" not in cluster_columns:
+                conn.execute(text("ALTER TABLE precursor_clusters ADD COLUMN summary TEXT"))
+            if "clustering_model_version" not in cluster_columns:
+                conn.execute(text("ALTER TABLE precursor_clusters ADD COLUMN clustering_model_version VARCHAR(80)"))
+            if "cluster_confidence" not in cluster_columns:
+                conn.execute(text("ALTER TABLE precursor_clusters ADD COLUMN cluster_confidence FLOAT"))
+        member_columns = {col["name"] for col in inspect(engine).get_columns("cluster_members")} if "cluster_members" in inspector.get_table_names() else set()
+        if member_columns:
+            if "similarity" not in member_columns:
+                conn.execute(text("ALTER TABLE cluster_members ADD COLUMN similarity FLOAT"))
+            if "clustering_model_version" not in member_columns:
+                conn.execute(text("ALTER TABLE cluster_members ADD COLUMN clustering_model_version VARCHAR(80)"))
         conn.commit()
     logger.info("Checked / migrated precursor_triples Phase 6 columns.")
 
@@ -246,5 +280,3 @@ def run_feedback_migrations(engine: Engine) -> None:
         conn.commit()
         conn.close()
     logger.info("Checked / created analyst_decisions table.")
-
-

@@ -123,6 +123,15 @@ class PrecursorTriple(Base):
     activity: Mapped[str] = mapped_column(String(255), nullable=False)
     location_asset: Mapped[str] = mapped_column(String(255), nullable=False)
     barrier_failure: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The legacy triple remains the canonical/normalized representation so
+    # existing consumers keep working.  Keep the source evidence separately:
+    # a canonical label must never overwrite what the extractor actually saw.
+    original_activity: Mapped[str | None] = mapped_column(Text, nullable=True)
+    original_location_asset: Mapped[str | None] = mapped_column(Text, nullable=True)
+    original_barrier_failure: Mapped[str | None] = mapped_column(Text, nullable=True)
+    normalized_activity: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    normalized_location_asset: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    normalized_barrier_failure: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     hazard_exposure: Mapped[str | None] = mapped_column(String(255), nullable=True)
     relevant_lsr: Mapped[str | None] = mapped_column(String(255), nullable=True)
     relevant_lsr_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -147,6 +156,10 @@ class PrecursorCluster(Base):
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     trend_status: Mapped[str] = mapped_column(String(20), default="stable")
+    semantic_cluster_key: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    clustering_model_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    cluster_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     members = relationship("ClusterMember", back_populates="cluster")
     recommendations = relationship("Recommendation", back_populates="cluster")
@@ -159,6 +172,8 @@ class ClusterMember(Base):
     cluster_id: Mapped[str] = mapped_column(String(36), ForeignKey("precursor_clusters.id"))
     triple_id: Mapped[str] = mapped_column(String(36), ForeignKey("precursor_triples.id"))
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    similarity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    clustering_model_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     cluster = relationship("PrecursorCluster", back_populates="members")
 
@@ -349,5 +364,3 @@ class LabelReview(Base):
 
     report = relationship("Report", back_populates="label_reviews")
     reviewer = relationship("User")
-
-

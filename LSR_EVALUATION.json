@@ -7,9 +7,9 @@
       "f1": 0.5586
     },
     "hybrid_semantic": {
-      "precision": 0.6042,
-      "recall": 0.5991,
-      "f1": 0.5308
+      "precision": 0.7212,
+      "recall": 0.7819,
+      "f1": 0.679
     }
   },
   "micro_metrics": {
@@ -22,12 +22,12 @@
       "fn": 27
     },
     "hybrid_semantic": {
-      "precision": 0.4231,
-      "recall": 0.4314,
-      "f1": 0.4272,
-      "tp": 22,
-      "fp": 30,
-      "fn": 29
+      "precision": 0.549,
+      "recall": 0.549,
+      "f1": 0.549,
+      "tp": 28,
+      "fp": 23,
+      "fn": 23
     }
   },
   "category_metrics": {
@@ -45,13 +45,13 @@
         "f1": 1.0
       },
       "hybrid_semantic": {
-        "tp": 1,
+        "tp": 2,
         "fp": 0,
-        "fn": 1,
+        "fn": 0,
         "tn": 51,
         "precision": 1.0,
-        "recall": 0.5,
-        "f1": 0.6667
+        "recall": 1.0,
+        "f1": 1.0
       }
     },
     "LSR02": {
@@ -69,12 +69,12 @@
       },
       "hybrid_semantic": {
         "tp": 2,
-        "fp": 4,
+        "fp": 3,
         "fn": 0,
-        "tn": 47,
-        "precision": 0.3333,
+        "tn": 48,
+        "precision": 0.4,
         "recall": 1.0,
-        "f1": 0.5
+        "f1": 0.5714
       }
     },
     "LSR03": {
@@ -91,13 +91,13 @@
         "f1": 0.6667
       },
       "hybrid_semantic": {
-        "tp": 1,
-        "fp": 1,
-        "fn": 1,
-        "tn": 50,
-        "precision": 0.5,
-        "recall": 0.5,
-        "f1": 0.5
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 51,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
       }
     },
     "LSR04": {
@@ -115,12 +115,12 @@
       },
       "hybrid_semantic": {
         "tp": 3,
-        "fp": 3,
+        "fp": 2,
         "fn": 7,
-        "tn": 40,
-        "precision": 0.5,
+        "tn": 41,
+        "precision": 0.6,
         "recall": 0.3,
-        "f1": 0.375
+        "f1": 0.4
       }
     },
     "LSR05": {
@@ -138,12 +138,12 @@
       },
       "hybrid_semantic": {
         "tp": 3,
-        "fp": 2,
+        "fp": 1,
         "fn": 0,
-        "tn": 48,
-        "precision": 0.6,
+        "tn": 49,
+        "precision": 0.75,
         "recall": 1.0,
-        "f1": 0.75
+        "f1": 0.8571
       }
     },
     "LSR06": {
@@ -160,13 +160,13 @@
         "f1": 0.3529
       },
       "hybrid_semantic": {
-        "tp": 2,
-        "fp": 4,
-        "fn": 10,
-        "tn": 37,
-        "precision": 0.3333,
-        "recall": 0.1667,
-        "f1": 0.2222
+        "tp": 3,
+        "fp": 2,
+        "fn": 9,
+        "tn": 39,
+        "precision": 0.6,
+        "recall": 0.25,
+        "f1": 0.3529
       }
     },
     "LSR07": {
@@ -206,13 +206,13 @@
         "f1": 0.6667
       },
       "hybrid_semantic": {
-        "tp": 1,
+        "tp": 2,
         "fp": 0,
-        "fn": 1,
+        "fn": 0,
         "tn": 51,
         "precision": 1.0,
-        "recall": 0.5,
-        "f1": 0.6667
+        "recall": 1.0,
+        "f1": 1.0
       }
     },
     "LSR09": {
@@ -252,13 +252,13 @@
         "f1": 0.3077
       },
       "hybrid_semantic": {
-        "tp": 2,
-        "fp": 2,
-        "fn": 7,
-        "tn": 42,
-        "precision": 0.5,
-        "recall": 0.2222,
-        "f1": 0.3077
+        "tp": 3,
+        "fp": 1,
+        "fn": 6,
+        "tn": 43,
+        "precision": 0.75,
+        "recall": 0.3333,
+        "f1": 0.4615
       }
     },
     "LSR11": {
@@ -298,13 +298,13 @@
         "f1": 0.1429
       },
       "hybrid_semantic": {
-        "tp": 1,
+        "tp": 2,
         "fp": 11,
-        "fn": 1,
+        "fn": 0,
         "tn": 40,
-        "precision": 0.0833,
-        "recall": 0.5,
-        "f1": 0.1429
+        "precision": 0.1538,
+        "recall": 1.0,
+        "f1": 0.2667
       }
     }
   },
@@ -326,11 +326,11 @@
           "rule_id": "LSR02",
           "rule_name": "Confined Space",
           "lsr_category": "Confined Space",
-          "confidence": 0.654,
+          "confidence": 0.84,
           "source": "semantic",
           "evidence": [
             {
-              "text": "Semantic paraphrase: 'Atmospheric conditions were not verified before entry into the storage compartment.' (similarity: 0.55)",
+              "text": "Semantic paraphrase: 'atmospheric conditions were not verified before entry into the storage compartment.' (similarity: 0.72; concepts: entry, atmospheric, verified)",
               "type": "semantic"
             }
           ],
@@ -348,7 +348,9 @@
       "rule_baseline_rules": [
         "LSR01"
       ],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR01"
+      ],
       "rule_tags": [
         {
           "rule_id": "LSR01",
@@ -357,7 +359,30 @@
           "source": "rule"
         }
       ],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR01",
+          "rule_name": "Bypassing Safety Controls",
+          "lsr_category": "Bypassing Safety Controls",
+          "confidence": 0.89,
+          "source": "hybrid",
+          "evidence": [
+            {
+              "text": "bypassed",
+              "type": "keyword"
+            },
+            {
+              "text": "Barrier failure detected: bypassed",
+              "type": "barrier"
+            },
+            {
+              "text": "Semantic match: 'technician bypassed the emergency shut-off limit switch to keep the compressor operating during testing.' (similarity: 0.70; concepts: bypass, limit switch)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "PARA-03",
@@ -369,7 +394,9 @@
       "rule_baseline_rules": [
         "LSR11"
       ],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR03"
+      ],
       "rule_tags": [
         {
           "rule_id": "LSR11",
@@ -378,7 +405,22 @@
           "source": "rule"
         }
       ],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR03",
+          "rule_name": "Driving",
+          "lsr_category": "Driving",
+          "confidence": 0.84,
+          "source": "semantic",
+          "evidence": [
+            {
+              "text": "Semantic paraphrase: 'haul truck operator exceeded the site velocity restriction and failed to latch the restraint harness.' (similarity: 0.70; concepts: truck, restraint)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "PARA-04",
@@ -438,7 +480,7 @@
               "type": "phrase"
             },
             {
-              "text": "Semantic alignment: 'Oxy-acetylene cutting torch ignited vapors because combustible gas testing was omitted in the process area.' (similarity: 0.56)",
+              "text": "Semantic alignment: 'oxy-acetylene cutting torch ignited vapors because combustible gas testing was omitted in the process area.' (similarity: 0.72; concepts: torch, cut, combustible)",
               "type": "semantic"
             }
           ],
@@ -491,12 +533,16 @@
           "rule_id": "LSR07",
           "rule_name": "Safe Mechanical Lifting",
           "lsr_category": "Safe Mechanical Lifting",
-          "confidence": 0.71,
-          "source": "rule",
+          "confidence": 0.81,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "hoist",
               "type": "phrase"
+            },
+            {
+              "text": "Semantic alignment: 'contractor positioned himself directly under the suspended steel beam while the hoist line was under tension.' (similarity: 0.70; concepts: hoist, suspended)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -518,8 +564,7 @@
       ],
       "hybrid_semantic_rules": [
         "LSR07",
-        "LSR12",
-        "LSR03"
+        "LSR12"
       ],
       "rule_tags": [
         {
@@ -540,8 +585,8 @@
           "rule_id": "LSR07",
           "rule_name": "Safe Mechanical Lifting",
           "lsr_category": "Safe Mechanical Lifting",
-          "confidence": 0.83,
-          "source": "rule",
+          "confidence": 0.93,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "crane",
@@ -554,6 +599,10 @@
             {
               "text": "Energy hazard detected: mechanical",
               "type": "energy"
+            },
+            {
+              "text": "Semantic alignment: 'boom truck crane tipped over when the tandem load exceeded the rated lifting envelope capacity.' (similarity: 0.78; concepts: crane, lift, lifting, load, rated, capacity)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -576,20 +625,6 @@
           "matched_phrases": [
             "ppe"
           ]
-        },
-        {
-          "rule_id": "LSR03",
-          "rule_name": "Driving",
-          "lsr_category": "Driving",
-          "confidence": 0.615,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Semantic paraphrase: 'Boom truck crane tipped over when the tandem load exceeded the rated lifting envelope capacity.' (similarity: 0.53)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
         }
       ]
     },
@@ -601,9 +636,26 @@
         "LSR08"
       ],
       "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR08"
+      ],
       "rule_tags": [],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR08",
+          "rule_name": "Managing Change",
+          "lsr_category": "Managing Change",
+          "confidence": 0.84,
+          "source": "semantic",
+          "evidence": [
+            {
+              "text": "Semantic paraphrase: 'instrumentation piping altered without an engineering review or formal variance approval.' (similarity: 0.74; concepts: alter, approval, review, engineering)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "PARA-09",
@@ -653,9 +705,26 @@
         "LSR10"
       ],
       "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR10"
+      ],
       "rule_tags": [],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR10",
+          "rule_name": "Work Authorization",
+          "lsr_category": "Work Authorization",
+          "confidence": 0.84,
+          "source": "semantic",
+          "evidence": [
+            {
+              "text": "Semantic paraphrase: 'subcontractor commenced flange replacement without securing valid task clearance documentation.' (similarity: 0.74; concepts: clearance, without, valid, commence)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "PARA-11",
@@ -691,12 +760,16 @@
           "rule_id": "LSR11",
           "rule_name": "Working at Height",
           "lsr_category": "Working at Height",
-          "confidence": 0.71,
-          "source": "rule",
+          "confidence": 0.81,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "fall arrest",
               "type": "phrase"
+            },
+            {
+              "text": "Semantic alignment: 'painter slipped off the third tier catwalk having no fall arrest lanyard tethered to an anchor point.' (similarity: 0.76; concepts: catwalk, lanyard, fall arrest, anchor, fall)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -729,9 +802,26 @@
         "LSR12"
       ],
       "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR12"
+      ],
       "rule_tags": [],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR12",
+          "rule_name": "Personal Protective Equipment",
+          "lsr_category": "Personal Protective Equipment",
+          "confidence": 0.84,
+          "source": "semantic",
+          "evidence": [
+            {
+              "text": "Semantic paraphrase: '[person] operated angle grinder without eye shield protection or flame-resistant apparel.' (similarity: 0.74; concepts: eye shield, without, protect, apparel)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "CANON-01",
@@ -783,7 +873,7 @@
               "type": "barrier"
             },
             {
-              "text": "Semantic alignment: 'Electrician bypassed safety interlock on rotating equipment and defeated guard with jumper.' (similarity: 0.54)",
+              "text": "Semantic alignment: 'electrician bypassed safety interlock on rotating equipment and defeated guard with jumper.' (similarity: 0.76; concepts: bypass, defeat, jumper, interlock, guard)",
               "type": "semantic"
             }
           ],
@@ -836,7 +926,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'Confined space entry into storage tank without gas test.' (similarity: 0.65)",
+              "text": "Semantic alignment: 'confined space entry into storage tank without gas test.' (similarity: 0.72; concepts: entry, gas, test)",
               "type": "semantic"
             }
           ],
@@ -909,7 +999,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'Near collision with vehicle at gate.' (similarity: 0.59)",
+              "text": "Semantic alignment: 'driver speeding on convoy journey, no seat belt worn.' (similarity: 0.74; concepts: driver, journey, speed, seat belt)",
               "type": "semantic"
             }
           ],
@@ -949,8 +1039,8 @@
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
           "lsr_category": "Energy Isolation",
-          "confidence": 0.98,
-          "source": "hybrid",
+          "confidence": 0.91,
+          "source": "rule",
           "evidence": [
             {
               "text": "energy isolation",
@@ -979,10 +1069,6 @@
             {
               "text": "Energy hazard detected: electrical",
               "type": "energy"
-            },
-            {
-              "text": "Semantic alignment: 'Lock-out tag-out not applied.' (similarity: 0.89)",
-              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -1059,7 +1145,7 @@
               "type": "barrier"
             },
             {
-              "text": "Semantic alignment: 'Fire watch missing.' (similarity: 0.94)",
+              "text": "Semantic alignment: 'hot work welding near hydrocarbon line without permit.' (similarity: 0.72; concepts: weld, hot work, hydrocarbon)",
               "type": "semantic"
             }
           ],
@@ -1073,8 +1159,8 @@
           "rule_id": "LSR10",
           "rule_name": "Work Authorization",
           "lsr_category": "Work Authorization",
-          "confidence": 0.83,
-          "source": "rule",
+          "confidence": 0.93,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "without permit",
@@ -1091,6 +1177,10 @@
             {
               "text": "Barrier failure detected: without permit",
               "type": "barrier"
+            },
+            {
+              "text": "Semantic alignment: 'hot work welding near hydrocarbon line without permit.' (similarity: 0.72; concepts: permit, without, work)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -1188,7 +1278,7 @@
               "type": "exposure"
             },
             {
-              "text": "Semantic alignment: 'Worker standing under load in the line of fire when hydraulic pressure hose whipped.' (similarity: 0.53)",
+              "text": "Semantic alignment: 'worker standing under load in the line of fire when hydraulic pressure [person] whipped.' (similarity: 0.74; concepts: under, line of fire, load, pressure)",
               "type": "semantic"
             }
           ],
@@ -1309,7 +1399,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'Rigging damaged, sling snapped with suspended load.' (similarity: 0.68)",
+              "text": "Semantic alignment: 'rigging damaged, sling snapped with suspended load.' (similarity: 0.74; concepts: rigging, sling, load, suspended)",
               "type": "semantic"
             }
           ],
@@ -1325,8 +1415,8 @@
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
           "lsr_category": "Line of Fire",
-          "confidence": 0.87,
-          "source": "hybrid",
+          "confidence": 0.77,
+          "source": "rule",
           "evidence": [
             {
               "text": "dropped object",
@@ -1339,10 +1429,6 @@
             {
               "text": "Energy hazard detected: mechanical",
               "type": "energy"
-            },
-            {
-              "text": "Semantic alignment: 'Dropped object near miss during crane lift.' (similarity: 0.69)",
-              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -1393,8 +1479,8 @@
           "rule_id": "LSR08",
           "rule_name": "Managing Change",
           "lsr_category": "Managing Change",
-          "confidence": 0.93,
-          "source": "hybrid",
+          "confidence": 0.83,
+          "source": "rule",
           "evidence": [
             {
               "text": "moc not raised",
@@ -1407,10 +1493,6 @@
             {
               "text": "procedure deviation",
               "type": "phrase"
-            },
-            {
-              "text": "Semantic alignment: 'MOC not raised and procedure deviation unapproved.' (similarity: 0.74)",
-              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -1467,7 +1549,7 @@
               "type": "phrase"
             },
             {
-              "text": "Semantic alignment: 'Worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.' (similarity: 0.56)",
+              "text": "Semantic alignment: 'worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.' (similarity: 0.74; concepts: fatigue, duty, shift, worker)",
               "type": "semantic"
             }
           ],
@@ -1491,8 +1573,7 @@
         "LSR10"
       ],
       "hybrid_semantic_rules": [
-        "LSR10",
-        "LSR05"
+        "LSR10"
       ],
       "rule_tags": [
         {
@@ -1539,7 +1620,7 @@
               "type": "barrier"
             },
             {
-              "text": "Semantic alignment: 'Work carried out without permit to work.' (similarity: 0.79)",
+              "text": "Semantic alignment: 'permit to work expired and job safety analysis not done before entry.' (similarity: 0.74; concepts: permit, expired, before, work)",
               "type": "semantic"
             }
           ],
@@ -1550,28 +1631,6 @@
             "without permit",
             "ptw expired"
           ]
-        },
-        {
-          "rule_id": "LSR05",
-          "rule_name": "Hot Work",
-          "lsr_category": "Hot Work",
-          "confidence": 0.647,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Barrier failure detected: without permit",
-              "type": "barrier"
-            },
-            {
-              "text": "Barrier failure detected: permit to work. PTW expired",
-              "type": "barrier"
-            },
-            {
-              "text": "Semantic paraphrase: 'Work carried out without permit to work.' (similarity: 0.55)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
         }
       ]
     },
@@ -1625,7 +1684,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'No harness worn while working at height.' (similarity: 0.68)",
+              "text": "Semantic alignment: 'no harness worn while working at height.' (similarity: 0.70; concepts: height, harness)",
               "type": "semantic"
             }
           ],
@@ -1683,7 +1742,7 @@
               "type": "phrase"
             },
             {
-              "text": "Semantic alignment: 'PPE reminder issued.' (similarity: 0.70)",
+              "text": "Semantic alignment: 'worker observed with missing gloves and no safety boots.' (similarity: 0.74; concepts: glove, boot, missing, no )",
               "type": "semantic"
             }
           ],
@@ -1822,7 +1881,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'PTW was active but seal flush line isolation had not been verified.' (similarity: 0.56)",
+              "text": "Semantic alignment: 'permit to work was active but seal flush line isolation had not been verified.' (similarity: 0.70; concepts: permit, work)",
               "type": "semantic"
             }
           ],
@@ -1840,30 +1899,9 @@
         "LSR04"
       ],
       "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [
-        "LSR06"
-      ],
+      "hybrid_semantic_rules": [],
       "rule_tags": [],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR06",
-          "rule_name": "Line of Fire",
-          "lsr_category": "Line of Fire",
-          "confidence": 0.742,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Energy hazard detected: pressure",
-              "type": "energy"
-            },
-            {
-              "text": "Semantic paraphrase: 'No fire' (similarity: 0.61)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
-        }
-      ]
+      "hybrid_tags": []
     },
     {
       "id": "PHMSA-20220015",
@@ -1876,9 +1914,7 @@
         "LSR12"
       ],
       "hybrid_semantic_rules": [
-        "LSR12",
-        "LSR06",
-        "LSR04"
+        "LSR12"
       ],
       "rule_tags": [
         {
@@ -1904,42 +1940,6 @@
           "matched_phrases": [
             "ppe"
           ]
-        },
-        {
-          "rule_id": "LSR06",
-          "rule_name": "Line of Fire",
-          "lsr_category": "Line of Fire",
-          "confidence": 0.644,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Energy hazard detected: pressure",
-              "type": "energy"
-            },
-            {
-              "text": "Semantic paraphrase: 'Pressure dropped from 720 psig to zero within 90 seconds.' (similarity: 0.55)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
-        },
-        {
-          "rule_id": "LSR04",
-          "rule_name": "Energy Isolation",
-          "lsr_category": "Energy Isolation",
-          "confidence": 0.614,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Energy hazard detected: pressure",
-              "type": "energy"
-            },
-            {
-              "text": "Semantic paraphrase: 'Pressure dropped from 720 psig to zero within 90 seconds.' (similarity: 0.53)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
         }
       ]
     },
@@ -2001,8 +2001,8 @@
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
           "lsr_category": "Energy Isolation",
-          "confidence": 0.77,
-          "source": "rule",
+          "confidence": 0.87,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "residual pressure",
@@ -2015,6 +2015,10 @@
             {
               "text": "Energy hazard detected: pressure",
               "type": "energy"
+            },
+            {
+              "text": "Semantic alignment: 'technician had not verified pressure bleed gauge prior to loosening rapid-opening closure clamps.' (similarity: 0.70; concepts: bleed, pressure)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -2025,8 +2029,8 @@
           "rule_id": "LSR12",
           "rule_name": "Personal Protective Equipment",
           "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
+          "confidence": 0.81,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "ppe",
@@ -2035,6 +2039,10 @@
             {
               "text": "helmet",
               "type": "keyword"
+            },
+            {
+              "text": "Semantic alignment: 'crude spray struck the maintenance technician helmet and protective suit.' (similarity: 0.70; concepts: helmet, protect)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -2150,7 +2158,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'Contractor crew performed hot work welding on support stanchion adjacent to glycol dehydrator without conducting atmospheric combustible gas testing.' (similarity: 0.56)",
+              "text": "Semantic alignment: 'contractor crew performed hot work welding on support stanchion adjacent to glycol dehydrator without conducting atmospheric combustible gas testing.' (similarity: 0.72; concepts: weld, hot work, combustible)",
               "type": "semantic"
             }
           ],
@@ -2219,10 +2227,9 @@
         "LSR10"
       ],
       "hybrid_semantic_rules": [
-        "LSR04",
         "LSR06",
-        "LSR12",
-        "LSR10"
+        "LSR04",
+        "LSR12"
       ],
       "rule_tags": [
         {
@@ -2252,6 +2259,34 @@
       ],
       "hybrid_tags": [
         {
+          "rule_id": "LSR06",
+          "rule_name": "Line of Fire",
+          "lsr_category": "Line of Fire",
+          "confidence": 0.92,
+          "source": "hybrid",
+          "evidence": [
+            {
+              "text": "line of fire",
+              "type": "phrase"
+            },
+            {
+              "text": "Energy hazard detected: pressure",
+              "type": "energy"
+            },
+            {
+              "text": "Exposure detected: line of fire",
+              "type": "exposure"
+            },
+            {
+              "text": "Semantic alignment: 'high pressure gas escaping through the loosened bonnet ejected the valve assembly in the line of fire.' (similarity: 0.70; concepts: line of fire, pressure)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": [
+            "line of fire"
+          ]
+        },
+        {
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
           "lsr_category": "Energy Isolation",
@@ -2276,30 +2311,6 @@
           ]
         },
         {
-          "rule_id": "LSR06",
-          "rule_name": "Line of Fire",
-          "lsr_category": "Line of Fire",
-          "confidence": 0.82,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "line of fire",
-              "type": "phrase"
-            },
-            {
-              "text": "Energy hazard detected: pressure",
-              "type": "energy"
-            },
-            {
-              "text": "Exposure detected: line of fire",
-              "type": "exposure"
-            }
-          ],
-          "matched_phrases": [
-            "line of fire"
-          ]
-        },
-        {
           "rule_id": "LSR12",
           "rule_name": "Personal Protective Equipment",
           "lsr_category": "Personal Protective Equipment",
@@ -2314,24 +2325,6 @@
           "matched_phrases": [
             "ppe"
           ]
-        },
-        {
-          "rule_id": "LSR10",
-          "rule_name": "Work Authorization",
-          "lsr_category": "Work Authorization",
-          "confidence": 0.59,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "jsa",
-              "type": "keyword"
-            },
-            {
-              "text": "Energy hazard detected: pressure",
-              "type": "energy"
-            }
-          ],
-          "matched_phrases": []
         }
       ]
     },
@@ -2348,8 +2341,7 @@
         "LSR02"
       ],
       "hybrid_semantic_rules": [
-        "LSR05",
-        "LSR02"
+        "LSR05"
       ],
       "rule_tags": [
         {
@@ -2394,7 +2386,7 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'Contract welders commenced structural grinding and tack welding on a mezzanine grating near the crude desalter vessel without checking local hydrocarbon drain sumps.' (similarity: 0.57)",
+              "text": "Semantic alignment: 'contract welders commenced structural grinding and tack welding on a mezzanine grating near the crude desalter vessel without checking local hydrocarbon drain sumps.' (similarity: 0.72; concepts: weld, grind, hydrocarbon)",
               "type": "semantic"
             }
           ],
@@ -2403,36 +2395,6 @@
             "grinding",
             "spark"
           ]
-        },
-        {
-          "rule_id": "LSR02",
-          "rule_name": "Confined Space",
-          "lsr_category": "Confined Space",
-          "confidence": 0.762,
-          "source": "hybrid",
-          "evidence": [
-            {
-              "text": "vessel",
-              "type": "keyword"
-            },
-            {
-              "text": "sewer",
-              "type": "keyword"
-            },
-            {
-              "text": "Energy hazard detected: chemical",
-              "type": "energy"
-            },
-            {
-              "text": "Energy hazard detected: thermal",
-              "type": "energy"
-            },
-            {
-              "text": "Semantic match: 'Combustible gas detector had not been calibrated that morning.' (similarity: 0.53)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
         }
       ]
     },
@@ -2541,7 +2503,7 @@
               "type": "exposure"
             },
             {
-              "text": "Semantic alignment: 'Tag lines were not utilized.' (similarity: 0.70)",
+              "text": "Semantic alignment: 'under load, the sling sheared through, dropping the cylinder head 1.8 meters onto the concrete maintenance bay deck.' (similarity: 0.70; concepts: sling, load)",
               "type": "semantic"
             }
           ],
@@ -2555,8 +2517,8 @@
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
           "lsr_category": "Line of Fire",
-          "confidence": 0.82,
-          "source": "rule",
+          "confidence": 0.92,
+          "source": "hybrid",
           "evidence": [
             {
               "text": "under load",
@@ -2569,6 +2531,10 @@
             {
               "text": "Exposure detected: Under load",
               "type": "exposure"
+            },
+            {
+              "text": "Semantic alignment: 'under load, the sling sheared through, dropping the cylinder head 1.8 meters onto the concrete maintenance bay deck.' (similarity: 0.70; concepts: under, load)",
+              "type": "semantic"
             }
           ],
           "matched_phrases": [
@@ -2609,9 +2575,30 @@
         "LSR06"
       ],
       "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [],
+      "hybrid_semantic_rules": [
+        "LSR06"
+      ],
       "rule_tags": [],
-      "hybrid_tags": []
+      "hybrid_tags": [
+        {
+          "rule_id": "LSR06",
+          "rule_name": "Line of Fire",
+          "lsr_category": "Line of Fire",
+          "confidence": 0.84,
+          "source": "semantic",
+          "evidence": [
+            {
+              "text": "Energy hazard detected: pressure",
+              "type": "energy"
+            },
+            {
+              "text": "Semantic paraphrase: 'a hammer union seal failed under pressure' (similarity: 0.70; concepts: under, pressure)",
+              "type": "semantic"
+            }
+          ],
+          "matched_phrases": []
+        }
+      ]
     },
     {
       "id": "OSHA-2021040899",
@@ -2679,7 +2666,7 @@
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
           "lsr_category": "Energy Isolation",
-          "confidence": 0.717,
+          "confidence": 0.83,
           "source": "hybrid",
           "evidence": [
             {
@@ -2691,7 +2678,7 @@
               "type": "keyword"
             },
             {
-              "text": "Semantic match: 'The lockout tagout had been removed to perform a live operational test.' (similarity: 0.54)",
+              "text": "Semantic match: 'the lockout tagout had been removed to perform a live operational test.' (similarity: 0.72; concepts: lockout, tagout, live)",
               "type": "semantic"
             }
           ],

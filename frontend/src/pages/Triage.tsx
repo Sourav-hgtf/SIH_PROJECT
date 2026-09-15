@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, getStoredUser, type LifecycleKpiOut, type ReportSummary } from "../api";
+import { api, getStoredUser, type LifecycleKpiOut, type ReportSummary, type TriageProgress } from "../api";
 import {
   AssessmentComparisonBadge,
   AiPredictionBadge,
@@ -17,11 +17,15 @@ type LifecycleTab = "PENDING_REVIEW" | "REVIEWED" | "OPEN_ACTIONS" | "RESOLVED" 
 export function TriagePage() {
   const [items, setItems] = useState<ReportSummary[]>([]);
   const [kpis, setKpis] = useState<LifecycleKpiOut | null>(null);
+  const [progress, setProgress] = useState<TriageProgress | null>(null);
   const [activeTab, setActiveTab] = useState<LifecycleTab>("PENDING_REVIEW");
   const [sortBy, setSortBy] = useState<"priority" | "sif" | "date">("priority");
   const [siteFilter, setSiteFilter] = useState<string>("all");
   const [sites, setSites] = useState<Array<{ id: string; name: string }>>([]);
   const [error, setError] = useState("");
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const user = getStoredUser();
   const canAct = user?.role === "analyst" || user?.role === "site_manager" || user?.role === "admin";
 
@@ -29,6 +33,10 @@ export function TriagePage() {
     api.sites().then(setSites).catch(console.error);
     api.lifecycleKpis().then(setKpis).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    api.triageProgress(siteFilter !== "all" ? siteFilter : undefined).then(setProgress).catch((e) => setError(e.message));
+  }, [siteFilter]);
 
   useEffect(() => {
     // Determine backend query params based on tab
@@ -69,9 +77,58 @@ export function TriagePage() {
           return new Date(b.reported_at).getTime() - new Date(a.reported_at).getTime();
         });
         setItems(sorted);
+        setSelectedIndex(0);
       })
       .catch((e) => setError(e.message));
   }, [activeTab, sortBy, siteFilter]);
+
+  async function submitDecision(row: ReportSummary, finalLabel: boolean) {
+    if (!canAct || submittingId) return;
+    const comment = comments[row.id]?.trim();
+    const aiLabel = row.ai_prediction?.ai_label ?? row.sif_label;
+    setError("");
+    if (aiLabel !== finalLabel && !comment) {
+      setError("Add an analyst comment before changing the AI determination.");
+      return;
+    }
+    setSubmittingId(row.id);
+    try {
+      if (aiLabel === finalLabel) {
+        await api.confirmReport(row.id, { notes: comment || undefined });
+      } else {
+        await api.overrideReport(row.id, {
+          final_sif_label: finalLabel,
+          reason: comment!,
+          notes: comment,
+        });
+      }
+      setComments((current) => ({ ...current, [row.id]: "" }));
+      setItems((current) => current.filter((item) => item.id !== row.id));
+      const refreshed = await api.triageProgress(siteFilter !== "all" ? siteFilter : undefined);
+      setProgress(refreshed);
+      const lifecycle = await api.lifecycleKpis(siteFilter !== "all" ? siteFilter : undefined);
+      setKpis(lifecycle);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to save analyst decision.");
+    } finally {
+      setSubmittingId(null);
+    }
+  }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, button") || event.metaKey || event.ctrlKey || event.altKey) return;
+      const selected = items[selectedIndex];
+      if (!selected) return;
+      if (event.key.toLowerCase() === "n") setSelectedIndex((index) => Math.min(index + 1, items.length - 1));
+      if (event.key.toLowerCase() === "p") setSelectedIndex((index) => Math.max(index - 1, 0));
+      if (event.key.toLowerCase() === "c") void submitDecision(selected, selected.ai_prediction?.ai_label ?? selected.sif_label ?? true);
+      if (event.key.toLowerCase() === "o") void submitDecision(selected, !(selected.ai_prediction?.ai_label ?? selected.sif_label ?? false));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [items, selectedIndex, comments, submittingId, siteFilter]);
 
   const tabs: Array<{ id: LifecycleTab; label: string; count?: number; color: string }> = [
     {
@@ -187,14 +244,24 @@ export function TriagePage() {
 
       {error && <p className="text-sm font-medium text-risk-critical">{error}</p>}
 
+      {progress && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[["Reviewed", progress.reviewed], ["Remaining", progress.remaining], ["Confirmed SIF", progress.confirmed_sif], ["Overridden", progress.overridden]].map(([label, count]) => (
+            <div key={String(label)} className="rounded-xl border border-border bg-white p-3 shadow-card"><div className="text-[11px] font-semibold text-warm">{label}</div><div className="mt-1 text-2xl font-bold font-mono text-ink">{count}</div></div>
+          ))}
+        </section>
+      )}
+
+      <p className="text-xs text-warm">Shortcuts: C confirm AI assessment, O override to the opposite label, N next report, P previous report. Shortcuts are disabled while typing or using controls.</p>
+
       {/* Case List */}
       <div className="overflow-hidden rounded-xl border border-border bg-white shadow-card">
         {items.length > 0 ? (
-          items.map((row) => (
-            <Link
+          items.map((row, index) => (
+            <div
               key={row.id}
-              to={`/reports/${row.id}`}
-              className="flex flex-col sm:flex-row items-start gap-4 border-b border-border/70 p-5 transition hover:bg-slate-50/80"
+              onClick={() => setSelectedIndex(index)}
+              className={`flex flex-col sm:flex-row items-start gap-4 border-b border-border/70 p-5 transition hover:bg-slate-50/80 ${index === selectedIndex ? "bg-cyan-50/30 ring-1 ring-inset ring-cyan-edge/30" : ""}`}
             >
               {/* Priority & Score Column */}
               <div className="w-full sm:w-40 shrink-0 space-y-2">
@@ -242,7 +309,13 @@ export function TriagePage() {
                    )}
                 </div>
 
-                <p className="text-sm text-ink leading-relaxed">{row.excerpt}</p>
+                <p className="text-sm text-ink leading-relaxed"><span className="font-semibold">Evidence:</span> {row.excerpt}</p>
+
+                <div className="text-[11px] text-warm">
+                  <span className="font-semibold text-ink">AI:</span> {row.ai_prediction?.ai_label ?? row.sif_label ? "SIF Potential" : "Non-SIF"} · {Math.round((row.ai_prediction?.ai_probability ?? row.sif_probability ?? 0) * 100)}% · {row.ai_prediction?.model_version || "Model version unavailable"}
+                </div>
+
+                <div className="text-[11px] text-warm"><span className="font-semibold text-ink">Precursor:</span> {row.precursor_summary || "Not detected"}</div>
 
                 {row.priority && (
                   <div className="text-[11px] text-warm">
@@ -275,11 +348,21 @@ export function TriagePage() {
 
               {/* Right CTA */}
               <div className="shrink-0 self-center">
-                <span className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-cyan-edge hover:bg-cyan-edge/10 transition">
+                <Link to={`/reports/${row.id}`} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-cyan-edge hover:bg-cyan-edge/10 transition">
                   Review Case →
-                </span>
+                </Link>
+                {canAct && activeTab === "PENDING_REVIEW" && (
+                  <div className="mt-3 w-56 space-y-2" onClick={(event) => event.stopPropagation()}>
+                    <textarea aria-label={`Analyst comment for ${row.id}`} value={comments[row.id] || ""} onChange={(event) => setComments((current) => ({ ...current, [row.id]: event.target.value }))} placeholder="Analyst comment (required if changing AI)" rows={2} className="w-full rounded border border-border p-2 text-xs" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <button disabled={submittingId === row.id} onClick={() => void submitDecision(row, true)} className="rounded bg-emerald-600 px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Confirm SIF</button>
+                      <button disabled={submittingId === row.id} onClick={() => void submitDecision(row, false)} className="rounded border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-800 disabled:opacity-50">Mark Non-SIF</button>
+                    </div>
+                    <button onClick={() => setSelectedIndex((current) => Math.min(current + 1, items.length - 1))} className="w-full rounded border border-border px-2 py-1 text-xs font-medium text-warm">Skip / next report</button>
+                  </div>
+                )}
               </div>
-            </Link>
+            </div>
           ))
         ) : (
           <div className="p-12 text-center text-sm text-warm">

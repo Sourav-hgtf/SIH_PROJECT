@@ -76,6 +76,7 @@ def get_embedding_model(model_name: str = DEFAULT_EMBEDDING_MODEL) -> Any:
             model_name,
             device=_DEVICE,
             cache_folder=str(CACHE_DIR),
+            local_files_only=True,
         )
     except Exception as e:
         logger.warning(f"Failed to load with default settings, attempting CPU fallback: {e}")
@@ -84,6 +85,7 @@ def get_embedding_model(model_name: str = DEFAULT_EMBEDDING_MODEL) -> Any:
             model_name,
             device="cpu",
             cache_folder=str(CACHE_DIR),
+            local_files_only=True,
         )
 
     return _MODEL_INSTANCE
