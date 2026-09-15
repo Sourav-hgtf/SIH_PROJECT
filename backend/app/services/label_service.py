@@ -11,9 +11,8 @@ Enforces:
 
 from __future__ import annotations
 
-from collections import Counter
-from datetime import datetime, timezone
 import logging
+from collections import Counter
 from typing import Any, Literal
 
 from sqlalchemy.orm import Session
@@ -21,12 +20,12 @@ from sqlalchemy.orm import Session
 from app.models import (
     AnalystDecision,
     AnalystFeedback,
-    AuditLog,
     LabelReview,
     Report,
     User,
     utcnow,
 )
+from app.services.core_services import write_audit
 
 logger = logging.getLogger(__name__)
 
@@ -228,15 +227,14 @@ def record_label_review(
         "review_version": review.review_version,
         "reason": reason,
     }
-    db.add(
-        AuditLog(
-            user_id=reviewer_id,
-            action_type="label_review_submitted",
-            entity_type="report",
-            entity_id=report.id,
-            before_value=before_state,
-            after_value=after_state,
-        )
+    write_audit(
+        db,
+        action_type="label_review_submitted",
+        entity_type="report",
+        entity_id=report.id,
+        user_id=reviewer_id,
+        before=before_state,
+        after=after_state,
     )
 
     # 5. Maintain AnalystFeedback for retraining compatibility

@@ -1,18 +1,12 @@
-import numpy as np
-import pytest
-from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 
 from app.nlp.calibration import (
     calibrate_classifier,
     choose_threshold,
     classification_metrics,
-    compute_brier_score,
-    compute_expected_calibration_error,
-    compute_log_loss,
     compute_calibration_curve_data,
-    optimize_threshold,
     select_calibration_method,
 )
 

@@ -33,12 +33,9 @@ from typing import Any
 
 import numpy as np
 
-from app.nlp.embeddings import extract_embedding, extract_embeddings
-from app.nlp.lsr import get_rule_by_id, load_canonical_lsr_rules
+from app.nlp.embeddings import extract_embeddings
+from app.nlp.lsr import get_rule_by_id
 from app.nlp.mining import (
-    ACTIVITY_PATTERNS as LEGACY_ACTIVITY_PATTERNS,
-    BARRIER_PATTERNS as LEGACY_BARRIER_PATTERNS,
-    LOCATION_PATTERNS as LEGACY_LOCATION_PATTERNS,
     extract_triple as legacy_extract_triple,
 )
 from app.nlp.preprocess import preprocess
@@ -631,6 +628,9 @@ def extract_precursor(
       5. Relevant LSR
       6. Evidence phrases
     """
+    # This function is also a public extraction entry point. Apply the shared
+    # preprocessing boundary so direct callers cannot bypass negation handling.
+    text = preprocess(text)["processed_text"] if text else text
     if not text or not text.strip():
         return PrecursorRecord(
             activity=None,

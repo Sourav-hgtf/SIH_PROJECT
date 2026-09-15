@@ -1,8 +1,16 @@
-from datetime import datetime, timedelta, timezone
+import hashlib
 import secrets
+from datetime import UTC, datetime, timedelta
 
+import bcrypt  # type: ignore
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.database import get_db
+from app.models import User
+
 try:
     from jose import JWTError, jwt
 except ImportError:  # pragma: no cover
@@ -12,10 +20,6 @@ except ImportError:  # pragma: no cover
     except ImportError:  # pragma: no cover
         JWTError = Exception  # type: ignore[assignment,misc]
         jwt = None  # type: ignore[assignment]
-import hashlib
-import bcrypt  # type: ignore
-
-
 def hash_password(password: str) -> str:
     if len(password.encode("utf-8")) > 72:
         raise ValueError("Password exceeds supported maximum length")
@@ -30,12 +34,6 @@ def verify_password(password: str, password_hash: str) -> bool:
     except (ValueError, TypeError):
         return False
 
-from sqlalchemy.orm import Session
-
-from app.config import settings
-from app.database import get_db
-from app.models import User
-
 bearer = HTTPBearer(auto_error=False)
 
 ROLE_HIERARCHY = {
@@ -47,7 +45,7 @@ ROLE_HIERARCHY = {
 
 
 def create_token(subject: str, token_type: str, minutes: int, token_id: str | None = None) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=minutes)
     payload = {"sub": subject, "type": token_type, "exp": expire, "jti": token_id or secrets.token_urlsafe(24)}
     return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 

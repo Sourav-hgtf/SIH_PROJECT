@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine, SessionLocal
-from app.models import Report, SifClassification, Site
+from app.database import Base, SessionLocal, engine
+from app.models import Report, Site
 from app.training import (
     IncidentDataRecord,
     compute_text_hash,
@@ -191,7 +192,7 @@ def test_insufficient_data_returns_status_and_no_fake_evaluation():
     assert len(test) == 0
 
 
-def test_full_ml_training_leak_free_pipeline(db_session: Session):
+def test_full_ml_training_leak_free_pipeline(db_session: Session, isolated_model_artifacts):
     """Requirement 8, 9, 10, 11: End-to-end training verification on seeded database."""
     # Seed 30 reports (15 SIF, 15 Safe)
     site = Site(name="Leak Test Site", region="Test")
@@ -207,7 +208,7 @@ def test_full_ml_training_leak_free_pipeline(db_session: Session):
             validated_label="SIF",
             label_source="CONSENSUS_VALIDATED",
             data_type="real",
-            reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            reported_at=datetime(2023, 1, 1, tzinfo=UTC),
         )
         db_session.add(r_sif)
         db_session.flush()
@@ -220,7 +221,7 @@ def test_full_ml_training_leak_free_pipeline(db_session: Session):
             validated_label="NON_SIF",
             label_source="CONSENSUS_VALIDATED",
             data_type="real",
-            reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            reported_at=datetime(2023, 1, 1, tzinfo=UTC),
         )
         db_session.add(r_safe)
         db_session.flush()

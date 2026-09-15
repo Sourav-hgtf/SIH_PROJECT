@@ -1,14 +1,17 @@
 """Privacy-by-design tests for the production SIF processing path."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base
-from app.models import Report, Site, SifClassification
+from app.auth import create_token, hash_password
+from app.database import Base, SessionLocal
+from app.main import app
+from app.models import Report, SifClassification, Site, User
 from app.nlp.model import predict_sif_details
 from app.nlp.pipeline import process_report_text
 from app.nlp.preprocess import contains_detectable_pii, preprocess
@@ -97,6 +100,30 @@ def test_prediction_details_never_return_callers_raw_text(monkeypatch):
     assert "Rahul Sharma" not in details["processed_text"]
 
 
+def test_predict_endpoint_never_echoes_pii_bearing_input():
+    raw = "Rahul Kumar, EMP-12345, +91 98765 43210 entered a confined space."
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == "privacy-predict-test").first()
+        if not user:
+            user = User(username="privacy-predict-test", password_hash=hash_password("test-password"), role="analyst")
+            db.add(user)
+            db.commit()
+        headers = {"Authorization": f"Bearer {create_token(user.id, 'access', 60)}"}
+    finally:
+        db.close()
+    with TestClient(app) as client:
+        response = client.post("/predict", json={"text": raw}, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "text" not in payload
+    assert "Rahul Kumar" not in response.text
+    assert "EMP-12345" not in response.text
+    assert "98765 43210" not in response.text
+    assert all(token in payload["processed_text"] for token in ("[PERSON]", "[ID]", "[PHONE]"))
+
+
 def test_detected_pii_blocks_model_invocation(monkeypatch):
     def should_not_load_model():
         raise AssertionError("model must not be loaded after a privacy-boundary failure")
@@ -110,7 +137,7 @@ def test_detected_pii_blocks_model_invocation(monkeypatch):
     assert details["model_version"] == "not-invoked-privacy-boundary"
 
 
-def test_training_rejects_record_without_pii_redacted_text(monkeypatch, tmp_path):
+def test_training_rejects_record_without_pii_redacted_text(monkeypatch, isolated_model_artifacts):
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Session = sessionmaker(bind=engine)
     Base.metadata.create_all(engine)
@@ -125,7 +152,7 @@ def test_training_rejects_record_without_pii_redacted_text(monkeypatch, tmp_path
             site_id=site.id,
             raw_text_redacted="",
             processed_text="Rahul Sharma worked without isolation.",
-            reported_at=datetime.now(timezone.utc),
+            reported_at=datetime.now(UTC),
         )
         report.classification = SifClassification(
             sif_probability=0.9, sif_label=True, model_version="privacy-test-v1"
@@ -138,7 +165,7 @@ def test_training_rejects_record_without_pii_redacted_text(monkeypatch, tmp_path
             site_id=site.id,
             raw_text_redacted="Crew verified isolation before maintenance.",
             processed_text="Crew verified isolation before maintenance.",
-            reported_at=datetime.now(timezone.utc),
+            reported_at=datetime.now(UTC),
         )
         safe_report.classification = SifClassification(
             sif_probability=0.1, sif_label=False, model_version="privacy-test-v1"
@@ -146,7 +173,6 @@ def test_training_rejects_record_without_pii_redacted_text(monkeypatch, tmp_path
         db.add(safe_report)
         db.commit()
 
-        monkeypatch.setattr("app.training.ARTIFACT_PATH", tmp_path / "sif_model.joblib")
         run = run_ml_training(db, force_demo_fallback=True)
 
         privacy = run.metrics_after["privacy"]

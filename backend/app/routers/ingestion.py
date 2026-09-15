@@ -2,10 +2,18 @@ import csv
 import io
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -80,7 +88,7 @@ def _analyze_rows(rows: list[dict[str, Any]], db: Session) -> IngestionQualityRe
     previews: list[ValidatedRowPreview] = []
 
     issues_tally: dict[str, int] = {}
-    field_counts: dict[str, int] = {k: 0 for k in COLUMN_ALIASES.keys()}
+    field_counts: dict[str, int] = {k: 0 for k in COLUMN_ALIASES}
 
     seen_ids_in_batch = set()
 
@@ -199,8 +207,9 @@ async def validate_file(
     user: User = Depends(require_roles("admin", "analyst", "site_manager")),
 ):
     """Parses and validates an uploaded CSV or JSON file without writing to the database."""
-    from app.config import settings
     import os
+
+    from app.config import settings
 
     # Sanitize filename & path traversal check
     raw_filename = file.filename or ""
@@ -235,7 +244,7 @@ async def validate_file(
                 rows = parsed["data"]
             else:
                 rows = [parsed]
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON format in uploaded file")
     else:
         # Default CSV parse
@@ -391,7 +400,7 @@ def get_job(
 
 
 @router.get("/template")
-def download_sample_template():
+def download_sample_template(_: User = Depends(get_current_user)):
     """Returns sample CSV template for HSE ingestion."""
     csv_content = (
         "source_report_id,reported_at,site_name,department,shift,equipment_type,job_type,report_type,raw_text\n"

@@ -1,7 +1,7 @@
 """Tests for CER pipeline incident ingestion and normalization adapter."""
 
-import pytest
 from pathlib import Path
+
 from ingestion.cer import CERIngestionAdapter
 from ingestion.normalizer import NormalizedIncident
 

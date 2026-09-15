@@ -21,6 +21,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
+
 import numpy as np
 
 # Ensure SSL certificates are properly resolved on macOS

@@ -76,14 +76,14 @@ class PHMSAIngestionAdapter(IncidentNormalizer):
         site_str = " ".join(site_parts).strip() if site_parts else None
 
         # 4. Sector & Commodity
-        commodity = cls.clean_text(r.get("COMMODITY_RELEASED_TYPE") or r.get("COMMODITY_SUBTYPE") or r.get("COMMODITY"))
-        system_type = cls.clean_text(r.get("SYSTEM_TYPE") or r.get("SIGNIFICANT_INCIDENT_TYPE"))
+        commodity = cls.clean_text(r.get("COMMODITY_RELEASED_TYPE") or r.get("COMMODITY_SUBTYPE") or r.get("COMMODITY")) or ""
+        system_type = cls.clean_text(r.get("SYSTEM_TYPE") or r.get("SIGNIFICANT_INCIDENT_TYPE")) or ""
         if "GAS" in (commodity + system_type).upper():
             sector = "Pipeline Transportation - Natural Gas"
         elif "LIQUID" in (commodity + system_type).upper() or "CRUDE" in commodity.upper():
             sector = "Pipeline Transportation - Hazardous Liquids"
         else:
-            sector = cls.parse_str_optional(f"Pipeline Transportation - {commodity}" if commodity else "Pipeline Transportation")
+            sector = f"Pipeline Transportation - {commodity}" if commodity else "Pipeline Transportation"
 
         # 5. Activity & Work Context
         activity = cls.parse_str_optional(

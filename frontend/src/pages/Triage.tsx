@@ -268,7 +268,7 @@ export function TriagePage() {
                 {row.priority ? (
                   <PriorityBadge tier={row.priority.tier} score={row.priority.score} />
                 ) : (
-                  <RiskBadge sifLabel={row.sif_label} probability={row.sif_probability} />
+                  <RiskBadge sifLabel={row.sif_label} probability={row.sif_probability} classificationState={row.classification_state} />
                 )}
                 <div className="pt-1">
                   <div className="text-[10px] uppercase font-semibold tracking-wider text-warm">SIF ML Prob</div>

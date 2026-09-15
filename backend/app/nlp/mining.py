@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 ACTIVITY_PATTERNS = [
     (r"\bwelding\b", "hot work / welding"),
@@ -70,11 +70,11 @@ def cluster_key(triple: dict) -> str:
 def assign_trend(member_dates: list[datetime]) -> str:
     if not member_dates:
         return "stable"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # SQLite does not preserve timezone information on round-trip, while
     # PostgreSQL commonly returns aware values. Normalize both to UTC so the
     # same clustering code works for the prototype and production database.
-    normalized = [d.replace(tzinfo=timezone.utc) if d.tzinfo is None else d.astimezone(timezone.utc) for d in member_dates]
+    normalized = [d.replace(tzinfo=UTC) if d.tzinfo is None else d.astimezone(UTC) for d in member_dates]
     recent = sum(1 for d in normalized if d >= now - timedelta(days=30))
     older = sum(1 for d in normalized if now - timedelta(days=60) <= d < now - timedelta(days=30))
     if recent > older + 1:

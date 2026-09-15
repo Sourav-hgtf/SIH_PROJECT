@@ -2,8 +2,8 @@
 
 ML Architecture (as actually implemented):
   Raw Text
-    ↓ Preprocessing — PII Redaction, Spell Correction, Abbreviation Expansion
-      preprocessing_version: prep-pii-spell-abbr-v1
+    ↓ Preprocessing — PII Redaction, Negated Hazard Suppression, Spell Correction, Abbreviation Expansion
+      preprocessing_version: prep-pii-negation-spell-abbr-v2
   TF-IDF Vectorizer — ngram_range=(1,2), max_features=5000
     feature_version: tfidf-unigram-bigram-v1
     ↓
@@ -24,7 +24,7 @@ ML Architecture (as actually implemented):
 Version concepts are strictly SEPARATE and never overwrite each other:
   model_version        — identity of the fitted LR + TF-IDF weights
   feature_version      — TF-IDF configuration
-  preprocessing_version — PII/spell/abbreviation pipeline
+  preprocessing_version — PII/negation/spell/abbreviation pipeline
   dataset_version      — which labeled dataset was used
   label_schema_version — SIF binary label schema
   calibration_version  — calibration method (CalibratedClassifierCV vs uncalibrated)
@@ -34,24 +34,23 @@ Version concepts are strictly SEPARATE and never overwrite each other:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import json
 import logging
 import math
-from pathlib import Path
+import platform
 import random
 import re
-from typing import Any
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 
 import joblib
-from sqlalchemy.orm import Session
-from sklearn.pipeline import Pipeline
+import sklearn
+from sklearn.calibration import calibration_curve
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -59,9 +58,15 @@ from sklearn.metrics import (
     precision_recall_fscore_support,
     roc_auc_score,
 )
+from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import Pipeline
+from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import AnalystFeedback, ModelTrainingRun, Report, ReportReview, SifClassification
+from app.models import (
+    ModelTrainingRun,
+    Report,
+)
 from app.nlp.calibration import (
     calibrate_classifier,
     compute_brier_score,
@@ -70,7 +75,7 @@ from app.nlp.calibration import (
     optimize_threshold,
 )
 from app.nlp.model import ARTIFACT_PATH
-from app.nlp.preprocess import preprocess
+from app.nlp.preprocess import PREPROCESSING_VERSION, preprocess
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +83,6 @@ MIN_TOTAL_RECORDS_FOR_SPLIT = 20
 MIN_PER_CLASS_FOR_SPLIT = 4
 
 FEATURE_VERSION = "tfidf-unigram-bigram-v1"
-PREPROCESSING_VERSION = "prep-pii-spell-abbr-v1"
 DATASET_VERSION = "sih-safety-ds-v1"
 LABEL_SCHEMA_VERSION = "sif-binary-v1"
 
@@ -117,6 +121,89 @@ class IncidentDataRecord:
     label: bool
     data_type: str
     label_source: str
+    site_id: str | None = None
+    department: str | None = None
+    report_type: str | None = None
+
+
+def build_evaluation_metrics(
+    y_true: list[bool], y_pred: list[bool], y_prob: list[float], *, n_bins: int = 5
+) -> dict[str, Any]:
+    """Return auditable binary metrics, confusion matrix, and calibration bins."""
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[False, True]).ravel()
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="binary", zero_division=0
+    )
+    specificity = tn / (tn + fp) if tn + fp else 0.0
+    fnr = fn / (fn + tp) if fn + tp else 0.0
+    calibration_bins: list[dict[str, float | int]] = []
+    if y_true and len(set(y_true)) > 1:
+        observed, predicted = calibration_curve(y_true, y_prob, n_bins=n_bins, strategy="uniform")
+        for index, (mean_predicted, fraction_positive) in enumerate(zip(predicted, observed)):
+            calibration_bins.append({
+                "bin": index,
+                "mean_predicted_probability": round(float(mean_predicted), 4),
+                "observed_positive_rate": round(float(fraction_positive), 4),
+            })
+    return {
+        "sample_size": len(y_true),
+        "positives": int(sum(y_true)),
+        "negatives": int(len(y_true) - sum(y_true)),
+        "accuracy": round(float(accuracy_score(y_true, y_pred)), 4) if y_true else 0.0,
+        "precision": round(float(precision), 4),
+        "recall": round(float(recall), 4),
+        "f1": round(float(f1), 4),
+        "specificity": round(float(specificity), 4),
+        "false_negative_rate": round(float(fnr), 4),
+        "confusion_matrix": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
+        "calibration_curve": calibration_bins,
+    }
+
+
+def build_segment_evaluation(
+    records: list[IncidentDataRecord], y_pred: list[bool], y_prob: list[float]
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Break held-out evaluation down by populated report metadata fields."""
+    result: dict[str, dict[str, dict[str, Any]]] = {}
+    for field in ("site_id", "department", "report_type"):
+        groups: dict[str, list[int]] = {}
+        for index, record in enumerate(records):
+            value = getattr(record, field, None)
+            if value:
+                groups.setdefault(str(value), []).append(index)
+        result[field] = {
+            value: build_evaluation_metrics(
+                [records[i].label for i in indexes], [y_pred[i] for i in indexes], [y_prob[i] for i in indexes]
+            )
+            for value, indexes in sorted(groups.items())
+        }
+    return result
+
+
+def assert_segment_quality_gates(segment_metrics: dict[str, dict[str, dict[str, Any]]]) -> None:
+    """Block artifact publication when an eligible metadata segment underperforms."""
+    failures: list[str] = []
+    for dimension, segments in segment_metrics.items():
+        for value, metric in segments.items():
+            # Precision/recall are meaningful only if both classes are present.
+            if (
+                metric["sample_size"] < settings.evaluation_min_segment_size
+                or not metric["positives"]
+                or not metric["negatives"]
+            ):
+                metric["quality_gate"] = "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+                continue
+            passed = (
+                metric["recall"] >= settings.evaluation_min_segment_recall
+                and metric["precision"] >= settings.evaluation_min_segment_precision
+            )
+            metric["quality_gate"] = "PASSED" if passed else "FAILED"
+            if not passed:
+                failures.append(
+                    f"{dimension}={value} (precision={metric['precision']}, recall={metric['recall']})"
+                )
+    if failures:
+        raise ValueError("Segment evaluation quality gate failed: " + "; ".join(failures))
 
 
 def normalize_incident_text(text: str | None) -> str:
@@ -423,6 +510,9 @@ def run_ml_training(
                     label=True if val_lbl == "SIF" else False,
                     data_type="human_validated",
                     label_source="HUMAN_VALIDATED",
+                    site_id=report.site_id,
+                    department=report.department,
+                    report_type=report.report_type,
                 )
             )
         elif human_lbl in ("SIF", "NON_SIF"):
@@ -436,6 +526,9 @@ def run_ml_training(
                     label=True if human_lbl == "SIF" else False,
                     data_type="human_validated",
                     label_source="HUMAN_VALIDATED",
+                    site_id=report.site_id,
+                    department=report.department,
+                    report_type=report.report_type,
                 )
             )
         elif report.final_sif_label is not None and label_source in (
@@ -454,6 +547,9 @@ def run_ml_training(
                     label=bool(report.final_sif_label),
                     data_type="human_validated",
                     label_source="HUMAN_VALIDATED",
+                    site_id=report.site_id,
+                    department=report.department,
+                    report_type=report.report_type,
                 )
             )
 
@@ -474,6 +570,9 @@ def run_ml_training(
                     label=bool(report.classification.sif_label),
                     data_type="demo_synthetic" if is_synthetic else "real_heuristic",
                     label_source="HEURISTIC_DEMO",
+                    site_id=report.site_id,
+                    department=report.department,
+                    report_type=report.report_type,
                 )
             )
 
@@ -481,10 +580,12 @@ def run_ml_training(
         records = filter_gold_standard_training_records(validated_records)
         data_source = "HUMAN_VALIDATED"
         is_demo_evaluation = False
+        data_provenance = "HUMAN_VALIDATED_NON_SYNTHETIC"
     elif force_demo_fallback and demo_fallback_records:
         records = demo_fallback_records
         data_source = "DEMO_FALLBACK"
         is_demo_evaluation = True
+        data_provenance = "DEMO_FALLBACK_SYNTHETIC_OR_HEURISTIC"
         logger.warning(
             "[DEFENSE AUDIT WARNING] Training using demo fallback data. "
             "No validated human labels exist in database. Synthetic labels strictly tagged."
@@ -507,13 +608,14 @@ def run_ml_training(
         assert_no_synthetic_in_split(test_records, split_name="test")
 
     training_run_id = str(uuid.uuid4())
-    model_version = f"sif-logreg-v1-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    model_version = f"sif-logreg-v1-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
 
     # Base classification pipeline
     base_pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(max_features=5000, stop_words="english", ngram_range=(1, 2))),
         ("clf", LogisticRegression(class_weight="balanced", random_state=random_seed, C=1.0)),
     ])
+    segment_metrics: dict[str, dict[str, dict[str, Any]]] = {}
 
     if split_status == "INSUFFICIENT_VALIDATION_DATA":
         logger.warning(
@@ -568,6 +670,7 @@ def run_ml_training(
                 "model_version": model_version,
                 "feature_version": FEATURE_VERSION,
                 "preprocessing_version": PREPROCESSING_VERSION,
+                "negation_detection_enabled": settings.negation_detection_enabled,
                 "dataset_version": DATASET_VERSION,
                 "label_schema_version": LABEL_SCHEMA_VERSION,
                 "calibration_version": calibration_version,
@@ -576,9 +679,10 @@ def run_ml_training(
                 "training_run_id": training_run_id,
                 "split_version": "insufficient-data-hold",
                 "random_seed": random_seed,
-                "training_timestamp": datetime.now(timezone.utc).isoformat(),
+                "training_timestamp": datetime.now(UTC).isoformat(),
                 "data_source": data_source,
                 "is_synthetic_demo_evaluation": is_demo_evaluation,
+                "data_provenance": data_provenance,
                 "sample_counts": {
                     "total": len(records),
                     "train": len(train_records),
@@ -762,6 +866,7 @@ def run_ml_training(
                 "model_version": model_version,
                 "feature_version": FEATURE_VERSION,
                 "preprocessing_version": PREPROCESSING_VERSION,
+                "negation_detection_enabled": settings.negation_detection_enabled,
                 "dataset_version": DATASET_VERSION,
                 "label_schema_version": LABEL_SCHEMA_VERSION,
                 "calibration_version": calibration_version,
@@ -772,9 +877,10 @@ def run_ml_training(
                 "training_run_id": training_run_id,
                 "split_version": "stratified-group-70-15-15",
                 "random_seed": random_seed,
-                "training_timestamp": datetime.now(timezone.utc).isoformat(),
+                "training_timestamp": datetime.now(UTC).isoformat(),
                 "data_source": data_source,
                 "is_synthetic_demo_evaluation": is_demo_evaluation,
+                "data_provenance": data_provenance,
                 "sample_counts": {
                     "total": len(records),
                     "train": len(train_records),
@@ -785,6 +891,9 @@ def run_ml_training(
                 },
             },
         }
+        segment_metrics = build_segment_evaluation(test_records, y_test_pred, list(y_test_proba_cal))
+        assert_segment_quality_gates(segment_metrics)
+        metrics["segment_metrics"] = segment_metrics
 
     # Training audit contains only safe report identifiers and reason codes,
     # never report narrative or detected identity values.
@@ -793,7 +902,37 @@ def run_ml_training(
         "rejected_record_count": len(privacy_rejected_records),
         "rejected_records": privacy_rejected_records,
         "preprocessing_version": PREPROCESSING_VERSION,
+        "negation_detection_enabled": settings.negation_detection_enabled,
     }
+    metrics["data_provenance"] = data_provenance
+
+    # Versioned evaluation artifact is intentionally JSON-only: it contains
+    # aggregate/segment metrics and no report narrative or identity values.
+    evaluation_report = {
+        "evaluation_report_version": "sif-evaluation-v2",
+        "model_version": model_version,
+        "training_run_id": training_run_id,
+        "data_provenance": data_provenance,
+        "python_version": platform.python_version(),
+        "scikit_learn_version": sklearn.__version__,
+        "created_at": datetime.now(UTC).isoformat(),
+        "global_metrics": {
+            key: metrics.get(key)
+            for key in ("accuracy", "precision", "recall", "f1", "specificity", "false_negative_rate", "confusion_matrix")
+        },
+        "calibration_curve": build_evaluation_metrics(y_test, y_test_pred, list(y_test_proba_cal)).get("calibration_curve", [])
+        if split_status != "INSUFFICIENT_VALIDATION_DATA" else [],
+        "segment_metrics": segment_metrics,
+        "segment_quality_thresholds": {
+            "min_segment_size": settings.evaluation_min_segment_size,
+            "min_precision": settings.evaluation_min_segment_precision,
+            "min_recall": settings.evaluation_min_segment_recall,
+        },
+    }
+    ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    evaluation_path = ARTIFACT_PATH.parent / f"evaluation-{model_version}.json"
+    evaluation_path.write_text(json.dumps(evaluation_report, indent=2), encoding="utf-8")
+    metrics["evaluation_report_path"] = str(evaluation_path)
 
     # Save model artifact with complete version metadata
     model_artifact_data = {
@@ -802,6 +941,7 @@ def run_ml_training(
         "model_version": model_version,
         "feature_version": FEATURE_VERSION,
         "preprocessing_version": PREPROCESSING_VERSION,
+        "negation_detection_enabled": settings.negation_detection_enabled,
         "dataset_version": DATASET_VERSION,
         "label_schema_version": LABEL_SCHEMA_VERSION,
         "calibration_version": calibration_version,
@@ -810,10 +950,12 @@ def run_ml_training(
         "threshold_version": threshold_version,
         "optimal_threshold": optimal_threshold,
         "training_run_id": training_run_id,
-        "trained_at": datetime.now(timezone.utc).isoformat(),
+        "trained_at": datetime.now(UTC).isoformat(),
         "feedback_count": len(validated_records),
         "is_demo_model": is_demo_evaluation,
+        "data_provenance": data_provenance,
         "metrics": metrics,
+        "evaluation_report_path": str(evaluation_path),
     }
 
     ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -829,6 +971,7 @@ def run_ml_training(
                 "model_version": model_version,
                 "feature_version": FEATURE_VERSION,
                 "preprocessing_version": PREPROCESSING_VERSION,
+                "negation_detection_enabled": settings.negation_detection_enabled,
                 "calibration_version": calibration_version,
                 "calibration_method": calibration_method,
                 "is_calibrated": is_calibrated,
@@ -836,8 +979,12 @@ def run_ml_training(
                 "optimal_threshold": optimal_threshold,
                 "training_run_id": training_run_id,
                 "sha256": sha256,
-                "training_date": datetime.now(timezone.utc).isoformat(),
+                "training_date": datetime.now(UTC).isoformat(),
                 "evaluation_status": metrics.get("status"),
+                "data_provenance": data_provenance,
+                "python_version": platform.python_version(),
+                "scikit_learn_version": sklearn.__version__,
+                "evaluation_report_file": evaluation_path.name,
             },
             f,
             indent=2,

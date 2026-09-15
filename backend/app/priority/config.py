@@ -9,8 +9,8 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator, model_validator
 import yaml
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class PriorityWeights(BaseModel):
     cross_site: float = Field(..., ge=0.0, le=1.0)
 
     @model_validator(mode="after")
-    def validate_sum(self) -> "PriorityWeights":
+    def validate_sum(self) -> PriorityWeights:
         total = (
             self.sif_probability
             + self.barrier_criticality
@@ -69,7 +69,7 @@ class PriorityTiers(BaseModel):
     medium: float = Field(..., ge=0.0, le=100.0)
 
     @model_validator(mode="after")
-    def validate_order(self) -> "PriorityTiers":
+    def validate_order(self) -> PriorityTiers:
         if not (self.critical > self.high > self.medium >= 0):
             raise ValueError(
                 "Tier thresholds must satisfy: critical > high > medium >= 0"

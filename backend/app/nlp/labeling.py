@@ -33,19 +33,19 @@ def lf_barrier_failure_with_energy(text: str) -> int:
 
 
 def lf_height_or_dropped_object(text: str) -> int:
-    if re.search(r"\b(fall from|no harness|dropped object|working at height|incomplete scaffold)\b", text, re.I):
+    if re.search(r"\b(fall from|no harness|dropped object|working at height|incomplete scaffold)\b", text, re.IGNORECASE):
         return 1
     return 0
 
 
 def lf_confined_or_h2s(text: str) -> int:
-    if re.search(r"\b(confined space|hydrogen sulfide|no gas test|toxic atmosphere)\b", text, re.I):
+    if re.search(r"\b(confined space|hydrogen sulfide|no gas test|toxic atmosphere)\b", text, re.IGNORECASE):
         return 1
     return 0
 
 
 def lf_lifting_line_of_fire(text: str) -> int:
-    if re.search(r"\b(suspended load|under the load|crane|sling failure|SWL exceeded)\b", text, re.I):
+    if re.search(r"\b(suspended load|under the load|crane|sling failure|SWL exceeded)\b", text, re.IGNORECASE):
         return 1
     return 0
 

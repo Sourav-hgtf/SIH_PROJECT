@@ -124,7 +124,7 @@ export function ClusterDetailPage() {
                   {row.priority ? (
                     <PriorityBadge tier={row.priority.tier} score={row.priority.score} compact />
                   ) : (
-                    <RiskBadge sifLabel={row.sif_label} probability={row.sif_probability} />
+                    <RiskBadge sifLabel={row.sif_label} probability={row.sif_probability} classificationState={row.classification_state} />
                   )}
                   <ConfidenceBar value={row.sif_probability} sifLabel={row.sif_label} />
                 </div>

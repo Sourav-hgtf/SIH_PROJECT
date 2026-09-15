@@ -6,10 +6,18 @@ and precursor clusters based on the centralized business rules configuration.
 from __future__ import annotations
 
 import math
-from typing import Any, Sequence
+from collections.abc import Sequence
+
 from sqlalchemy.orm import Session
 
 from app.models import ClusterMember, PrecursorCluster, PrecursorTriple, Report
+from app.nlp.decision import (
+    SifClassificationState,
+    requires_analyst_review,
+    state_for_probability,
+)
+from app.nlp.features import extract_features
+
 from .config import PriorityConfig, load_priority_config
 from .schemas import (
     PriorityBreakdown,
@@ -67,6 +75,47 @@ def _determine_tier(score: float, config: PriorityConfig) -> PriorityTier:
     return "LOW"
 
 
+def _assess_report_evidence(report: Report) -> tuple[bool, int, int]:
+    """Return (sufficient, signal_count, token_count) for priority routing.
+
+    A high model probability by itself is not enough to auto-prioritize a thin
+    narrative.  Require a minimally descriptive report and at least two
+    independent asserted precursor/hazard signals before assigning HIGH+.
+    """
+    text = report.processed_text or report.raw_text_redacted or ""
+    token_count = len(text.split())
+    signals: set[str] = set()
+
+    if report.classification:
+        features = report.classification.features or {}
+        for field in ("energy_types", "proximity_hits", "barrier_failures"):
+            for value in features.get(field, []) or []:
+                signals.add(f"{field}:{str(value).lower()}")
+
+    # Tests and legacy records may not have persisted feature metadata. Derive
+    # the same deterministic signals from the text in that case.
+    if not signals and text:
+        derived = extract_features(text)
+        for field, values in (
+            ("energy_types", derived.energy_types),
+            ("proximity_hits", derived.proximity_hits),
+            ("barrier_failures", derived.barrier_failures),
+        ):
+            for value in values:
+                signals.add(f"{field}:{str(value).lower()}")
+
+    for tag in report.lsr_tags or []:
+        signals.add(f"lsr:{tag.rule_id or tag.lsr_category}")
+
+    for triple in report.triples or []:
+        if triple.hazard_exposure:
+            signals.add(f"hazard:{triple.hazard_exposure.lower()}")
+        if triple.barrier_failure and triple.barrier_failure != "barrier not identified":
+            signals.add(f"barrier:{triple.barrier_failure.lower()}")
+
+    return token_count >= 8 and len(signals) >= 2, len(signals), token_count
+
+
 def _generate_recommendation(tier: PriorityTier, top_component: str) -> str:
     """Generate an actionable HSE recommendation based on tier and primary driver."""
     if tier == "CRITICAL":
@@ -96,6 +145,9 @@ def _build_priority_out(
     exposure_count: int,
     site_count: int,
     config: PriorityConfig,
+    classification_state: SifClassificationState | None = None,
+    evidence_sufficient: bool = True,
+    evidence_signal_count: int = 0,
 ) -> PriorityOut:
     """Core deterministic calculation producing a PriorityOut instance."""
     weights = config.weights
@@ -191,6 +243,10 @@ def _build_priority_out(
     ) * 100.0
 
     final_score = round(min(100.0, max(0.0, raw_total)), 1)
+    if not evidence_sufficient:
+        # Keep the score interpretable and enforce the operational cap: thin
+        # evidence may not auto-assign HIGH/CRITICAL, regardless of ML score.
+        final_score = min(final_score, round(config.tiers.high - 0.1, 1))
     tier = _determine_tier(final_score, config)
 
     # Identify primary driver for explanation
@@ -220,12 +276,30 @@ def _build_priority_out(
         cross_site=cs_comp,
     )
 
+    state = classification_state or state_for_probability(sif_prob)
+    review_required = requires_analyst_review(state) or not evidence_sufficient  # type: ignore[arg-type]
+    if not evidence_sufficient:
+        explanation = (
+            f"Evidence is insufficient for automatic HIGH/CRITICAL priority "
+            f"({evidence_signal_count} asserted signals); capped at {tier}. {explanation}"
+        )
+    elif review_required:
+        explanation = f"UNCERTAIN SIF classification requires mandatory analyst review. {explanation}"
     return PriorityOut(
         score=final_score,
         tier=tier,
         version=config.version,
         explanation_summary=explanation,
-        action_recommendation=_generate_recommendation(tier, top_driver_name),
+        action_recommendation=(
+            "Mandatory analyst review required before this report is auto-escalated or cleared. "
+            "Verify hazard, exposure, and barrier evidence."
+            if review_required
+            else _generate_recommendation(tier, top_driver_name)
+        ),
+        classification_state=state,
+        requires_analyst_review=review_required,
+        evidence_sufficient=evidence_sufficient,
+        evidence_signal_count=evidence_signal_count,
         components=breakdown,
     )
 
@@ -236,8 +310,12 @@ def score_report(report: Report, db: Session | None = None) -> PriorityOut:
 
     # 1. SIF Probability
     sif_prob = 0.0
+    classification_state: SifClassificationState | None = None
     if report.classification and report.classification.sif_probability is not None:
         sif_prob = float(report.classification.sif_probability)
+        classification_state = report.classification.classification_state
+
+    evidence_sufficient, evidence_signal_count, _token_count = _assess_report_evidence(report)
 
     # 2. Barrier Failure Extraction
     barrier_texts = [report.raw_text_redacted]
@@ -296,6 +374,9 @@ def score_report(report: Report, db: Session | None = None) -> PriorityOut:
         exposure_count=exposure_count,
         site_count=site_count,
         config=config,
+        classification_state=classification_state,
+        evidence_sufficient=evidence_sufficient,
+        evidence_signal_count=evidence_signal_count,
     )
 
 

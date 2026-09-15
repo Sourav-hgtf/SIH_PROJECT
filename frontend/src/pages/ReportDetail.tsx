@@ -559,7 +559,7 @@ export function ReportDetailPage() {
               <div className="rounded-lg bg-white border border-indigo-100 p-3">
                 <div className="text-[11px] font-medium text-warm">AI Classification</div>
                 <div className="mt-1">
-                  <RiskBadge sifLabel={report.sif_label} probability={report.sif_probability} />
+                  <RiskBadge sifLabel={report.sif_label} probability={report.sif_probability} classificationState={report.classification_state} />
                 </div>
               </div>
 

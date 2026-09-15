@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import json
 import logging
 import re
+from collections.abc import Sequence
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ class IncidentNormalizer:
 
 
 def compute_data_quality_report(
-    records: list[NormalizedIncident | dict[str, Any]],
+    records: Sequence[NormalizedIncident | dict[str, Any]],
     rejected: list[dict[str, Any]] | None = None,
 ) -> DataQualityReport:
     """Compute strict data quality metrics over a collection of normalized records."""

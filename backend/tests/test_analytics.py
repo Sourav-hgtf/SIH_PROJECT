@@ -1,12 +1,13 @@
-import pytest
+from datetime import UTC
+
 from app.database import SessionLocal
-from app.models import ReportReview, Report, Site, ModelTrainingRun
+from app.models import Report, Site
 from app.services import (
-    compute_model_health,
-    compute_error_analysis,
-    compute_model_version_drift,
-    compute_intervention_effectiveness,
     compute_agreement_trend,
+    compute_error_analysis,
+    compute_intervention_effectiveness,
+    compute_model_health,
+    compute_model_version_drift,
 )
 
 
@@ -35,10 +36,11 @@ def test_analytics_empty_db():
 
 def test_sif_density_activity_calculation():
     import uuid
-    from app.models import Report, SifClassification, PrecursorTriple, Site
-    from app.routers.dashboard import sif_density
+    from datetime import datetime
+
     from app.auth import User
-    from datetime import datetime, timezone
+    from app.models import PrecursorTriple, SifClassification
+    from app.routers.dashboard import sif_density
 
     db = SessionLocal()
     try:
@@ -53,8 +55,8 @@ def test_sif_density_activity_calculation():
         act_name = f"Unique Test Activity {uid}"
 
         # Create 2 reports with same activity: 1 SIF=True, 1 SIF=False
-        r1 = Report(source_report_id=f"DENS-1-{uid}", report_type="INCIDENT", site_id=site.id, raw_text_redacted="Electrical arc flash near panel", reported_at=datetime.now(timezone.utc))
-        r2 = Report(source_report_id=f"DENS-2-{uid}", report_type="HAZARD", site_id=site.id, raw_text_redacted="Minor spill near workshop", reported_at=datetime.now(timezone.utc))
+        r1 = Report(source_report_id=f"DENS-1-{uid}", report_type="INCIDENT", site_id=site.id, raw_text_redacted="Electrical arc flash near panel", reported_at=datetime.now(UTC))
+        r2 = Report(source_report_id=f"DENS-2-{uid}", report_type="HAZARD", site_id=site.id, raw_text_redacted="Minor spill near workshop", reported_at=datetime.now(UTC))
         db.add_all([r1, r2])
         db.commit()
 

@@ -1,15 +1,10 @@
 """Unit tests for the Intervention Priority Scoring engine."""
-from datetime import datetime, timezone
-import pytest
+from datetime import UTC, datetime
 
 from app.models import (
-    ClusterMember,
-    LsrTag,
     PrecursorCluster,
-    PrecursorTriple,
     Report,
     SifClassification,
-    Site,
 )
 from app.priority import load_priority_config, score_cluster, score_report
 from app.priority.engine import _log_norm, _match_barrier_criticality
@@ -81,7 +76,7 @@ def test_report_priority_monotonicity_sif():
         report_type="near_miss",
         site_id="site-1",
         raw_text_redacted="Routine slip hazard",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     r_low.classification = SifClassification(
         report_id="rep-low",
@@ -95,7 +90,7 @@ def test_report_priority_monotonicity_sif():
         report_type="near_miss",
         site_id="site-1",
         raw_text_redacted="Routine slip hazard",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     r_high.classification = SifClassification(
         report_id="rep-high",
@@ -118,7 +113,7 @@ def test_report_priority_barrier_impact():
         report_type="near_miss",
         site_id="site-1",
         raw_text_redacted="General cleanup required in aisle",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     r_no_barrier.classification = SifClassification(
         report_id="rep-nb",
@@ -132,7 +127,7 @@ def test_report_priority_barrier_impact():
         report_type="near_miss",
         site_id="site-1",
         raw_text_redacted="Energy isolation was not performed and LOTO missing",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     r_barrier.classification = SifClassification(
         report_id="rep-b",
@@ -158,7 +153,7 @@ def test_tier_boundaries():
         report_type="near_miss",
         site_id="site-1",
         raw_text_redacted="Isolation failure and bypass on high pressure gas valve",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     r_crit.classification = SifClassification(
         report_id="rep-crit",
@@ -180,8 +175,8 @@ def test_cluster_priority_scoring():
         representative_barrier_failure="LOTO isolation missing",
         cluster_size=8,
         trend_status="growing",
-        first_seen_at=datetime.now(timezone.utc),
-        last_updated_at=datetime.now(timezone.utc),
+        first_seen_at=datetime.now(UTC),
+        last_updated_at=datetime.now(UTC),
     )
 
     p_cluster = score_cluster(cluster)
@@ -201,10 +196,37 @@ def test_graceful_degradation_missing_fields():
         report_type="ua_uc",
         site_id="site-1",
         raw_text_redacted="",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     p = score_report(bare_report)
     assert 0.0 <= p.score <= 100.0
     assert p.tier in ("CRITICAL", "HIGH", "MEDIUM", "LOW")
     assert p.components.sif_probability.score == 0.0
     assert p.components.barrier_criticality.score == 0.0
+
+
+def test_sparse_report_cannot_auto_assign_high_priority_without_evidence():
+    report = Report(
+        id="rep-sparse-forklift",
+        source_report_id="SRC-SPARSE-FORKLIFT",
+        report_type="near_miss",
+        site_id="site-1",
+        raw_text_redacted="Forklift moving pipe bundles at night.",
+        reported_at=datetime.now(UTC),
+    )
+    # Exercise the critical guard: even an anomalously high raw model score
+    # cannot outrun a sparse narrative with no asserted precursor evidence.
+    report.classification = SifClassification(
+        report_id=report.id,
+        sif_probability=0.95,
+        sif_label=True,
+        classification_state="SIF_LIKELY",
+    )
+
+    priority = score_report(report)
+
+    assert priority.tier not in ("HIGH", "CRITICAL")
+    assert priority.evidence_sufficient is False
+    assert priority.evidence_signal_count == 0
+    assert priority.requires_analyst_review is True
+    assert "Mandatory analyst review" in priority.action_recommendation

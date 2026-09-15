@@ -1,6 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.14.3-slim
 WORKDIR /app
 COPY requirements.txt .
+# requirements.txt includes the pinned en_core_web_sm wheel, so a production
+# image cannot be built with spaCy installed but the PII NER model omitted.
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY tests ./tests

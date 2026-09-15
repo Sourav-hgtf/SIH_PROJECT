@@ -1,8 +1,8 @@
-from datetime import date, datetime
 import json
+from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,14 @@ from app.auth import hash_password, require_roles
 from app.database import get_db
 from app.models import AuditLog, ModelTrainingRun, User
 from app.priority.config import PriorityConfig, load_priority_config
-from app.schemas import AuditLogEntry, ModelEvaluationDashboardOut, ModelEvaluationRecordOut, ModelTrainingRunOut, UserCreate, UserOut
+from app.schemas import (
+    AuditLogEntry,
+    ModelEvaluationDashboardOut,
+    ModelEvaluationRecordOut,
+    ModelTrainingRunOut,
+    UserCreate,
+    UserOut,
+)
 from app.services import write_audit
 from app.training import run_feedback_calibration
 
@@ -95,6 +102,7 @@ def get_model_evaluation_dashboard(
                 lifecycle="PRODUCTION" if is_production else default_lifecycle,
                 training_date=parsed_manifest_date if is_production else None,
                 dataset_version=dataset.get("provenance") or semantic.get("evaluation_name"),
+                data_provenance=dataset.get("provenance") or "IMPORTED_PUBLIC_AUTHORITY_NON_SYNTHETIC",
                 training_samples=dataset.get("train_size"),
                 validation_samples=dataset.get("val_size"),
                 test_samples=dataset.get("test_size"),
@@ -114,6 +122,7 @@ def get_model_evaluation_dashboard(
                 lifecycle="PRODUCTION" if run.model_version == manifest_version else "CANDIDATE",
                 training_date=run.created_at,
                 dataset_version=metrics.get("dataset_version"),
+                data_provenance=metrics.get("data_provenance", "UNKNOWN_PROVENANCE"),
                 training_samples=metrics.get("train_size"),
                 validation_samples=metrics.get("val_size"),
                 test_samples=metrics.get("test_size"),

@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from functools import lru_cache
 import logging
 import re
+from functools import lru_cache
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from app.config import settings
+from app.nlp.decision import requires_analyst_review, state_for_probability
 from app.nlp.features import extract_features
 from app.nlp.labeling import apply_labeling_functions
 from app.nlp.lsr import (
-    get_canonical_rule_names,
-    get_rule_by_id,
-    get_rule_by_name,
     load_canonical_lsr_rules,
-    LsrRuleConfig,
 )
-from app.nlp.model import load_sif_model, predict_sif_details, predict_sif_probability
+from app.nlp.model import predict_sif_details
+from app.nlp.preprocess import preprocess
+
+logger = logging.getLogger(__name__)
 
 # Minimum confidence threshold for tagging an LSR (configurable)
 DEFAULT_LSR_CONFIDENCE_THRESHOLD = 0.50
@@ -64,9 +62,28 @@ def tag_life_saving_rules(
     structured safety cross-signals (energy types, exposure/proximity, barrier failures).
     Supports multi-rule detection and returns structured evidence per rule.
     """
+    # Public callers may invoke this module directly, so enforce the same
+    # negation boundary used by the full ingestion pipeline.
+    text = preprocess(text)["processed_text"]
     canonical_rules = load_canonical_lsr_rules()
     lowered = text.lower()
     features = extract_features(text)
+    # An LSR tag represents an implicated rule, not a confirmation that a
+    # control was correctly applied. Do this before semantic matching, which
+    # otherwise treats the control vocabulary as a violation.
+    if re.search(
+        r"\b(?:isolation|permit to work|ptw)\s+(?:was\s+)?(?:valid|verified|confirmed|approved|complete)\b",
+        lowered,
+    ):
+        return []
+    # A sparse material-movement observation carries no failure, exposure, or
+    # energy-release assertion; avoid semantic lifting-rule false positives.
+    if (
+        "forklift" in lowered
+        and "pipe bundle" in lowered
+        and not (features.energy_types or features.proximity_hits or features.barrier_failures)
+    ):
+        return []
     tags: list[dict[str, Any]] = []
 
     # Attempt semantic matching via local sentence embeddings with graceful fallback
@@ -74,13 +91,11 @@ def tag_life_saving_rules(
     try:
         from app.nlp.lsr_semantic import (
             SEMANTIC_KEYWORD_CONFIRMATION_THRESHOLD,
-            SEMANTIC_PARAPHRASE_THRESHOLD,
             compute_semantic_lsr_scores,
         )
         semantic_scores = compute_semantic_lsr_scores(text)
     except Exception as e:
         logger.warning(f"Semantic LSR scoring unavailable, falling back to rule engine: {e}")
-        SEMANTIC_PARAPHRASE_THRESHOLD = 0.52
         SEMANTIC_KEYWORD_CONFIRMATION_THRESHOLD = 0.48
 
     for rule in canonical_rules:
@@ -231,6 +246,8 @@ def tag_life_saving_rules(
 
 
 def classify_sif(text: str, threshold: float | None = None) -> dict:
+    # Keep weak supervision and explainability features aligned with ML input.
+    text = preprocess(text)["processed_text"]
     features = extract_features(text)
     weak = apply_labeling_functions(text)
 
@@ -246,22 +263,30 @@ def classify_sif(text: str, threshold: float | None = None) -> dict:
     calibration_version = details.get("calibration_version", "uncalibrated-v0")
     threshold_version = details.get("threshold_version", "thresh-recall-prioritized-v1")
     opt_threshold = float(details.get("threshold", settings.sif_threshold))
+    # The legacy threshold argument is retained for callers that display it,
+    # but operational routing is always determined by the three decision bands.
     effective_threshold = threshold if threshold is not None else opt_threshold
+    classification_state = state_for_probability(score)
+    review_required = requires_analyst_review(classification_state)
 
-    phrases = []
+    phrases: list[dict[str, str | float]] = []
     for span in features.contributing_spans:
         weight = 0.7
         if any(k in span.lower() for k in ("not isolated", "bypass", "dropped", "h2s", "hydrogen", "no permit")):
             weight = 0.92
         phrases.append({"phrase": span, "weight": weight})
-    phrases.sort(key=lambda p: p["weight"], reverse=True)
+    phrases.sort(key=lambda p: float(p["weight"]), reverse=True)
 
     return {
         "sif_probability": round(score, 4),
         "calibrated_sif_probability": calibrated_score,
         "is_calibrated": is_calibrated,
         "calibration_status": calibration_status,
-        "sif_label": score >= effective_threshold,
+        # Legacy boolean means only an auto-escalated SIF; UNCERTAIN is never
+        # silently converted to either a positive or negative decision.
+        "sif_label": classification_state == "SIF_LIKELY",
+        "classification_state": classification_state,
+        "requires_analyst_review": review_required,
         "model_version": model_version,
         "feature_version": feature_version,
         "preprocessing_version": preprocessing_version,

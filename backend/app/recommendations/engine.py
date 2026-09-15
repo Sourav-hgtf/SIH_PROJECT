@@ -10,32 +10,29 @@ All recommendations are:
 """
 from __future__ import annotations
 
-import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Sequence
-from sqlalchemy.orm import Session, joinedload
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy.orm import Session
 
 from app.models import (
     ClusterMember,
     PrecursorCluster,
     PrecursorTriple,
-    Recommendation,
-    RecommendationFeedback,
     Report,
-    Site,
 )
 from app.priority.engine import score_cluster, score_report
+
 from .config import ActionRuleConfig, RecommendationsConfig, load_recommendations_config
 from .schemas import (
     ExecutiveFocusAreaOut,
-    RecommendationFeedbackOut,
     RecommendationOut,
 )
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _new_id() -> str:

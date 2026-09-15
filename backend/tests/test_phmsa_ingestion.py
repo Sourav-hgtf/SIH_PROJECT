@@ -1,9 +1,9 @@
 """Tests for PHMSA pipeline incident ingestion and normalization adapter."""
 
-import pytest
 from pathlib import Path
-from ingestion.phmsa import PHMSAIngestionAdapter
+
 from ingestion.normalizer import NormalizedIncident
+from ingestion.phmsa import PHMSAIngestionAdapter
 
 SAMPLE_PHMSA_ROW = {
     "REPORT_NUMBER": "20210042",

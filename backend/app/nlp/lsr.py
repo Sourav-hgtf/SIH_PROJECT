@@ -6,13 +6,13 @@ for the HSSE/SIF Sentinel prototype.
 
 from __future__ import annotations
 
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator, model_validator
 import yaml
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 

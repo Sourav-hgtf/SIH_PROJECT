@@ -1,11 +1,11 @@
-import os
-import json
 import hashlib
-import pytest
+import json
+
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.auth import create_token, hash_password
 from app.database import SessionLocal
+from app.main import app
 from app.models import User
 from app.nlp import model as nlp_model
 
@@ -15,6 +15,11 @@ client = TestClient(app)
 def test_unauthenticated_access_denied():
     res = client.get("/v1/dashboard/kpis")
     assert res.status_code == 401
+
+
+def test_predict_requires_authentication():
+    res = client.post("/predict", json={"text": "Worker entered a confined space without gas testing."})
+    assert res.status_code in (401, 403)
 
 
 def test_invalid_jwt_token_denied():

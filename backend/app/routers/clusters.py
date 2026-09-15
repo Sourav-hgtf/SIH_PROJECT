@@ -1,18 +1,37 @@
-from datetime import date
+
+from typing import TypedDict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user, scoped_site_ids
 from app.database import get_db
-from app.models import ClusterMember, PrecursorCluster, PrecursorTriple, Report, SifClassification, User
+from app.models import (
+    ClusterMember,
+    PrecursorCluster,
+    PrecursorTriple,
+    Report,
+    SifClassification,
+    User,
+)
 from app.priority.engine import score_cluster, score_report
-from app.schemas import PrecursorClusterDetail, PrecursorClusterOut, ReportSummary, LsrTagOut
+from app.schemas import (
+    LsrTagOut,
+    PrecursorClusterDetail,
+    PrecursorClusterOut,
+    ReportSummary,
+)
 
 router = APIRouter(tags=["Clusters"])
 
 
-def _cluster_report_metrics(db: Session, cluster_id: str) -> dict[str, int | float | None]:
+class ClusterReportMetrics(TypedDict):
+    report_count: int
+    sif_count: int
+    sif_rate: float | None
+
+
+def _cluster_report_metrics(db: Session, cluster_id: str) -> ClusterReportMetrics:
     """Aggregate from distinct underlying reports, never precursor rows."""
     rows = (
         db.query(Report.id, SifClassification.sif_label)
@@ -75,8 +94,10 @@ def list_clusters(
         q = q.order_by(PrecursorCluster.cluster_size.desc())
 
     clusters = q.all()
-    results = [
-        PrecursorClusterOut(
+    results = []
+    for c in clusters:
+        metrics = _cluster_report_metrics(db, c.id)
+        results.append(PrecursorClusterOut(
             id=c.id,
             representative_activity=c.representative_activity,
             representative_location=c.representative_location,
@@ -87,13 +108,13 @@ def list_clusters(
             summary=c.summary,
             clustering_model_version=c.clustering_model_version,
             cluster_confidence=c.cluster_confidence,
-            **_cluster_report_metrics(db, c.id),
+            report_count=metrics["report_count"],
+            sif_count=metrics["sif_count"],
+            sif_rate=metrics["sif_rate"],
             first_seen_at=c.first_seen_at,
             last_updated_at=c.last_updated_at,
             priority=score_cluster(c, db),
-        )
-        for c in clusters
-    ]
+        ))
 
     if sort_by == "priority":
         results.sort(key=lambda x: (x.priority.score if x.priority else 0.0), reverse=True)
@@ -145,6 +166,7 @@ def cluster_detail(cluster_id: str, db: Session = Depends(get_db), user: User = 
         for r in members
     ]
     cluster_priority = score_cluster(cluster, db)
+    metrics = _cluster_report_metrics(db, cluster.id)
     return PrecursorClusterDetail(
         id=cluster.id,
         representative_activity=cluster.representative_activity,
@@ -156,7 +178,9 @@ def cluster_detail(cluster_id: str, db: Session = Depends(get_db), user: User = 
         summary=cluster.summary,
         clustering_model_version=cluster.clustering_model_version,
         cluster_confidence=cluster.cluster_confidence,
-        **_cluster_report_metrics(db, cluster.id),
+        report_count=metrics["report_count"],
+        sif_count=metrics["sif_count"],
+        sif_rate=metrics["sif_rate"],
         first_seen_at=cluster.first_seen_at,
         last_updated_at=cluster.last_updated_at,
         priority=cluster_priority,

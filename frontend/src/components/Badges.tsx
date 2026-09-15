@@ -5,7 +5,14 @@ export function riskTier(sifLabel?: boolean | null, probability?: number | null)
   return "low";
 }
 
-export function RiskBadge({ sifLabel, probability }: { sifLabel?: boolean | null; probability?: number | null }) {
+export function RiskBadge({ sifLabel, probability, classificationState }: { sifLabel?: boolean | null; probability?: number | null; classificationState?: "SIF_LIKELY" | "UNCERTAIN" | "NON_SIF" | null }) {
+  if (classificationState === "UNCERTAIN") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-amber-900">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Analyst review required
+      </span>
+    );
+  }
   const tier = riskTier(sifLabel, probability);
   const map = {
     critical: { label: "Critical SIF", dot: "bg-rose-500", cls: "bg-rose-50 text-rose-800 border-rose-200" },
@@ -141,6 +148,7 @@ export function PriorityBreakdownCard({ priority }: { priority: PriorityOut }) {
             </span>
             <span className="text-xs text-muted-foreground">/ 100</span>
             <PriorityBadge tier={priority.tier} score={priority.score} compact />
+            {!priority.evidence_sufficient ? <span className="text-[11px] font-semibold text-amber-700">Evidence review required</span> : null}
           </div>
         </div>
         <div className="text-right text-[11px] text-muted-foreground">

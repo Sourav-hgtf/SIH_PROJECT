@@ -11,24 +11,20 @@ Validates:
 8. Dashboard canonical 12-rule ordering and zero-count inclusion.
 """
 
-from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from app.database import Base, SessionLocal, engine
-from app.models import Report, LsrTag, Site, SifClassification, User
+from app.database import SessionLocal
+from app.models import User
 from app.nlp.classify import tag_life_saving_rules
 from app.nlp.lsr import (
     CANONICAL_LSR_COUNT,
     LsrConfigFile,
     LsrRuleConfig,
-    get_canonical_rule_names,
     get_rule_by_id,
     get_rule_by_name,
     load_canonical_lsr_rules,
 )
-from app.services import ingest_and_process
-
 
 # ==========================================
 # 1. CONFIGURATION TESTS
@@ -233,7 +229,6 @@ def test_cross_signal_evidence_attached():
 
 def test_dashboard_lsr_distribution_structure():
     from app.routers.dashboard import lsr_distribution
-    from app.models import User
 
     db = SessionLocal()
     try:

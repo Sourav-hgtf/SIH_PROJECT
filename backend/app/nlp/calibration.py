@@ -28,10 +28,10 @@ from __future__ import annotations
 
 import json
 import logging
-import math
-from datetime import datetime, timezone
+from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
@@ -376,7 +376,7 @@ def write_calibration(threshold: float, feedback_count: int) -> dict:
         "threshold_version": f"{BASE_THRESHOLD_VERSION}-{threshold}",
         "threshold": threshold,
         "feedback_count": feedback_count,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
     ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
     ARTIFACT_PATH.write_text(json.dumps(payload, indent=2) + "\n")

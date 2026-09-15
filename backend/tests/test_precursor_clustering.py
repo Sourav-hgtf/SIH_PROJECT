@@ -1,6 +1,6 @@
 """Phase 7 contracts for semantic precursor pattern clustering."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 
@@ -16,7 +16,7 @@ def _triple(triple_id: str, activity: str, location: str = "deck", barrier: str 
         "normalized_activity": activity,
         "normalized_location_asset": location,
         "normalized_barrier_failure": barrier,
-        "reported_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+        "reported_at": datetime(2026, 1, 1, tzinfo=UTC),
     }
 
 

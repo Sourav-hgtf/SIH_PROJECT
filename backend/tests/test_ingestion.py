@@ -1,16 +1,15 @@
 import io
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.auth import create_token
 from app.database import Base, get_db
 from app.main import app
 from app.models import Report, Site, User, utcnow
-from app.services import process_ingestion_batch, log_ingestion_run
-
-from sqlalchemy.pool import StaticPool
 
 TEST_DB_URL = "sqlite:///:memory:"
 engine = create_engine(
@@ -139,8 +138,8 @@ def test_confirm_ingestion_and_processing(client, admin_headers, db_session):
     assert status_resp.status_code == 200
 
 
-def test_download_template(client):
-    resp = client.get("/v1/ingestion/template")
+def test_download_template(client, admin_headers):
+    resp = client.get("/v1/ingestion/template", headers=admin_headers)
     assert resp.status_code == 200
     assert "source_report_id" in resp.text
     assert "raw_text" in resp.text

@@ -1,4 +1,4 @@
-"""preprocess.py – text cleaning, spell-correction, abbreviation expansion, and PII redaction.
+"""preprocess.py – text cleaning, negation handling, spelling, abbreviations, and PII redaction.
 
 PII detection strategy (PERSON entities):
   1. Domain exclusion list – known job titles, chemical names, equipment phrases that
@@ -21,10 +21,13 @@ from pathlib import Path
 
 import yaml
 
+from app.config import settings
+from app.nlp.negation import suppress_negated_hazard_phrases
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent
-PREPROCESSING_VERSION = "prep-pii-spell-abbr-v1"
+PREPROCESSING_VERSION = "prep-pii-negation-spell-abbr-v2"
 
 # ---------------------------------------------------------------------------
 # Spell-correction map (unchanged)
@@ -128,6 +131,23 @@ _FALLBACK_PERSON_RE = re.compile(
     r"\b[A-Z][a-z]+ [A-Z][a-z]+(?: [A-Z][a-z]+)?\b"
 )
 
+# Script-aware patterns cover common, whitespace-separated names that the
+# English spaCy model cannot recognise. They are deliberately contextual or
+# multi-token to avoid treating arbitrary technical terminology as identity.
+# This is not a universal multilingual NER system; languages/names outside
+# these conservative forms require a locale-specific model or review.
+_CJK_SPACED_NAME_RE = re.compile(r"[\u4e00-\u9fff]{1,4}\s+[\u4e00-\u9fff]{1,4}")
+_DEVANAGARI_SUBJECT_NAME_RE = re.compile(
+    # Do not use ``\b`` after ने: its final vowel sign is a combining mark
+    # and Python does not consistently treat it as a Unicode word character.
+    r"[\u0900-\u097f]{2,}\s+[\u0900-\u097f]{2,}(?=\s+ने(?:\s|$))"
+)
+
+
+def _contains_non_latin_script(value: str) -> bool:
+    """spaCy's English NER is unreliable for these scripts; use local rules."""
+    return any("\u0900" <= char <= "\u097f" or "\u4e00" <= char <= "\u9fff" for char in value)
+
 
 def _is_excluded(span: str) -> bool:
     """Return True if span is a known non-person phrase."""
@@ -164,7 +184,7 @@ def _is_excluded(span: str) -> bool:
 # ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def _load_spacy_nlp():
-    """Load spaCy en_core_web_sm. Returns None if unavailable."""
+    """Load the pinned spaCy model; development may use a logged regex fallback."""
     try:
         import importlib
         spacy = importlib.import_module("spacy")
@@ -172,12 +192,30 @@ def _load_spacy_nlp():
             "en_core_web_sm",
             disable=["parser", "lemmatizer", "attribute_ruler"],
         )
+        logger.info("PII detection mode active: spacy", extra={"pii_detection_mode": "spacy"})
         return nlp
     except Exception as exc:  # noqa: BLE001
         logger.warning(
-            "spaCy unavailable – falling back to regex PERSON detection: %s", exc
+            "PII detection mode active: regex_fallback; spaCy model unavailable: %s", exc,
+            extra={"pii_detection_mode": "regex_fallback"},
         )
         return None
+
+
+def get_pii_detection_mode() -> str:
+    """Return the active PERSON detector mode without exposing source text."""
+    return "spacy" if _load_spacy_nlp() is not None else "regex_fallback"
+
+
+def verify_pii_detector(*, require_spacy: bool = False) -> str:
+    """Validate detector availability and fail production startup without spaCy NER."""
+    mode = get_pii_detection_mode()
+    if require_spacy and mode != "spacy":
+        raise RuntimeError(
+            "Production startup blocked: en_core_web_sm is not loadable; "
+            "install the pinned spaCy model dependency before serving requests."
+        )
+    return mode
 
 
 def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -205,11 +243,19 @@ def _redact_persons(text: str) -> tuple[str, int]:
     nlp = _load_spacy_nlp()
     spans: list[tuple[int, int]] = []
 
+    # Script-aware rules run independently of the English NER model.
+    for pattern in (_CJK_SPACED_NAME_RE, _DEVANAGARI_SUBJECT_NAME_RE):
+        spans.extend((match.start(), match.end()) for match in pattern.finditer(text))
+
     # --- (a) NER-based spans ---
     if nlp is not None:
         doc = nlp(text)
         for ent in doc.ents:
-            if ent.label_ == "PERSON" and not _is_excluded(ent.text):
+            if (
+                ent.label_ == "PERSON"
+                and not _contains_non_latin_script(ent.text)
+                and not _is_excluded(ent.text)
+            ):
                 spans.append((ent.start_char, ent.end_char))
 
     # --- (b) Regex-based spans filtered by exclusion list ---
@@ -319,10 +365,18 @@ def preprocess(raw_text: str) -> dict:
     redacted, pii_count = redact_pii(raw_text)
     spelled = correct_spelling(redacted)
     expanded = expand_abbreviations(spelled)
+    negation = (
+        suppress_negated_hazard_phrases(expanded)
+        if settings.negation_detection_enabled
+        else None
+    )
     return {
         "raw_text_redacted": redacted,
-        "processed_text": expanded,
+        "processed_text": negation.text if negation else expanded,
         "pii_replacements": pii_count,
         "pii_redacted": True,
         "preprocessing_version": PREPROCESSING_VERSION,
+        "negation_detection_enabled": settings.negation_detection_enabled,
+        "negation_detection_method": negation.method if negation else "disabled",
+        "negated_phrases": negation.negated_phrases if negation else [],
     }

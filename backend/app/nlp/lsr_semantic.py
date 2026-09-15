@@ -22,9 +22,10 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+
 import numpy as np
 
-from app.nlp.lsr import LsrRuleConfig, load_canonical_lsr_rules
+from app.nlp.lsr import load_canonical_lsr_rules
 from app.nlp.preprocess import preprocess
 
 logger = logging.getLogger(__name__)

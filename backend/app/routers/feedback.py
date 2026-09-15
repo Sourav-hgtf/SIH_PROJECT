@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_roles
 from app.database import get_db
-from app.models import AnalystFeedback, AnalystDecision, LsrTag, Report, SifClassification, User
+from app.models import (
+    AnalystDecision,
+    AnalystFeedback,
+    LsrTag,
+    Report,
+    User,
+)
 from app.schemas import FeedbackCreate, FeedbackRecord
 from app.services import write_audit
 

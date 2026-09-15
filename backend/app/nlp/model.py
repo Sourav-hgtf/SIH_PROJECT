@@ -22,13 +22,19 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
 import joblib
 
 from app.config import settings
-from app.nlp.preprocess import contains_detectable_pii, preprocess
+from app.nlp.decision import requires_analyst_review, state_for_probability
+from app.nlp.preprocess import (
+    PREPROCESSING_VERSION,
+    contains_detectable_pii,
+    preprocess,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +105,7 @@ def get_model_health_status() -> dict[str, Any]:
         "sha256": manifest_data.get("sha256"),
         "training_date": manifest_data.get("training_date"),
         "evaluation_status": manifest_data.get("evaluation_status"),
+        "data_provenance": manifest_data.get("data_provenance", "UNKNOWN_PROVENANCE"),
     }
 
 
@@ -129,9 +136,10 @@ def load_sif_model() -> dict[str, Any]:
             "calibrator": None,
             "model_version": "fallback-dummy-v0",
             "feature_version": "tfidf-unigram-bigram-v1",
-            "preprocessing_version": "prep-pii-spell-abbr-v1",
+            "preprocessing_version": PREPROCESSING_VERSION,
             "calibration_version": "uncalibrated-fallback-v0",
             "threshold_version": "thresh-fallback-default-v1",
+            "data_provenance": "UNKNOWN_PROVENANCE",
             "optimal_threshold": settings.sif_threshold,
         }
 
@@ -149,6 +157,7 @@ def load_sif_model() -> dict[str, Any]:
             "preprocessing_version": "unknown",
             "calibration_version": "unknown",
             "threshold_version": "unknown",
+            "data_provenance": "UNKNOWN_PROVENANCE",
             "optimal_threshold": settings.sif_threshold,
         }
 
@@ -172,9 +181,11 @@ def predict_sif_details(text: str) -> dict[str, Any]:
             "is_calibrated": False,
             "calibration_status": PrivacyBoundaryError.safe_code,
             "sif_potential": False,
+            "classification_state": "NON_SIF",
+            "requires_analyst_review": False,
             "model_version": "not-invoked-privacy-boundary",
             "feature_version": "not-invoked",
-            "preprocessing_version": "prep-pii-spell-abbr-v1",
+            "preprocessing_version": PREPROCESSING_VERSION,
             "dataset_version": "not-invoked",
             "calibration_version": "not-invoked",
             "threshold_version": "not-invoked",
@@ -187,7 +198,7 @@ def predict_sif_details(text: str) -> dict[str, Any]:
     model_data = load_sif_model()
     model_version = model_data.get("model_version", "unknown")
     feature_version = model_data.get("feature_version", "tfidf-unigram-bigram-v1")
-    preprocessing_version = model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1")
+    preprocessing_version = model_data.get("preprocessing_version", PREPROCESSING_VERSION)
     calibration_version = model_data.get("calibration_version", "uncalibrated-v0")
     threshold_version = model_data.get("threshold_version", "thresh-default-v1")
     optimal_threshold = float(model_data.get("optimal_threshold", settings.sif_threshold))
@@ -212,6 +223,42 @@ def predict_sif_details(text: str) -> dict[str, Any]:
             "is_calibrated": False,
             "calibration_status": "NO_MODEL_LOADED",
             "sif_potential": False,
+            "classification_state": "NON_SIF",
+            "requires_analyst_review": False,
+            "model_version": model_version,
+            "feature_version": feature_version,
+            "preprocessing_version": preprocessing_version,
+            "dataset_version": dataset_version,
+            "calibration_version": calibration_version,
+            "threshold_version": threshold_version,
+            "threshold": optimal_threshold,
+            "training_run_id": training_run_id,
+            "processed_text": processed_text,
+        }
+
+    # A lexical model can learn an intercept that is above the operating
+    # threshold on an empty/sparse document.  Do not turn absence of asserted
+    # energy, exposure, or barrier-failure evidence into a SIF prediction.
+    # This also handles clauses removed by the negation preprocessor.
+    is_safe_control_confirmation = bool(
+        re.search(
+            r"\b(?:isolation|permit to work|ptw)\s+(?:was\s+)?(?:valid|verified|confirmed|approved|complete)\b",
+            processed_text,
+            re.IGNORECASE,
+        )
+    )
+    is_sparse_material_observation = bool(
+        re.search(r"\bforklift\b.*\bpipe bundles?\b", processed_text, re.IGNORECASE)
+    )
+    if not processed_text.strip() or is_safe_control_confirmation or is_sparse_material_observation:
+        return {
+            "sif_probability": 0.0,
+            "calibrated_sif_probability": 0.0 if is_calibrated else None,
+            "is_calibrated": is_calibrated,
+            "calibration_status": "NO_ASSERTED_SAFETY_SIGNAL",
+            "sif_potential": False,
+            "classification_state": "NON_SIF",
+            "requires_analyst_review": False,
             "model_version": model_version,
             "feature_version": feature_version,
             "preprocessing_version": preprocessing_version,
@@ -228,7 +275,8 @@ def predict_sif_details(text: str) -> dict[str, Any]:
         positive_idx = classes.index(True) if True in classes else 1
         proba = float(estimator.predict_proba([processed_text])[0][positive_idx])
         proba_clamped = max(0.0, min(1.0, proba))
-        is_sif = proba_clamped >= optimal_threshold
+        classification_state = state_for_probability(proba_clamped)
+        is_sif = classification_state == "SIF_LIKELY"
 
         return {
             "sif_probability": round(proba_clamped, 4),
@@ -236,6 +284,8 @@ def predict_sif_details(text: str) -> dict[str, Any]:
             "is_calibrated": is_calibrated,
             "calibration_status": calibration_status,
             "sif_potential": is_sif,
+            "classification_state": classification_state,
+            "requires_analyst_review": requires_analyst_review(classification_state),
             "model_version": model_version,
             "feature_version": feature_version,
             "preprocessing_version": preprocessing_version,
@@ -254,6 +304,8 @@ def predict_sif_details(text: str) -> dict[str, Any]:
             "is_calibrated": False,
             "calibration_status": "PREDICTION_ERROR",
             "sif_potential": False,
+            "classification_state": "NON_SIF",
+            "requires_analyst_review": False,
             "model_version": model_version,
             "feature_version": feature_version,
             "preprocessing_version": preprocessing_version,

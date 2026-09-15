@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user, require_roles, scoped_site_ids
 from app.database import get_db
-from app.models import PrecursorCluster, Recommendation, RecommendationFeedback, Report, User
+from app.models import (
+    PrecursorCluster,
+    Recommendation,
+    RecommendationFeedback,
+    Report,
+    User,
+)
 from app.recommendations import (
     ExecutiveFocusAreaOut,
     RecommendationActionIn,

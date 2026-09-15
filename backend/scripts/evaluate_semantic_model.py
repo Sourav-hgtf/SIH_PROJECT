@@ -272,7 +272,8 @@ def evaluate_records(
             {
                 "report_id": r.id,
                 "label": r.label,
-                "text": r.raw_text[:250],
+                # Persist redacted excerpts only in evaluation artifacts.
+                "text": preprocess(r.raw_text)["raw_text_redacted"][:250],
                 "rule": {"pred": base_preds[i], "conf": round(base_probs[i], 4)},
                 "tfidf": {"pred": tfidf_preds[i], "prob": round(tfidf_cal_probs[i], 4)},
                 "semantic": {"pred": sem_preds[i], "prob": round(sem_cal_probs[i], 4)},

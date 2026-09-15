@@ -1,10 +1,11 @@
 """Production hardening: migrations are additive and create indexed schema."""
 
-from alembic import command
-from alembic.config import Config
 from pathlib import Path
+
+from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
+from alembic import command
 from app.config import settings
 
 
@@ -26,8 +27,7 @@ def test_alembic_upgrade_creates_schema_and_dashboard_indexes(tmp_path, monkeypa
 
 
 def test_postgres_url_uses_configured_queue_pool_settings(monkeypatch):
-    from sqlalchemy.pool import QueuePool
-    import app.database as database
+    from app import database
 
     monkeypatch.setattr(settings, "database_url", "postgresql+psycopg://user:password@localhost/sif")
     monkeypatch.setattr(settings, "db_pool_size", 7)

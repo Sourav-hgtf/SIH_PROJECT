@@ -1,15 +1,20 @@
 {
   "model_file": "sif_model.joblib",
-  "model_version": "sif-logreg-v1-20260915065657",
+  "model_version": "sif-logreg-v1-20260915094224",
   "feature_version": "tfidf-unigram-bigram-v1",
-  "preprocessing_version": "prep-pii-spell-abbr-v1",
+  "preprocessing_version": "prep-pii-negation-spell-abbr-v2",
+  "negation_detection_enabled": true,
   "calibration_version": "sklearn-ccv-sigmoid-v1",
   "calibration_method": "sigmoid",
   "is_calibrated": true,
   "threshold_version": "thresh-opt-recall-0.85-v1",
   "optimal_threshold": 0.45,
-  "training_run_id": "ee3b93d4-3c8e-40de-8859-719c64e9b16c",
-  "sha256": "42bf9df045399f3e10061b3ff06fff8d18d0115800e83442e3ec06bed70d6ee0",
-  "training_date": "2026-09-15T06:56:59.238390+00:00",
-  "evaluation_status": "VALIDATED"
+  "training_run_id": "f8346e87-5fac-4f96-ad28-5c37b605f818",
+  "sha256": "3c8a927b22e5effef989daf62ab022c794ec82c96205b733d247c068c17e9ee7",
+  "training_date": "2026-09-15T09:42:27.212459+00:00",
+  "evaluation_status": "VALIDATED",
+  "data_provenance": "HUMAN_VALIDATED_NON_SYNTHETIC",
+  "python_version": "3.14.3",
+  "scikit_learn_version": "1.9.0",
+  "evaluation_report_file": "evaluation-sif-logreg-v1-20260915094224.json"
 }

@@ -1,28 +1,25 @@
-from datetime import datetime, timezone
-import json
-import pytest
-from sqlalchemy.orm import Session
-from fastapi.testclient import TestClient
+from datetime import UTC, datetime
 
-from app.database import Base, engine, SessionLocal
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.auth import create_token, hash_password
+from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import Report, SifClassification, Site
+from app.models import Report, Site, User
 from app.nlp.calibration import (
-    calibrate_classifier,
     compute_brier_score,
     compute_expected_calibration_error,
     compute_log_loss,
     optimize_threshold,
 )
 from app.nlp.model import (
-    ARTIFACT_PATH,
-    MANIFEST_PATH,
     get_model_health_status,
     load_sif_model,
     predict_sif_details,
-    predict_sif_probability,
 )
-from app.nlp.preprocess import preprocess
+from app.nlp.preprocess import PREPROCESSING_VERSION
 from app.training import run_ml_training
 
 client = TestClient(app)
@@ -48,7 +45,7 @@ def setup_training_db():
                 validated_label="SIF",
                 label_source="CONSENSUS_VALIDATED",
                 data_type="real",
-                reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+                reported_at=datetime(2023, 1, 1, tzinfo=UTC),
             )
         )
         db.add(
@@ -60,7 +57,7 @@ def setup_training_db():
                 validated_label="NON_SIF",
                 label_source="CONSENSUS_VALIDATED",
                 data_type="real",
-                reported_at=datetime(2023, 1, 1, tzinfo=timezone.utc),
+                reported_at=datetime(2023, 1, 1, tzinfo=UTC),
             )
         )
 
@@ -99,13 +96,14 @@ def test_threshold_optimization_on_validation():
     assert metrics["sample_size"] == len(y_val)
 
 
-def test_model_artifact_metadata_and_version_separation(setup_training_db: Session):
+def test_model_artifact_metadata_and_version_separation(setup_training_db: Session, isolated_model_artifacts):
     """Requirement 1, 2, 3, 4: Model training produces artifact with separated versions and true calibration."""
     db = setup_training_db
     run = run_ml_training(db, force_demo_fallback=False, random_seed=42)
 
     assert run is not None
-    assert ARTIFACT_PATH.exists()
+    assert (isolated_model_artifacts / "sif_model.joblib").exists()
+    assert (isolated_model_artifacts / "model_manifest.json").exists()
 
     # Load artifact dictionary
     model_data = load_sif_model()
@@ -130,7 +128,7 @@ def test_model_artifact_metadata_and_version_separation(setup_training_db: Sessi
     assert model_data["calibration_version"] != model_data["threshold_version"]
 
     assert model_data["feature_version"] == "tfidf-unigram-bigram-v1"
-    assert model_data["preprocessing_version"] == "prep-pii-spell-abbr-v1"
+    assert model_data["preprocessing_version"] == PREPROCESSING_VERSION
     assert model_data["is_calibrated"] is True
     assert model_data["calibration_method"] == "sigmoid"
     assert "sklearn-ccv-sigmoid-v1" in model_data["calibration_version"]
@@ -170,7 +168,7 @@ def test_prediction_reproducibility_and_version_exposure():
 
 def test_test_set_isolation_and_leak_free_split():
     """Verify train / val / test sets have 0 ID leakage and 0 text duplicate leakage."""
-    from app.training import create_leak_free_split, IncidentDataRecord
+    from app.training import IncidentDataRecord, create_leak_free_split
 
     records = [
         IncidentDataRecord(
@@ -214,10 +212,17 @@ def test_model_loading_and_integrity_verification():
     assert model_data["pipeline"] is not None
 
 
-def test_api_endpoints_expose_version_metadata():
+def test_api_endpoints_expose_version_metadata(setup_training_db: Session):
     """Requirement 5: /model-info and /predict endpoints return rich calibration and version metadata."""
+    user = setup_training_db.query(User).filter(User.username == "calibration-api-test").first()
+    if not user:
+        user = User(username="calibration-api-test", password_hash=hash_password("test-password"), role="analyst")
+        setup_training_db.add(user)
+        setup_training_db.commit()
+    headers = {"Authorization": f"Bearer {create_token(user.id, 'access', 60)}"}
+
     # Test /model-info
-    res_info = client.get("/model-info")
+    res_info = client.get("/model-info", headers=headers)
     assert res_info.status_code == 200
     info_data = res_info.json()
 
@@ -234,7 +239,7 @@ def test_api_endpoints_expose_version_metadata():
 
     # Test /predict
     payload = {"text": "Worker fell from uninspected scaffold tower without harness"}
-    res_pred = client.post("/predict", json=payload)
+    res_pred = client.post("/predict", json=payload, headers=headers)
     assert res_pred.status_code == 200
     pred_data = res_pred.json()
 

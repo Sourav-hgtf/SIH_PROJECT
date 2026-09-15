@@ -7,9 +7,9 @@ cluster assignment.  It complements, rather than replaces, normalized triples.
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
 import hashlib
 import logging
+from collections import Counter, defaultdict
 from typing import Any
 
 import numpy as np
@@ -115,10 +115,10 @@ def semantic_cluster_triples(triples: list[dict[str, Any]]) -> tuple[list[dict[s
         return sorted(clusters, key=lambda c: c["semantic_cluster_key"]), noise
 
     grouped: dict[int, list[tuple[int, dict[str, Any]]]] = defaultdict(list)
-    noise: list[dict[str, Any]] = []
+    dbscan_noise: list[dict[str, Any]] = []
     for index, label in enumerate(labels):
         if int(label) == -1:
-            noise.append(ordered[index])
+            dbscan_noise.append(ordered[index])
         else:
             grouped[int(label)].append((index, ordered[index]))
 
@@ -136,4 +136,4 @@ def semantic_cluster_triples(triples: list[dict[str, Any]]) -> tuple[list[dict[s
         }
         clusters.append(_make_cluster(list(members), similarities))
 
-    return sorted(clusters, key=lambda c: c["semantic_cluster_key"]), noise
+    return sorted(clusters, key=lambda c: c["semantic_cluster_key"]), dbscan_noise

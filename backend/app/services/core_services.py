@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.nlp.calibration import load_active_calibration
 from app.models import (
     AuditLog,
     ClusterMember,
@@ -15,8 +14,51 @@ from app.models import (
     SifClassification,
     utcnow,
 )
-from app.nlp.precursor_clustering import semantic_cluster_triples
+from app.nlp.calibration import load_active_calibration
 from app.nlp.pipeline import process_report_text
+from app.nlp.precursor_clustering import semantic_cluster_triples
+from app.nlp.preprocess import redact_pii
+
+# Audit and operational error records are often retained longer and exported more
+# broadly than report data.  They must never become a second, unredacted report
+# store.  Keep opaque identifiers and structured values, but remove report-body
+# fields entirely and redact free-form strings defensively.
+_OBSERVABILITY_TEXT_KEYS = frozenset(
+    {
+        "raw_text",
+        "text_content",
+        "report_text",
+        "incident_description",
+        "description",
+        "processed_text",
+        "raw",
+        "data",
+        "payload",
+        "body",
+    }
+)
+
+
+def redact_for_observability(value):
+    """Return an audit/log-safe representation without retaining raw report text.
+
+    This deliberately preserves record IDs and normal structured state needed for
+    an audit trail, while omitting known report-content fields and applying the
+    PII redactor to other user-provided strings such as analyst comments.
+    """
+    if isinstance(value, dict):
+        safe = {}
+        for key, item in value.items():
+            if str(key).lower() in _OBSERVABILITY_TEXT_KEYS:
+                safe[str(key)] = "[omitted]"
+            else:
+                safe[str(key)] = redact_for_observability(item)
+        return safe
+    if isinstance(value, (list, tuple, set)):
+        return [redact_for_observability(item) for item in value]
+    if isinstance(value, str):
+        return redact_pii(value)[0]
+    return value
 
 
 def write_audit(
@@ -34,15 +76,15 @@ def write_audit(
             action_type=action_type,
             entity_type=entity_type,
             entity_id=entity_id,
-            before_value=before,
-            after_value=after,
+            before_value=redact_for_observability(before or {}),
+            after_value=redact_for_observability(after or {}),
         )
     )
 
 
 def _utc_timestamp(value: datetime) -> datetime:
     """Normalize SQLite's naïve datetimes before cross-record comparisons."""
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 def ingest_and_process(
@@ -79,6 +121,7 @@ def ingest_and_process(
         processed_text=result["processed_text"],
         reported_at=reported_at,
         ingested_at=utcnow(),
+        lifecycle_status="HSE_REVIEW" if result["classification"]["requires_analyst_review"] else "AI_ANALYZED",
     )
     db.add(report)
     db.flush()
@@ -97,6 +140,8 @@ def ingest_and_process(
             report_id=report.id,
             sif_probability=clf["sif_probability"],
             sif_label=clf["sif_label"],
+            classification_state=clf["classification_state"],
+            requires_analyst_review=clf["requires_analyst_review"],
             model_version=clf["model_version"],
             contributing_phrases=clf["contributing_phrases"],
             features=safe_feature_metadata,
@@ -250,10 +295,14 @@ def process_ingestion_batch(
     user_id: str | None = None,
 ) -> dict:
     """Asynchronous background worker function to process a batch of HSE reports."""
+    import dateutil.parser
+
     from app.database import SessionLocal
     from app.models import Site
-    from app.recommendations import generate_cluster_recommendations, generate_report_recommendations
-    import dateutil.parser
+    from app.recommendations import (
+        generate_cluster_recommendations,
+        generate_report_recommendations,
+    )
 
     db: Session = SessionLocal()
     try:
@@ -322,8 +371,16 @@ def process_ingestion_batch(
                 run.processed_count = processed
                 if processed % 10 == 0:
                     db.commit()
-            except Exception as e:
-                errors.append({"row_index": idx, "error": str(e), "data": item})
+            except Exception as exc:
+                # Do not persist the input row or exception message: either can
+                # contain a complete raw report or user-provided PII.
+                errors.append(
+                    {
+                        "row_index": idx,
+                        "source_report_id": str(item.get("source_report_id") or ""),
+                        "error_code": type(exc).__name__,
+                    }
+                )
 
         # Rebuild clusters
         rebuild_clusters(db)
@@ -345,14 +402,14 @@ def process_ingestion_batch(
 
         db.commit()
         return {"run_id": run_id, "processed": processed, "errors_count": len(errors)}
-    except Exception as e:
+    except Exception as exc:
         db.rollback()
         run = db.get(IngestionRun, run_id)
         if run:
             run.status = "FAILED"
-            run.error_log = [{"error": str(e)}]
+            run.error_log = [{"error_code": type(exc).__name__}]
             run.completed_at = utcnow()
             db.commit()
-        return {"error": str(e)}
+        return {"error": "INGESTION_BATCH_FAILED"}
     finally:
         db.close()

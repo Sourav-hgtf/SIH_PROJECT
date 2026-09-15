@@ -13,8 +13,8 @@ Covers:
 10. Confirmed SIF, overridden SIF, confirmed non-SIF, analyst decision without AI prediction.
 """
 
+
 import pytest
-from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import joinedload, sessionmaker
@@ -23,11 +23,15 @@ from sqlalchemy.pool import StaticPool
 from app.auth import create_token
 from app.database import Base, get_db
 from app.main import app
-from app.migrations import run_feedback_migrations, run_labeling_migrations, run_lsr_migrations, run_recommendation_migrations
+from app.migrations import (
+    run_feedback_migrations,
+    run_labeling_migrations,
+    run_lsr_migrations,
+    run_recommendation_migrations,
+)
 from app.models import (
     AnalystDecision,
     AuditLog,
-    LabelReview,
     Report,
     SifClassification,
     Site,
@@ -36,9 +40,6 @@ from app.models import (
 )
 from app.services.label_service import (
     calculate_cohens_kappa,
-    get_report_label_history,
-    get_reviewer_agreement_summary,
-    record_label_review,
 )
 from app.training import run_ml_training
 
@@ -215,7 +216,6 @@ def test_invalid_label_state_rejected(client):
 # ==============================================================================
 
 def test_immutable_review_versioning(setup_db, client):
-    db = setup_db
     # Analyst 1 updates their review with new notes
     token = create_token("user-analyst-1", "access", 60)
     res = client.post(
@@ -383,8 +383,7 @@ def test_audit_log_created_for_label_review(setup_db):
 # 8. TRAINING GUARD: SYNTHETIC / UNVALIDATED NEVER LEAK INTO PRODUCTION TRAINING
 # ==============================================================================
 
-def test_training_rejects_unvalidated_or_synthetic_data(setup_db):
-    db = setup_db
+def test_training_rejects_unvalidated_or_synthetic_data(setup_db, isolated_model_artifacts):
     # Create an isolated clean DB without any validated human labels
     empty_engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=empty_engine)
@@ -575,7 +574,7 @@ def test_confirmed_non_sif_preserves_ai_prediction(client, setup_db):
     db.commit()
 
     resp = client.post(
-        f"/v1/reports/rep-label-003/confirm",
+        "/v1/reports/rep-label-003/confirm",
         headers={"Authorization": f"Bearer {token}"},
         json={"notes": "Confirmed non-SIF assessment"},
     )
@@ -621,7 +620,7 @@ def test_analyst_decision_without_ai_prediction(client, setup_db):
     db.commit()
 
     resp = client.post(
-        f"/v1/reports/rep-label-004/label-review",
+        "/v1/reports/rep-label-004/label-review",
         headers={"Authorization": f"Bearer {token}"},
         json={"label": "SIF", "reason": "Analyst determination without AI prediction"},
     )

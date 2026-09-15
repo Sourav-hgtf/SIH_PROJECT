@@ -4,13 +4,12 @@ This module provides typed access to all centralized corrective action recommend
 """
 from __future__ import annotations
 
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
 
-from pydantic import BaseModel, Field
 import yaml
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +52,9 @@ class RecommendationsConfig(BaseModel):
     version: str = "recommendations-v1"
     max_recommendations_per_report: int = Field(3, ge=1, le=10)
     categories: list[str] = Field(default_factory=list)
-    ranking_weights: RecommendationsRankingWeights = Field(default_factory=RecommendationsRankingWeights)
+    ranking_weights: RecommendationsRankingWeights = Field(
+        default_factory=lambda: RecommendationsRankingWeights.model_construct()
+    )
     evidence_mappings: EvidenceMappingsConfig = Field(default_factory=EvidenceMappingsConfig)
     cluster_rules: dict[str, ActionRuleConfig] = Field(default_factory=dict)
 

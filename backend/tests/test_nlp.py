@@ -1,14 +1,15 @@
+from datetime import datetime
+from unittest import mock
+
 from app.nlp.classify import classify_sif, tag_life_saving_rules
 from app.nlp.labeling import LABELING_FUNCTIONS, apply_labeling_functions
+from app.nlp.mining import assign_trend
 from app.nlp.preprocess import (
+    _is_excluded,
     expand_abbreviations,
     preprocess,
     redact_pii,
-    _is_excluded,
 )
-from app.nlp.mining import assign_trend
-from datetime import datetime
-from unittest import mock
 
 
 def test_abbreviation_expansion():
@@ -40,9 +41,9 @@ def test_at_least_five_labeling_functions():
     assert len(LABELING_FUNCTIONS) >= 5
 
 
-@mock.patch("app.nlp.classify.predict_sif_probability")
+@mock.patch("app.nlp.classify.predict_sif_details")
 def test_sif_positive_on_energy_barrier(mock_predict):
-    mock_predict.return_value = (0.85, "mock-v1")
+    mock_predict.return_value = {"sif_probability": 0.85, "model_version": "mock-v1"}
     text = (
         "Crew worked on live electrical panel. Lock-out tag-out not applied. "
         "Workers nearby in the line of fire of residual pressure."
@@ -53,9 +54,9 @@ def test_sif_positive_on_energy_barrier(mock_predict):
     assert clf["contributing_phrases"]
 
 
-@mock.patch("app.nlp.classify.predict_sif_probability")
+@mock.patch("app.nlp.classify.predict_sif_details")
 def test_sif_negative_on_housekeeping(mock_predict):
-    mock_predict.return_value = (0.15, "mock-v1")
+    mock_predict.return_value = {"sif_probability": 0.15, "model_version": "mock-v1"}
     text = "Poor housekeeping in workshop. Slippery floor and trip hazard. Hard hat not worn."
     clf = classify_sif(text)
     assert clf["sif_label"] is False
@@ -85,6 +86,33 @@ def test_cluster_trend_accepts_sqlite_naive_timestamps():
 
 class TestPIITruePositives:
     """Verify that genuine person names ARE redacted."""
+
+    def test_name_with_apostrophe_is_redacted(self):
+        redacted, _ = redact_pii("John O'Neil entered a confined space without gas testing.")
+        assert "John O'Neil" not in redacted
+        assert "[PERSON]" in redacted
+
+    def test_hyphenated_name_is_redacted(self):
+        redacted, _ = redact_pii("Jean-Pierre Martin approved the hot-work permit.")
+        assert "Jean-Pierre Martin" not in redacted
+        assert "[PERSON]" in redacted
+
+    def test_spaced_cjk_name_is_redacted(self):
+        redacted, _ = redact_pii("李 明 entered the confined space without gas testing.")
+        assert "李 明" not in redacted
+        assert "[PERSON]" in redacted
+
+    def test_hindi_subject_name_is_redacted_without_redacting_technical_text(self):
+        text = "राहुल कुमार ने बिना गैस परीक्षण के टैंक में प्रवेश किया।"
+        redacted, _ = redact_pii(text)
+        assert "राहुल कुमार" not in redacted
+        assert "टैंक में" in redacted
+        assert "[PERSON]" in redacted
+
+    def test_name_embedded_in_technical_sentence_is_redacted(self):
+        redacted, _ = redact_pii("Technician John O'Neil isolated the hydraulic pressure line.")
+        assert "John O'Neil" not in redacted
+        assert "hydraulic pressure line" in redacted
 
     def test_two_word_indian_name(self):
         text = "Amit Sharma reported the near miss."
@@ -126,6 +154,12 @@ class TestPIITruePositives:
 
 class TestPIIFalsePositiveSuppression:
     """Verify that non-person phrases are NOT mistakenly redacted."""
+
+    def test_technical_terms_with_title_case_are_not_redacted(self):
+        text = "The Safety Officer inspected the emergency shutdown valve near the Production Separator."
+        redacted, count = redact_pii(text)
+        assert redacted == text
+        assert count == 0
 
     def test_job_title_safety_officer(self):
         text = "The Safety Officer conducted the site inspection."

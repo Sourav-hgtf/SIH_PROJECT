@@ -1,25 +1,26 @@
-from datetime import date, datetime, timezone
-
-from pydantic import BaseModel, Field
-from typing import Optional
-
-class FilterParams(BaseModel):
-    start_date: Optional[date] = Field(None, description="Start of date range filter")
-    end_date: Optional[date] = Field(None, description="End of date range filter")
-    site_id: Optional[str] = Field(None, description="Site identifier filter")
-    department: Optional[str] = Field(None, description="Department filter")
-    lsr_category: Optional[str] = Field(None, description="LSR category filter")
-    min_confidence: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum SIF confidence/probability")
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user, scoped_site_ids
 from app.database import get_db
-from app.models import LsrTag, PrecursorTriple, Recommendation, Report, ReportReview, Site, SifClassification, User, utcnow
+from app.models import (
+    LsrTag,
+    PrecursorTriple,
+    Recommendation,
+    Report,
+    ReportReview,
+    SifClassification,
+    Site,
+    User,
+    utcnow,
+)
 from app.nlp.lsr import get_rule_by_id, get_rule_by_name, load_canonical_lsr_rules
 from app.priority.engine import score_report
+from app.priority.schemas import PrioritySummaryRow
 from app.schemas import (
     AgreementAnalyticsOut,
     DensityRow,
@@ -29,12 +30,19 @@ from app.schemas import (
     LsrDistributionRow,
     ModelDriftOut,
     ModelHealthOut,
-    PrioritySummaryRow,
     SiteOut,
     TrendRow,
 )
 from app.services import analytics_service
 
+
+class FilterParams(BaseModel):
+    start_date: date | None = Field(None, description="Start of date range filter")
+    end_date: date | None = Field(None, description="End of date range filter")
+    site_id: str | None = Field(None, description="Site identifier filter")
+    department: str | None = Field(None, description="Department filter")
+    lsr_category: str | None = Field(None, description="LSR category filter")
+    min_confidence: float | None = Field(None, ge=0.0, le=1.0, description="Minimum SIF confidence/probability")
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -45,7 +53,7 @@ def _scoped(q, user: User):
         q = q.filter(Report.site_id.in_(allowed or ["__none__"]))
     return q
 
-def _apply_filters(q, filters: 'FilterParams'):
+def _apply_filters(q, filters: FilterParams):
     """Apply one report-level filter contract without multiplying rows.
 
     Relationship ``EXISTS`` predicates deliberately avoid joins for LSR and

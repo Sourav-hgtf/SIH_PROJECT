@@ -1,14 +1,14 @@
 """Tests for canonical Normalizer, DataQualityReport generation, and synthetic adapter."""
 
-import pytest
 from pathlib import Path
+
+from ingestion import ingest_dataset
 from ingestion.normalizer import (
     DataQualityReport,
     NormalizedIncident,
     compute_data_quality_report,
 )
 from ingestion.synthetic import SyntheticIngestionAdapter
-from ingestion import ingest_dataset
 
 
 def test_normalized_incident_serialization():

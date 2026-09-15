@@ -8,15 +8,15 @@ Verifies:
 - Auditability (preserving original text during edits)
 - Cluster-level and executive focus areas
 """
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import (
     LsrTag,
     PrecursorCluster,
-    PrecursorTriple,
     Recommendation,
     RecommendationFeedback,
     Report,
@@ -74,7 +74,7 @@ def test_electrical_evidence_generates_electrical_control(test_site: Site):
         report_type="incident",
         site_id=test_site.id,
         raw_text_redacted="Technician observed live electrical wiring exposed in high voltage switchgear without positive isolation.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.88,
@@ -110,7 +110,7 @@ def test_pressure_and_line_of_fire_evidence(test_site: Site):
         report_type="near_miss",
         site_id=test_site.id,
         raw_text_redacted="Workers standing in line of fire while testing high pressure line.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.82,
@@ -130,7 +130,6 @@ def test_pressure_and_line_of_fire_evidence(test_site: Site):
     recs = generate_report_recommendations(report)
     assert len(recs) > 0
     actions_text = " ".join([r.action.lower() for r in recs])
-    titles_text = " ".join([r.title.lower() for r in recs])
     assert "depressurization" in actions_text or "line-of-fire" in actions_text or "exclusion zone" in actions_text or "trajectory" in actions_text
     assert any("Pressure" in ev or "line of fire" in ev for r in recs for ev in r.evidence)
 
@@ -143,7 +142,7 @@ def test_work_at_height_fall_protection_evidence(test_site: Site):
         report_type="ua_uc",
         site_id=test_site.id,
         raw_text_redacted="Employee working at height on scaffold pipe without fall arrest harness.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.78,
@@ -174,7 +173,7 @@ def test_no_evidence_generates_no_unsupported_recommendations(test_site: Site):
         report_type="ua_uc",
         site_id=test_site.id,
         raw_text_redacted="Safety team conducted morning toolbox talk. Weather is calm and housekeeping is clean.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.03,
@@ -195,7 +194,7 @@ def test_deduplication_and_ranking(test_site: Site):
         report_type="incident",
         site_id=test_site.id,
         raw_text_redacted="Maintenance work on electrical pump without LOTO or isolation, standing in line of fire.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.94,
@@ -235,7 +234,7 @@ def test_human_in_the_loop_workflow_and_audit(db: Session, test_site: Site):
         report_type="near_miss",
         site_id=test_site.id,
         raw_text_redacted="Heavy crane lift conducted over personnel without spotter.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.85,
@@ -339,7 +338,9 @@ def test_cluster_recommendations_and_executive_focus_areas(db: Session):
     assert any("lifting" in r.action.lower() or "audit" in r.action.lower() or "stand-down" in r.action.lower() for r in cluster_recs)
     assert any("growing" in ev.lower() for r in cluster_recs for ev in r.evidence)
 
-    focus_areas = generate_executive_focus_areas(db, limit=50)
+    # Other tests share this SQLite fixture and can seed more than 50 clusters.
+    # This assertion is about this cluster's inclusion, not ranking truncation.
+    focus_areas = generate_executive_focus_areas(db, limit=500)
     assert len(focus_areas) > 0
     area = next((fa for fa in focus_areas if fa.cluster_id == cluster.id), None)
     assert area is not None
@@ -350,8 +351,9 @@ def test_cluster_recommendations_and_executive_focus_areas(db: Session):
 def test_recommendation_api_workflow(db: Session, test_site: Site):
     """Verify HTTP API endpoints for recommendation generation, accept, edit, reject, and focus areas."""
     from fastapi.testclient import TestClient
-    from app.main import app
+
     from app.auth import create_token, hash_password
+    from app.main import app
 
     # Ensure analyst user exists
     user = db.query(User).filter(User.username == "test_analyst").first()
@@ -383,7 +385,7 @@ def test_recommendation_api_workflow(db: Session, test_site: Site):
         report_type="incident",
         site_id=test_site.id,
         raw_text_redacted="High pressure gas release during well intervention. Personnel standing in line of fire.",
-        reported_at=datetime.now(timezone.utc),
+        reported_at=datetime.now(UTC),
     )
     report.classification = SifClassification(
         sif_probability=0.91,

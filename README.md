@@ -3,15 +3,17 @@
 **Organization:** Oil India Limited (OIL)  
 **Theme:** Smart Automation  
 **Category:** Software  
-**Submission Status:** Certified Final Release (112 Tests Passing)  
+**Project Status:** Development / evaluation build — not a certified production release.
+
+**Latest verified backend test run:** 257 passed, 0 failed (`cd backend && python3 -m pytest -q`).
 
 ---
 
 ## 1. Project Overview
 
-An enterprise AI/NLP decision-support platform that ingests OIL's free-text Unsafe Act / Unsafe Condition (UA/UC) observations, near-miss reports, and incident logs to:
-1. **Estimate SIF Potential**: Classifies each report for serious injury or fatality (SIF) potential using a trained and calibrated NLP classification model (fatal-potential detection, not merely injury outcome severity).
-2. **Calibrated ML Pipeline & Versioning**: Employs true Platt Sigmoid probability calibration (`PlattCalibrator`), validation-only threshold optimization, and distinct metadata versioning (`model_version`, `feature_version`, `preprocessing_version`, `calibration_version`, `threshold_version`).
+An AI/NLP decision-support prototype for free-text UA/UC observations, near misses, and incident logs. It can ingest OIL-format reports, but the repository does not contain human-validated OIL training labels. It provides:
+1. **Estimate SIF Potential**: Scores serious-injury-or-fatality (SIF) potential with a TF-IDF/logistic-regression model. Results are returned as `SIF_LIKELY`, `UNCERTAIN`, or `NON_SIF`; `UNCERTAIN` requires analyst review.
+2. **Calibrated ML Pipeline & Versioning**: Uses scikit-learn sigmoid calibration when a validated split is available, validation-only threshold selection, and distinct metadata (`model_version`, `feature_version`, `preprocessing_version`, `calibration_version`, `threshold_version`, `data_provenance`). Model metadata and evaluation views disclose fallback/demo provenance; such results are not human-validated OIL performance.
 3. **Leak-Free Dataset Partitioning**: Enforces strict 70% Train, 15% Validation, 15% Test group-aware stratified partitioning with deduplication and `INSUFFICIENT_VALIDATION_DATA` guards to eliminate train/test leakage.
 4. **Tag Canonical Life-Saving Rules**: Deterministically maps reports to the 12 canonical **IOGP Life-Saving Rules**.
 5. **Surface Recurring Precursors**: Groups semantic precursors (activity, location, failed barriers) and ranks operating sites and activities by SIF precursor density.
@@ -48,47 +50,57 @@ Generates an auditable Data Quality Report ([data/processed/data_quality_report.
 
 ---
 
-## 2. Security & Production Readiness Highlights
+## 3. Security & Deployment Controls
 
-- **SHA-256 Model Integrity Verification**: The production ML model artifact (`sif_model.joblib`) is cryptographically verified against an authoritative JSON manifest (`model_manifest.json`) at application startup. Corrupted or altered artifacts trigger a hard load failure (`MODEL_INTEGRITY_FAILED`).
-- **Health & Readiness Endpoints**: Liveness check at `GET /health`, full dependency readiness check at `GET /health/readiness` (validating DB connection, model availability, and SHA-256 integrity), and model metadata at `GET /model-info`.
-- **Ad-Hoc Prediction Endpoint**: Real-time classification endpoint at `POST /predict` accepts raw report text and returns probability, SIF flag, confidence, and model metadata.
+- **SHA-256 Model Integrity Verification**: The active model artifact at `backend/data/model_artifacts/sif_model.joblib` is checked against `backend/data/model_artifacts/model_manifest.json`. An invalid artifact is reported as degraded and is not used for a normal model prediction.
+- **Health & Readiness Endpoints**: Public liveness at `GET /health` and readiness at `GET /health/readiness` (validating DB connection, model availability, and SHA-256 integrity). Model metadata is authenticated at `GET /model-info`.
+- **Ad-Hoc Prediction Endpoint**: Authenticated `POST /predict` accepts raw report text only for processing and returns probability, SIF flag, model metadata, and PII-redacted processed text. It never echoes the submitted raw text.
 - **Strict Backend RBAC & Auth**: Server-side role enforcement (`ANALYST`, `SITE_MANAGER`, `LEADERSHIP`, `ADMIN`), bcrypt password hashing, and HMAC-SHA256 JWT validation.
 - **Ingestion Security**: Upload payload limits (10MB default), row count limits (5,000 max), path traversal sanitization, and automated regex PII redaction.
+- **PII Detection Coverage**: English spaCy NER is supplemented by conservative rules for apostrophe/hyphenated names, spaced CJK names, and Hindi subject-name forms. This is not universal multilingual NER: compact names and languages outside those contextual patterns require locale-specific models and analyst review.
 - **Defensive HTTP Headers**: Built-in middleware enforcing `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-XSS-Protection: 1; mode=block`, and environment-configurable CORS origins.
 
 ---
 
-## 3. Technology Stack
+## 4. Technology Stack and Repository Layout
 
-- **Backend**: Python 3.10+ / FastAPI, Uvicorn, SQLite (development) / PostgreSQL (production-ready via `DATABASE_URL`), SQLAlchemy, Pydantic v2.
+- **Backend**: Python 3.14.3, FastAPI, Uvicorn, SQLite (development) / PostgreSQL (configured through `DATABASE_URL`), SQLAlchemy, and Pydantic v2.
 - **Machine Learning & NLP**: Scikit-Learn (TF-IDF Vectorizer + Calibrated Logistic Regression), Joblib, PyYAML.
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts (SIF Sentinel enterprise design system).
 - **Testing & Quality**: Pytest, Vitest, ESLint.
-- **Containerization**: Multi-stage Dockerfile and Docker Compose.
+- **Containerization**: Single-stage backend Dockerfile and Docker Compose.
+
+Key backend modules are located at:
+
+- `backend/app/nlp/` — preprocessing, negation handling, classification, Life-Saving Rules, and precursor extraction.
+- `backend/app/priority/` — priority scoring configuration and the evidence-based priority cap.
+- `backend/app/training.py` — training, calibration, evaluation reports, and model-manifest writing.
+- `backend/app/routers/` — versioned API routes; there is no `backend/app/ml/` package.
+- `backend/data/model_artifacts/` — the active TF-IDF model, manifest, and generated evaluation artifacts.
 
 ---
 
-## 4. Key API Endpoints
+## 5. Key API Endpoints
 
 | Method | Endpoint | Access Level | Description |
 |---|---|---|---|
 | `GET` | `/health` | Public | Liveness probe returning basic server status. |
 | `GET` | `/health/readiness` | Public | Dependency readiness probe (DB ping, model status, SHA-256 integrity). |
-| `GET` | `/model-info` | Public | Active model metadata, version, threshold, and SHA-256 hash. |
-| `POST` | `/predict` | Authenticated | Ad-hoc SIF classification for arbitrary text. |
-| `POST` | `/auth/token` | Public | OAuth2 password flow returning JWT access token. |
+| `GET` | `/model-info` | Authenticated | Active model metadata, provenance, thresholds, and SHA-256 hash. |
+| `POST` | `/predict` | Authenticated | Ad-hoc three-way SIF classification; raw submitted text is never returned. |
+| `POST` | `/v1/auth/login` | Public | Username/password login returning access and rotating refresh tokens. |
 | `GET` | `/reports` | Scoped RBAC | Paginated report listing with site-scoping and multi-filter criteria. |
-| `POST` | `/reports/upload` | Admin / Analyst | Secure multi-file CSV/Excel report batch ingestion. |
-| `GET` | `/triage` | Analyst / Admin | Unreviewed reports ordered by Intervention Priority Score. |
-| `POST` | `/reports/{id}/review`| Analyst / Admin | Human-in-the-loop analyst confirm/override with required reason. |
-| `GET` | `/clusters` | Scoped RBAC | Semantic precursor clusters with recurrence and trend analytics. |
-| `GET` | `/interventions` | Scoped RBAC | Corrective action tracker and pre/post intervention effectiveness. |
-| `GET` | `/monitoring` | Leadership / Admin | AI vs HSE agreement, feature drift, and data sufficiency states. |
+| `POST` | `/v1/ingestion/validate-file` | Admin / Analyst | Validate a CSV/Excel upload before ingestion. |
+| `POST` | `/v1/ingestion/confirm` | Admin / Analyst | Start a validated ingestion job. |
+| `GET` | `/v1/reports` | Scoped RBAC | Paginated reports; the UI applies triage and review filters. |
+| `POST` | `/v1/reports/{id}/label-review`| Analyst / Admin | Record an analyst label and required reason. |
+| `GET` | `/v1/clusters` | Scoped RBAC | Precursor clusters with recurrence and trend data. |
+| `GET` | `/v1/reports/{id}/recommendations` | Scoped RBAC | Evidence-based corrective-action recommendations. |
+| `GET` | `/v1/dashboard/model-drift` | Leadership / Admin | Drift and data-sufficiency signals. |
 
 ---
 
-## 5. Quick Start (Development Mode)
+## 6. Quick Start (Development Mode)
 
 ### 1. Backend Setup
 ```bash
@@ -121,12 +133,12 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-## 6. Verification & Testing
+## 7. Verification & Testing
 
 ```bash
-# Run full backend test suite (72 unit, integration, and security tests)
+# Run the full backend suite (257 tests in the latest verified local run)
 cd backend
-pytest
+python3 -m pytest -q
 
 # Run frontend production build check
 cd frontend
@@ -135,18 +147,20 @@ npm run build
 
 ---
 
-## 7. Known Limitations
+## 8. Known Limitations
 
-1. **Synthetic Demonstration Data**: The provided dataset is synthetically generated to model upstream exploration and production conditions without exposing confidential operational logs or personal data.
-2. **Offline Retraining by Design**: Human feedback is persisted in `analyst_reviews` and can be queued for retraining. Autonomous online retraining is disabled by design to prevent feedback poisoning.
-3. **Observational Pre/Post Intervention Analytics**: Changes observed after safety interventions represent empirical historical rate shifts; no causal counterfactual is claimed.
-4. **Data Sufficiency Indicators**: Where operational sample sizes are limited, clustering and monitoring correctly report `INSUFFICIENT_DATA` rather than displaying ungrounded metrics.
+1. **Negation scope is intentionally conservative and English-focused.** `backend/app/nlp/negation.py` uses spaCy dependencies when the English model is available, with a deterministic regex fallback. It suppresses a bounded set of negated hazard/exposure clauses and has regression coverage for common false positives, but it is not a general natural-language inference system. Complex coordination, implicit/double negation, unusual grammar, and languages other than English can still require analyst review. The behavior can be disabled with `NEGATION_DETECTION_ENABLED=false` for compatibility troubleshooting.
+2. **No human-validated OIL gold-standard labels are currently present.** The checked-in dataset-quality report records 0 human-validated records, 29 imported public-authority records, and 72 synthetic records. Imported outcomes and synthetic scenarios are not valid evidence of OIL precursor-model performance.
+3. **Validated evaluation is gated on additional labeling.** Gold evaluation requires enough independent human labels in both classes; until then, the training pipeline reports insufficient validation data or explicitly labeled demo fallback provenance. Segment precision/recall gates cannot establish production quality without representative site, department, and report-type coverage.
+4. **Duplicate and representativeness work remains.** The current quality report identifies exact and near-duplicate records. Deduplication and group-aware splits reduce leakage, but they do not replace a representative, independently reviewed OIL corpus.
+5. **Offline retraining by design.** Human feedback is persisted for review and retraining; autonomous online updates are disabled to reduce feedback-poisoning risk.
+6. **Observational intervention analytics.** Pre/post changes are descriptive historical rate shifts, not causal counterfactual estimates.
 
 ---
 
-## 8. Documentation Links
+## 9. Documentation Links
 
-- [FINAL_RELEASE_AUDIT.md](file:///Users/souravranjansamal/Documents/SIH_PROJECT%200/docs/FINAL_RELEASE_AUDIT.md) — Comprehensive final engineering and submission audit.
-- [SECURITY.md](file:///Users/souravranjansamal/Documents/SIH_PROJECT%200/SECURITY.md) — Security policy, RBAC roles, model SHA-256 verification, and PII policy.
-- [BACKUP_RESTORE.md](file:///Users/souravranjansamal/Documents/SIH_PROJECT%200/docs/BACKUP_RESTORE.md) — Disaster recovery, database snapshots, and model backup procedures.
-- [PRIORITY_SCORING.md](file:///Users/souravranjansamal/Documents/SIH_PROJECT%200/docs/PRIORITY_SCORING.md) — Formulation and weights of the 0–100 intervention priority engine.
+- [Final release audit](docs/FINAL_RELEASE_AUDIT.md) — historical engineering and submission audit; it is not a current release certification.
+- [Security policy](SECURITY.md) — RBAC, model integrity, and PII policy.
+- [Backup and restore](docs/BACKUP_RESTORE.md) — database snapshots and model backup procedures.
+- [Priority scoring](docs/PRIORITY_SCORING.md) — intervention-priority formulation and weights.

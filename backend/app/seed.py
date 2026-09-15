@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from random import Random
 
 from sqlalchemy.orm import Session
@@ -24,7 +24,7 @@ USERS = [
 
 
 def _dt(days_ago: int, hour: int = 10) -> datetime:
-    return datetime.now(timezone.utc) - timedelta(days=days_ago, hours=24 - hour)
+    return datetime.now(UTC) - timedelta(days=days_ago, hours=24 - hour)
 
 
 TEMPLATES = [

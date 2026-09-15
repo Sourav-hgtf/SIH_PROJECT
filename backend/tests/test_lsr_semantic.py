@@ -12,16 +12,12 @@ Verifies:
 
 from __future__ import annotations
 
-import pytest
-
 from app.nlp.classify import classify_sif, tag_life_saving_rules
 from app.nlp.lsr import (
     CANONICAL_LSR_COUNT,
-    get_canonical_rule_names,
     get_rule_by_id,
     load_canonical_lsr_rules,
 )
-from app.nlp.lsr_semantic import compute_semantic_lsr_scores
 
 
 def test_user_prompt_paraphrase_atmospheric_testing():

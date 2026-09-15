@@ -6,12 +6,12 @@ are backfilled smoothly.
 
 from __future__ import annotations
 
-import json
 import logging
+
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-from app.nlp.lsr import get_rule_by_name, load_canonical_lsr_rules
+from app.nlp.lsr import get_rule_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def run_recommendation_migrations(engine: Engine) -> None:
     from app.database import Base
     from app.models import Recommendation, RecommendationFeedback
 
-    Base.metadata.create_all(bind=engine, tables=[Recommendation.__table__, RecommendationFeedback.__table__])
+    Base.metadata.create_all(bind=engine, tables=[Recommendation.__table__, RecommendationFeedback.__table__])  # type: ignore[list-item]
     logger.info("Checked / created recommendations tables.")
 
 
@@ -104,7 +104,7 @@ def run_lifecycle_migrations(engine: Engine) -> None:
     from app.database import Base
     from app.models import PrecursorFeedback, ReportReview
 
-    Base.metadata.create_all(bind=engine, tables=[ReportReview.__table__, PrecursorFeedback.__table__])
+    Base.metadata.create_all(bind=engine, tables=[ReportReview.__table__, PrecursorFeedback.__table__])  # type: ignore[list-item]
 
     inspector = inspect(engine)
     if "reports" not in inspector.get_table_names():
@@ -138,6 +138,23 @@ def run_lifecycle_migrations(engine: Engine) -> None:
     logger.info("Checked / migrated report lifecycle columns and review tables.")
 
 
+def run_classification_state_migrations(engine: Engine) -> None:
+    """Add three-way SIF routing fields without rewriting historical predictions."""
+    inspector = inspect(engine)
+    if "sif_classifications" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("sif_classifications")}
+    with engine.connect() as conn:
+        if "classification_state" not in columns:
+            conn.execute(text("ALTER TABLE sif_classifications ADD COLUMN classification_state VARCHAR(20) DEFAULT 'NON_SIF'"))
+        if "requires_analyst_review" not in columns:
+            conn.execute(text("ALTER TABLE sif_classifications ADD COLUMN requires_analyst_review BOOLEAN DEFAULT FALSE"))
+        # Legacy binary records retain their historical decision meaning.
+        conn.execute(text("UPDATE sif_classifications SET classification_state = CASE WHEN sif_label THEN 'SIF_LIKELY' ELSE 'NON_SIF' END WHERE classification_state IS NULL OR classification_state = ''"))
+        conn.execute(text("UPDATE sif_classifications SET requires_analyst_review = FALSE WHERE requires_analyst_review IS NULL"))
+        conn.commit()
+
+
 def run_labeling_migrations(engine: Engine) -> None:
     """Ensures label_reviews table exists and adds human_label, validated_label,
     label_source, and validation_status columns to reports.
@@ -145,7 +162,7 @@ def run_labeling_migrations(engine: Engine) -> None:
     from app.database import Base
     from app.models import LabelReview
 
-    Base.metadata.create_all(bind=engine, tables=[LabelReview.__table__])
+    Base.metadata.create_all(bind=engine, tables=[LabelReview.__table__])  # type: ignore[list-item]
 
     inspector = inspect(engine)
     if "reports" not in inspector.get_table_names():
@@ -257,7 +274,7 @@ def run_feedback_migrations(engine: Engine) -> None:
     from app.database import Base
     from app.models import AnalystDecision, RefreshToken
 
-    Base.metadata.create_all(bind=engine, tables=[AnalystDecision.__table__, RefreshToken.__table__])
+    Base.metadata.create_all(bind=engine, tables=[AnalystDecision.__table__, RefreshToken.__table__])  # type: ignore[list-item]
 
     inspector = inspect(engine)
     if "analyst_decisions" not in inspector.get_table_names():

@@ -1,6 +1,6 @@
 """Phase 9 complete immutable AI-to-analyst triage workflow."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -22,9 +22,9 @@ def test_triage_progress_tracks_confirm_and_override_without_mutating_ai_predict
         Site(id="triage-site", name="Triage Site", region="North"),
         User(id="triage-analyst", username="triage-analyst", password_hash="x", role="analyst", site_scope=["triage-site"]),
     ])
-    first = Report(id="triage-r1", source_report_id="T1", report_type="near_miss", site_id="triage-site", raw_text_redacted="first", reported_at=datetime.now(timezone.utc), lifecycle_status="AI_ANALYZED")
+    first = Report(id="triage-r1", source_report_id="T1", report_type="near_miss", site_id="triage-site", raw_text_redacted="first", reported_at=datetime.now(UTC), lifecycle_status="AI_ANALYZED")
     first.classification = SifClassification(sif_probability=0.93, sif_label=True, model_version="test-model")
-    second = Report(id="triage-r2", source_report_id="T2", report_type="near_miss", site_id="triage-site", raw_text_redacted="second", reported_at=datetime.now(timezone.utc), lifecycle_status="AI_ANALYZED")
+    second = Report(id="triage-r2", source_report_id="T2", report_type="near_miss", site_id="triage-site", raw_text_redacted="second", reported_at=datetime.now(UTC), lifecycle_status="AI_ANALYZED")
     second.classification = SifClassification(sif_probability=0.20, sif_label=False, model_version="test-model")
     db.add_all([first, second])
     db.commit()

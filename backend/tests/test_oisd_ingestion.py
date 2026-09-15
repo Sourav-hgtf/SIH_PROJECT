@@ -1,9 +1,9 @@
 """Tests for OISD (India) incident ingestion and normalization adapter."""
 
-import pytest
 from pathlib import Path
-from ingestion.oisd import OISDIngestionAdapter
+
 from ingestion.normalizer import NormalizedIncident
+from ingestion.oisd import OISDIngestionAdapter
 
 SAMPLE_OISD_ROW = {
     "Incident No": "OISD-CS-2021-99",

@@ -1,6 +1,6 @@
 """Phase 8 dashboard filters and report-denominator contracts."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -25,9 +25,9 @@ def filtered_db(monkeypatch):
     beta = Site(id="site-beta", name="Beta", region="South")
     session.add_all([alpha, beta])
     reports = [
-        Report(id="r1", source_report_id="R1", report_type="near_miss", site_id=alpha.id, department="Maintenance", raw_text_redacted="r1", reported_at=datetime(2026, 1, 10, tzinfo=timezone.utc)),
-        Report(id="r2", source_report_id="R2", report_type="near_miss", site_id=alpha.id, department="Operations", raw_text_redacted="r2", reported_at=datetime(2026, 2, 10, tzinfo=timezone.utc)),
-        Report(id="r3", source_report_id="R3", report_type="near_miss", site_id=beta.id, department="Maintenance", raw_text_redacted="r3", reported_at=datetime(2026, 1, 20, tzinfo=timezone.utc)),
+        Report(id="r1", source_report_id="R1", report_type="near_miss", site_id=alpha.id, department="Maintenance", raw_text_redacted="r1", reported_at=datetime(2026, 1, 10, tzinfo=UTC)),
+        Report(id="r2", source_report_id="R2", report_type="near_miss", site_id=alpha.id, department="Operations", raw_text_redacted="r2", reported_at=datetime(2026, 2, 10, tzinfo=UTC)),
+        Report(id="r3", source_report_id="R3", report_type="near_miss", site_id=beta.id, department="Maintenance", raw_text_redacted="r3", reported_at=datetime(2026, 1, 20, tzinfo=UTC)),
     ]
     session.add_all(reports)
     session.add_all([

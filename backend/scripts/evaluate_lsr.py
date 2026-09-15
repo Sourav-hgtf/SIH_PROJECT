@@ -41,6 +41,7 @@ logger = logging.getLogger("evaluate_lsr")
 from app.nlp.classify import tag_life_saving_rules
 from app.nlp.lsr import load_canonical_lsr_rules
 from app.nlp.features import extract_features
+from app.nlp.preprocess import preprocess
 import re
 
 
@@ -332,7 +333,9 @@ def build_evaluation_dataset() -> list[dict[str, Any]]:
             if exp:
                 dataset.append({
                     "id": item["report_id"],
-                    "text": item.get("incident_description", ""),
+                    # Benchmark artifacts can be shared with reviewers; do not
+                    # copy an unredacted source report into them.
+                    "text": preprocess(item.get("incident_description", ""))["raw_text_redacted"],
                     "expected_rules": exp,
                     "type": "real_authority",
                     "note": f"Real public report with authority label '{lsr_str}'",

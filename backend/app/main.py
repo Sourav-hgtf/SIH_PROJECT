@@ -1,24 +1,30 @@
 import logging
 import uuid
-from fastapi import FastAPI, Request, Response, status
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.auth import get_current_user
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.logging_config import configure_structured_logging
 from app.migrations import (
+    run_classification_state_migrations,
+    run_feedback_migrations,
     run_ingestion_migrations,
     run_labeling_migrations,
     run_lifecycle_migrations,
     run_lsr_migrations,
-    run_recommendation_migrations,
-    run_feedback_migrations,
     run_precursor_migrations,
+    run_recommendation_migrations,
 )
+from app.models import User
 from app.nlp.lsr import load_canonical_lsr_rules
 from app.nlp.model import get_model_health_status, load_sif_model
+from app.nlp.preprocess import verify_pii_detector
 from app.routers import (
     admin,
     auth,
@@ -29,28 +35,56 @@ from app.routers import (
     recommendations,
     reports,
 )
+from app.schemas import PredictRequest, PredictResponse
 from app.seed import seed_if_empty
 
 configure_structured_logging()
 logger = logging.getLogger(__name__)
 
-# Local development keeps the existing non-destructive compatibility helpers.
+# Local development initializes the schema once at module load. Compatibility
+# migrations run in the lifespan handler below, so they are not executed twice.
 # Production schema changes are applied by `alembic upgrade head` before the
 # application starts; the API never performs DDL against production data.
 if settings.app_env.lower() != "production":
     Base.metadata.create_all(bind=engine)
-    run_lsr_migrations(engine)
-    run_recommendation_migrations(engine)
-    run_ingestion_migrations(engine)
-    run_lifecycle_migrations(engine)
-    run_labeling_migrations(engine)
-    run_feedback_migrations(engine)
-    run_precursor_migrations(engine)
 
 # Fail fast if canonical Life-Saving Rules config is missing or invalid
 load_canonical_lsr_rules()
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Initialize local schema/data dependencies without deprecated startup hooks."""
+    if settings.app_env.lower() != "production":
+        run_lsr_migrations(engine)
+        run_recommendation_migrations(engine)
+        run_ingestion_migrations(engine)
+        run_lifecycle_migrations(engine)
+        run_labeling_migrations(engine)
+        run_feedback_migrations(engine)
+        run_precursor_migrations(engine)
+        run_classification_state_migrations(engine)
+    db = SessionLocal()
+    try:
+        pii_mode = verify_pii_detector(require_spacy=settings.app_env.lower() == "production")
+        logger.info("PII detector verified at startup", extra={"pii_detection_mode": pii_mode})
+        seed_if_empty(db)
+
+        model_data = load_sif_model()
+        if model_data.get("pipeline") is None and settings.demo_mode:
+            logger.info("No model found on startup. Triggering initial training.")
+            from app.training import run_ml_training
+
+            try:
+                run_ml_training(db)
+            except Exception as exc:  # startup must retain API availability in demo mode
+                logger.error("Failed initial model training: %s", type(exc).__name__)
+            load_sif_model()
+        yield
+    finally:
+        db.close()
+
+
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
 # Security Headers Middleware
 @app.middleware("http")
@@ -100,34 +134,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.on_event("startup")
-def startup():
-    if settings.app_env.lower() != "production":
-        run_lsr_migrations(engine)
-        run_recommendation_migrations(engine)
-        run_ingestion_migrations(engine)
-        run_lifecycle_migrations(engine)
-        run_labeling_migrations(engine)
-        run_feedback_migrations(engine)
-        run_precursor_migrations(engine)
-    db = SessionLocal()
-    try:
-        seed_if_empty(db)
-        
-        model_data = load_sif_model()
-        if model_data.get("pipeline") is None and settings.demo_mode:
-            logger.info("No model found on startup. Triggering initial training.")
-            from app.training import run_ml_training
-            try:
-                run_ml_training(db)
-            except Exception as e:
-                logger.error(f"Failed to perform initial model training: {e}")
-            load_sif_model()
-            
-    finally:
-        db.close()
-
-
 @app.get("/health")
 def liveness():
     """Liveness check: Is the application process alive?"""
@@ -165,7 +171,7 @@ def readiness():
 
 
 @app.get("/model-info")
-def model_info():
+def model_info(_: User = Depends(get_current_user)):
     """Model information endpoint: returns active version, calibration, threshold and integrity."""
     health = get_model_health_status()
     model_data = load_sif_model()
@@ -175,6 +181,7 @@ def model_info():
         "feature_version": model_data.get("feature_version", "tfidf-unigram-bigram-v1"),
         "preprocessing_version": model_data.get("preprocessing_version", "prep-pii-spell-abbr-v1"),
         "dataset_version": model_data.get("dataset_version", "sih-safety-ds-v1"),
+        "data_provenance": model_data.get("data_provenance", health.get("data_provenance", "UNKNOWN_PROVENANCE")),
         "label_schema_version": model_data.get("label_schema_version", "sif-binary-v1"),
         "calibration_version": model_data.get("calibration_version", "uncalibrated-v0"),
         "calibration_method": model_data.get("calibration_method", "none"),
@@ -193,30 +200,27 @@ def model_info():
     }
 
 
-@app.post("/predict")
-def predict_adhoc(payload: dict):
-    """Ad-hoc prediction endpoint for real-time safety text evaluation with calibrated probability."""
+@app.post("/predict", response_model=PredictResponse)
+def predict_adhoc(payload: PredictRequest, _: User = Depends(get_current_user)):
+    """Return a prediction with only privacy-safe processed text, never raw input."""
     from app.nlp.model import predict_sif_details
-    text_content = payload.get("text", "")
-    if not text_content:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": "Field 'text' is required."},
-        )
-    pred = predict_sif_details(text_content)
-    return {
-        "text": text_content,
-        "processed_text": pred["processed_text"],
-        "sif_probability": pred["sif_probability"],
-        "calibrated_sif_probability": pred.get("calibrated_sif_probability"),
-        "is_calibrated": pred.get("is_calibrated", False),
-        "calibration_status": pred.get("calibration_status", "UNCALIBRATED_FALLBACK"),
-        "sif_potential": pred["sif_potential"],
-        "model_version": pred["model_version"],
-        "feature_version": pred["feature_version"],
-        "preprocessing_version": pred["preprocessing_version"],
-        "calibration_version": pred["calibration_version"],
-        "threshold_version": pred["threshold_version"],
-        "threshold": pred["threshold"],
-        "training_run_id": pred["training_run_id"],
-    }
+    pred = predict_sif_details(payload.text)
+    return PredictResponse(
+        processed_text=pred["processed_text"],
+        sif_probability=pred["sif_probability"],
+        calibrated_sif_probability=pred.get("calibrated_sif_probability"),
+        is_calibrated=pred.get("is_calibrated", False),
+        calibration_status=pred.get("calibration_status", "UNCALIBRATED_FALLBACK"),
+        sif_potential=pred["sif_potential"],
+        classification_state=pred["classification_state"],
+        requires_analyst_review=pred["requires_analyst_review"],
+        uncertain_lower_threshold=settings.sif_uncertain_lower_threshold,
+        sif_likely_threshold=settings.sif_likely_threshold,
+        model_version=pred["model_version"],
+        feature_version=pred["feature_version"],
+        preprocessing_version=pred["preprocessing_version"],
+        calibration_version=pred["calibration_version"],
+        threshold_version=pred["threshold_version"],
+        threshold=pred["threshold"],
+        training_run_id=pred.get("training_run_id"),
+    )

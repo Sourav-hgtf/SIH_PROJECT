@@ -1,9 +1,9 @@
 """Tests for OSHA severe injury ingestion and normalization adapter."""
 
-import pytest
 from pathlib import Path
-from ingestion.osha import OSHAIngestionAdapter
+
 from ingestion.normalizer import NormalizedIncident
+from ingestion.osha import OSHAIngestionAdapter
 
 SAMPLE_OSHA_ROW = {
     "ID": "2021090123",

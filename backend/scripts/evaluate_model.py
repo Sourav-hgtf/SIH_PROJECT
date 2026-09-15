@@ -37,7 +37,7 @@ from app.nlp.calibration import (
 )
 from app.nlp.classify import tag_life_saving_rules
 from app.nlp.labeling import apply_labeling_functions
-from app.nlp.model import load_sif_model
+from app.nlp.model import ARTIFACT_PATH, load_sif_model
 from app.nlp.preprocess import preprocess
 from app.training import (
     IncidentDataRecord,
@@ -45,6 +45,8 @@ from app.training import (
     create_leak_free_split,
     normalize_incident_text,
     filter_gold_standard_training_records,
+    build_evaluation_metrics,
+    build_segment_evaluation,
 )
 
 
@@ -76,6 +78,9 @@ def load_imported_records() -> list[IncidentDataRecord]:
                 label=bool(item["sif_potential"]),
                 data_type="real_imported",
                 label_source="IMPORTED",
+                site_id=item.get("site_id") or item.get("site"),
+                department=item.get("department"),
+                report_type=item.get("report_type"),
             )
         )
 
@@ -146,6 +151,7 @@ def model_predict(text: str, model_data: dict[str, Any], threshold: float) -> tu
     predicted = cal_proba >= threshold
     return predicted, proba, cal_proba, {
         "is_calibrated": is_calibrated,
+        "data_provenance": model_data.get("data_provenance", "UNKNOWN_PROVENANCE"),
         "raw_proba": proba,
         "cal_proba": cal_proba,
     }
@@ -193,6 +199,7 @@ def compute_all_metrics(y_true: list[bool], y_pred: list[bool], y_prob: list[flo
         "recall": round(recall, 4),
         "f1": round(f1, 4),
         "specificity": round(specificity, 4),
+        "false_negative_rate": round(fn / (fn + tp), 4) if (fn + tp) else 0.0,
         "roc_auc": round(roc_auc, 4) if roc_auc is not None else None,
         "pr_auc": round(pr_auc, 4) if pr_auc is not None else None,
         "brier_score": brier,
@@ -208,6 +215,7 @@ def compute_all_metrics(y_true: list[bool], y_pred: list[bool], y_prob: list[flo
         "false_negative_count": int(fn),
         "true_positive_count": int(tp),
         "true_negative_count": int(tn),
+        "calibration_curve": build_evaluation_metrics(y_true, y_pred, y_prob)["calibration_curve"],
     }
 
 
@@ -267,6 +275,7 @@ def evaluate_split(
         "probabilities": model_cal_probs,
         "metadata": model_meta,
     }
+    results["segment_metrics"] = build_segment_evaluation(records, model_preds, model_cal_probs)
 
     return results
 
@@ -289,7 +298,9 @@ def analyze_errors(
             "prediction": pred,
             "probability": round(proba, 4),
             "calibrated_probability": round(cal_proba, 4),
-            "text": r.raw_text[:300],
+            # Evaluation artifacts are monitoring records; retain only the
+            # redacted excerpt needed for analyst error review.
+            "text": preprocess(r.raw_text)["raw_text_redacted"][:300],
             "model_meta": meta,
         }
         if pred and not r.label:
@@ -323,7 +334,7 @@ def baseline_error_analysis(
             "label": r.label,
             "prediction": pred,
             "confidence": conf,
-            "text": r.raw_text[:300],
+            "text": preprocess(r.raw_text)["raw_text_redacted"][:300],
             "meta": meta,
         }
         if pred and not r.label:
@@ -406,7 +417,9 @@ def main() -> None:
         "baseline_error_analysis": baseline_errors,
     }
 
-    output_path = PROJECT_ROOT / "MODEL_EVALUATION.json"
+    artifact_dir = ARTIFACT_PATH.parent
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    output_path = artifact_dir / f"evaluation-{model_version}-external.json"
     output_path.write_text(json.dumps(output, indent=2, default=str), encoding="utf-8")
     logger.info(f"Evaluation results written to {output_path}")
 
@@ -499,6 +512,10 @@ def generate_markdown(output: dict[str, Any]) -> None:
     md_lines.append(f"| Threshold version | {output['threshold_version']} |")
     md_lines.append(f"| Optimal threshold | {output['optimal_threshold']} |")
     md_lines.append(f"| Is calibrated | {output['is_calibrated']} |")
+    md_lines.append(f"| **Training data provenance** | **{output.get('data_provenance', 'UNKNOWN_PROVENANCE')}** |")
+    if output.get("data_provenance", "").startswith("DEMO_FALLBACK"):
+        md_lines.append("")
+        md_lines.append("**WARNING: Performance reflects a DEMO_FALLBACK model trained on synthetic and/or heuristic records, not human-validated OIL data. Do not treat these metrics as production validation.**")
     md_lines.append("")
 
     for split_key in ["test", "validation", "val_test_combined"]:

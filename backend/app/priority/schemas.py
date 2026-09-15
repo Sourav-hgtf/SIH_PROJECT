@@ -6,10 +6,11 @@ component breakdowns, tiering, and explanatory feedback.
 from __future__ import annotations
 
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
-
 PriorityTier = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+SifClassificationState = Literal["SIF_LIKELY", "UNCERTAIN", "NON_SIF"]
 
 
 class PriorityComponent(BaseModel):
@@ -39,6 +40,10 @@ class PriorityOut(BaseModel):
     version: str = Field(..., description="Business rules configuration version (e.g. priority-v1)")
     explanation_summary: str = Field(..., description="Natural language summary of why this score was assigned")
     action_recommendation: str = Field(..., description="HSE decision-support recommendation")
+    classification_state: SifClassificationState = Field(..., description="Three-way SIF routing state")
+    requires_analyst_review: bool = Field(..., description="True when an analyst decision is mandatory")
+    evidence_sufficient: bool = Field(..., description="Whether enough report evidence supports unrestricted priority routing")
+    evidence_signal_count: int = Field(..., ge=0, description="Independent asserted hazard/precursor signals")
     components: PriorityBreakdown
 
 

@@ -23,14 +23,13 @@ Guarantees:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import json
 import logging
-from pathlib import Path
-from typing import Any
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -42,10 +41,8 @@ from app.nlp.calibration import optimize_threshold
 from app.nlp.embeddings import (
     DEFAULT_EMBEDDING_MODEL,
     EMBEDDING_DIMENSION,
-    extract_embedding,
     extract_embeddings,
 )
-from app.nlp.preprocess import preprocess
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +84,7 @@ class SemanticSifClassifier:
         self.calibrator: CalibratedClassifierCV | None = None
         self.optimal_threshold: float = settings.sif_threshold
         self.is_calibrated: bool = False
-        self.model_version: str = f"sif-semantic-minilm-v1-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        self.model_version: str = f"sif-semantic-minilm-v1-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
         self.calibration_version: str = "uncalibrated-v0"
         self.threshold_version: str = "thresh-default-v1"
         self.training_run_id: str = str(uuid.uuid4())
@@ -202,7 +199,7 @@ class SemanticSifClassifier:
             "threshold_version": self.threshold_version,
             "training_run_id": self.training_run_id,
             "embedding_dimension": EMBEDDING_DIMENSION,
-            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "saved_at": datetime.now(UTC).isoformat(),
         }
         joblib.dump(payload, artifact_path, compress=3)
 

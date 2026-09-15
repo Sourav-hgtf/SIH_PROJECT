@@ -14,25 +14,21 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 import numpy as np
 import pytest
 
 from app.nlp.embeddings import (
-    DEFAULT_EMBEDDING_MODEL,
     EMBEDDING_DIMENSION,
     extract_embedding,
     extract_embeddings,
     get_preferred_device,
 )
 from app.nlp.semantic_model import (
-    SemanticSifClassifier,
-    SemanticModelPrediction,
     SEMANTIC_ARTIFACT_PATH,
     SEMANTIC_MANIFEST_PATH,
-)
-from app.training import (
-    IncidentDataRecord,
-    create_leak_free_split,
+    SemanticModelPrediction,
+    SemanticSifClassifier,
 )
 
 

@@ -1,5 +1,4 @@
-from datetime import date, datetime, timezone
-import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
@@ -13,17 +12,14 @@ from app.models import (
     AnalystFeedback,
     AuditLog,
     ClusterMember,
-    LabelReview,
     LsrTag,
     PrecursorFeedback,
     PrecursorTriple,
-    Recommendation,
     Report,
     ReportReview,
     SifClassification,
     Site,
     User,
-    utcnow,
 )
 from app.nlp.lsr import get_canonical_rule_metadata, get_rule_by_id, get_rule_by_name
 from app.priority.engine import score_report
@@ -53,7 +49,12 @@ from app.schemas import (
     SifClassificationOut,
     TimelineEventOut,
 )
-from app.services import ingest_and_process, log_ingestion_run, rebuild_clusters, write_audit
+from app.services import (
+    ingest_and_process,
+    log_ingestion_run,
+    rebuild_clusters,
+    write_audit,
+)
 
 router = APIRouter(tags=["Reports"])
 
@@ -126,6 +127,8 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
         ai_prediction = AiPredictionOut(
             ai_label=clf.sif_label,
             ai_probability=clf.sif_probability,
+            classification_state=clf.classification_state,
+            requires_analyst_review=clf.requires_analyst_review,
             model_version=clf.model_version,
             model_timestamp=clf.classified_at,
         )
@@ -156,6 +159,8 @@ def _summary(report: Report, db: Session | None = None) -> ReportSummary:
         reported_at=report.reported_at,
         sif_label=clf.sif_label if clf else None,
         sif_probability=clf.sif_probability if clf else None,
+        classification_state=clf.classification_state if clf else None,
+        requires_analyst_review=bool(clf.requires_analyst_review) if clf else False,
         lifecycle_status=report.lifecycle_status or "AI_ANALYZED",
         final_sif_label=report.final_sif_label,
         final_priority=report.final_priority,
@@ -254,13 +259,16 @@ def create_report(
     log_ingestion_run(db, source="api", record_count=1)
     rebuild_clusters(db)
     db.commit()
-    report = (
+    reloaded_report = (
         db.query(Report)
         .options(joinedload(Report.classification), joinedload(Report.lsr_tags), joinedload(Report.site), joinedload(Report.triples))
         .filter(Report.id == report.id)
         .first()
     )
-    return _summary(report, db)
+    if reloaded_report is None:
+        # A concurrent delete or failed refresh must not become an AttributeError.
+        raise HTTPException(status_code=500, detail="Report was created but could not be reloaded")
+    return _summary(reloaded_report, db)
 
 
 def _build_report_detail(report: Report, db: Session) -> ReportDetail:
@@ -471,6 +479,8 @@ def submit_label_review(
         .filter(Report.id == report_id)
         .first()
     )
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
     return _build_report_detail(report, db)
 
 
@@ -960,6 +970,8 @@ def get_classification(report_id: str, db: Session = Depends(get_db), user: User
         report_id=report.id,
         sif_probability=clf.sif_probability,
         sif_label=clf.sif_label,
+        classification_state=clf.classification_state,
+        requires_analyst_review=clf.requires_analyst_review,
         model_version=clf.model_version,
         contributing_phrases=[PhraseWeight(**p) for p in clf.contributing_phrases or []],
         classified_at=clf.classified_at,

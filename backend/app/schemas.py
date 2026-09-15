@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
+from app.priority.schemas import PriorityOut
 
 Role = Literal["analyst", "site_manager", "leadership", "admin"]
+SifClassificationState = Literal["SIF_LIKELY", "UNCERTAIN", "NON_SIF"]
 ReportType = Literal["ua_uc", "near_miss", "incident"]
 FeedbackType = Literal["confirm_sif", "override_sif", "adjust_lsr"]
 # The LSR engine may combine lexical rules with semantic matching.  Preserve
@@ -30,6 +32,32 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(min_length=20, max_length=4096)
+
+
+class PredictRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=50_000)
+
+
+class PredictResponse(BaseModel):
+    """Safe ad-hoc prediction response; never echoes caller-supplied raw text."""
+
+    processed_text: str
+    sif_probability: float
+    calibrated_sif_probability: float | None = None
+    is_calibrated: bool
+    calibration_status: str
+    sif_potential: bool
+    classification_state: SifClassificationState
+    requires_analyst_review: bool
+    uncertain_lower_threshold: float
+    sif_likely_threshold: float
+    model_version: str
+    feature_version: str
+    preprocessing_version: str
+    calibration_version: str
+    threshold_version: str
+    threshold: float
+    training_run_id: str | None = None
 
 
 class PhraseWeight(BaseModel):
@@ -73,9 +101,6 @@ class ReportCreate(BaseModel):
     reported_at: datetime
 
 
-from app.priority.schemas import PriorityBreakdown, PriorityComponent, PriorityOut, PrioritySummaryRow, PriorityTier
-
-
 class ReportSummary(BaseModel):
     id: str
     report_type: str
@@ -85,6 +110,8 @@ class ReportSummary(BaseModel):
     reported_at: datetime
     sif_label: bool | None = None
     sif_probability: float | None = None
+    classification_state: SifClassificationState | None = None
+    requires_analyst_review: bool = False
     lifecycle_status: str = "AI_ANALYZED"
     final_sif_label: bool | None = None
     final_priority: str | None = None
@@ -189,6 +216,8 @@ class SifClassificationOut(BaseModel):
     report_id: str
     sif_probability: float
     sif_label: bool
+    classification_state: SifClassificationState
+    requires_analyst_review: bool
     model_version: str
     contributing_phrases: list[PhraseWeight]
     classified_at: datetime
@@ -249,6 +278,8 @@ class FeedbackCreate(BaseModel):
 class AiPredictionOut(BaseModel):
     ai_label: bool | None = None
     ai_probability: float | None = None
+    classification_state: SifClassificationState | None = None
+    requires_analyst_review: bool = False
     model_version: str | None = None
     model_timestamp: datetime | None = None
 
@@ -334,6 +365,7 @@ class ModelEvaluationRecordOut(BaseModel):
     lifecycle: str
     training_date: datetime | None = None
     dataset_version: str | None = None
+    data_provenance: str = "UNKNOWN_PROVENANCE"
     training_samples: int | None = None
     validation_samples: int | None = None
     test_samples: int | None = None

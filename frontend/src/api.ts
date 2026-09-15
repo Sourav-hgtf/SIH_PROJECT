@@ -50,6 +50,10 @@ export type PriorityOut = {
   version: string;
   explanation_summary: string;
   action_recommendation: string;
+  classification_state: SifClassificationState;
+  requires_analyst_review: boolean;
+  evidence_sufficient: boolean;
+  evidence_signal_count: number;
   components: PriorityBreakdown;
 };
 
@@ -70,6 +74,8 @@ export type LifecycleStatus =
   | "RESOLVED"
   | "REOPENED"
   | "REJECTED";
+
+export type SifClassificationState = "SIF_LIKELY" | "UNCERTAIN" | "NON_SIF";
 
 export type ReportReviewOut = {
   id: string;
@@ -181,6 +187,8 @@ export type PrecursorTriple = {
 export type AiPredictionOut = {
   ai_label?: boolean | null;
   ai_probability?: number | null;
+  classification_state?: SifClassificationState | null;
+  requires_analyst_review?: boolean;
   model_version?: string | null;
   model_timestamp?: string | null;
 };
@@ -210,6 +218,7 @@ export type ModelEvaluationRecord = {
   lifecycle: "PRODUCTION" | "CANDIDATE" | "EXPERIMENTAL" | "RETIRED" | string;
   training_date?: string | null;
   dataset_version?: string | null;
+  data_provenance?: string;
   training_samples?: number | null;
   validation_samples?: number | null;
   test_samples?: number | null;
@@ -229,6 +238,8 @@ export type ReportSummary = {
   reported_at: string;
   sif_label?: boolean | null;
   sif_probability?: number | null;
+  classification_state?: SifClassificationState | null;
+  requires_analyst_review?: boolean;
   lsr_tags: LsrTag[];
   excerpt?: string | null;
   priority?: PriorityOut | null;
