@@ -1,4 +1,5 @@
 import logging
+import uuid
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,6 +7,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import Base, SessionLocal, engine
+from app.logging_config import configure_structured_logging
 from app.migrations import (
     run_ingestion_migrations,
     run_labeling_migrations,
@@ -29,17 +31,21 @@ from app.routers import (
 )
 from app.seed import seed_if_empty
 
+configure_structured_logging()
 logger = logging.getLogger(__name__)
 
-# Run DB schema migrations
-Base.metadata.create_all(bind=engine)
-run_lsr_migrations(engine)
-run_recommendation_migrations(engine)
-run_ingestion_migrations(engine)
-run_lifecycle_migrations(engine)
-run_labeling_migrations(engine)
-run_feedback_migrations(engine)
-run_precursor_migrations(engine)
+# Local development keeps the existing non-destructive compatibility helpers.
+# Production schema changes are applied by `alembic upgrade head` before the
+# application starts; the API never performs DDL against production data.
+if settings.app_env.lower() != "production":
+    Base.metadata.create_all(bind=engine)
+    run_lsr_migrations(engine)
+    run_recommendation_migrations(engine)
+    run_ingestion_migrations(engine)
+    run_lifecycle_migrations(engine)
+    run_labeling_migrations(engine)
+    run_feedback_migrations(engine)
+    run_precursor_migrations(engine)
 
 # Fail fast if canonical Life-Saving Rules config is missing or invalid
 load_canonical_lsr_rules()
@@ -49,7 +55,13 @@ app = FastAPI(title=settings.app_name, version="0.1.0")
 # Security Headers Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
-    response: Response = await call_next(request)
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    try:
+        response: Response = await call_next(request)
+    except Exception:
+        logger.exception("Unhandled request failure", extra={"request_id": request_id})
+        response = JSONResponse(status_code=500, content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": "An unexpected server error occurred.", "request_id": request_id}})
+    response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -80,26 +92,24 @@ app.include_router(ingestion.router, prefix=settings.api_prefix)
 # Global Exception Handler to sanitize unexpected production errors
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled Exception on {request.method} {request.url.path}: {exc}", exc_info=True)
-    if settings.app_env.lower() == "production":
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": "An unexpected server error occurred."}},
-        )
+    request_id = request.headers.get("X-Request-ID", "unknown")
+    logger.exception("Unhandled application exception", extra={"request_id": request_id})
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": str(exc)}},
+        content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": "An unexpected server error occurred.", "request_id": request_id}},
     )
 
 
 @app.on_event("startup")
 def startup():
-    run_lsr_migrations(engine)
-    run_recommendation_migrations(engine)
-    run_ingestion_migrations(engine)
-    run_lifecycle_migrations(engine)
-    run_labeling_migrations(engine)
-    run_feedback_migrations(engine)
+    if settings.app_env.lower() != "production":
+        run_lsr_migrations(engine)
+        run_recommendation_migrations(engine)
+        run_ingestion_migrations(engine)
+        run_lifecycle_migrations(engine)
+        run_labeling_migrations(engine)
+        run_feedback_migrations(engine)
+        run_precursor_migrations(engine)
     db = SessionLocal()
     try:
         seed_if_empty(db)

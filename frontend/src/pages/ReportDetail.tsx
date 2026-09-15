@@ -433,7 +433,7 @@ export function ReportDetailPage() {
     }
   }
 
-  if (error && !report) return <p className="text-risk-critical p-6">{error}</p>;
+  if (!report && error) return <div className="p-6 text-risk-critical">Unable to load report review workspace: {error}</div>;
   if (!report) return <p className="text-warm p-6">Loading report review workspace…</p>;
 
   return (

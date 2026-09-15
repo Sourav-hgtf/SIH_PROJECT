@@ -234,6 +234,12 @@ class TestPIIPhoneNumbers:
         assert "9876543210" not in redacted
         assert "[PHONE]" in redacted
 
+    def test_indian_plus91_grouped_with_spaces(self):
+        text = "Call +91 98765 43210 for emergency."
+        redacted, count = redact_pii(text)
+        assert "98765 43210" not in redacted
+        assert "[PHONE]" in redacted
+
     def test_us_style_dashes(self):
         text = "Contact safety line at 555-123-4567."
         redacted, count = redact_pii(text)

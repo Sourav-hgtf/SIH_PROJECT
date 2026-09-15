@@ -9,12 +9,15 @@ from pydantic import BaseModel, EmailStr, Field
 Role = Literal["analyst", "site_manager", "leadership", "admin"]
 ReportType = Literal["ua_uc", "near_miss", "incident"]
 FeedbackType = Literal["confirm_sif", "override_sif", "adjust_lsr"]
-TagSource = Literal["rule", "model", "analyst"]
+# The LSR engine may combine lexical rules with semantic matching.  Preserve
+# that provenance in API responses instead of rejecting a valid tag at schema
+# serialization time.
+TagSource = Literal["rule", "model", "analyst", "hybrid", "semantic"]
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=72)
 
 
 class TokenResponse(BaseModel):
@@ -23,6 +26,10 @@ class TokenResponse(BaseModel):
     role: Role
     username: str
     user_id: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=20, max_length=4096)
 
 
 class PhraseWeight(BaseModel):
@@ -319,6 +326,27 @@ class ModelTrainingRunOut(BaseModel):
     metrics_before: dict[str, Any]
     metrics_after: dict[str, Any]
     created_at: datetime
+
+
+class ModelEvaluationRecordOut(BaseModel):
+    model_name: str
+    model_version: str | None = None
+    lifecycle: str
+    training_date: datetime | None = None
+    dataset_version: str | None = None
+    training_samples: int | None = None
+    validation_samples: int | None = None
+    test_samples: int | None = None
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    confusion_matrix: dict[str, int] = Field(default_factory=dict)
+    calibration: dict[str, Any] = Field(default_factory=dict)
+    false_positives: int | None = None
+    false_negatives: int | None = None
+
+
+class ModelEvaluationDashboardOut(BaseModel):
+    records: list[ModelEvaluationRecordOut] = Field(default_factory=list)
+    artifact_status: str
 
 
 class ReportUploadItem(BaseModel):

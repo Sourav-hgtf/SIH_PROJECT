@@ -239,7 +239,9 @@ _NON_PERSON_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b(?:OIL|EMP)[- ]?\d{4,10}\b", re.IGNORECASE), "[ID]"),
     (re.compile(r"\b(?:OIL|EMP)ID[:\s-]*\d{4,10}\b", re.IGNORECASE), "[ID]"),
     (re.compile(r"\b\d{10}\b"), "[PHONE]"),
-    (re.compile(r"\+91[-\s]?\d{10}\b"), "[PHONE]"),
+    # Accept Indian numbers written continuously or with digit-group spaces,
+    # such as ``+91 98765 43210``.
+    (re.compile(r"\+91[-\s]?\d(?:[\s-]?\d){9}\b"), "[PHONE]"),
     (re.compile(r"\b\d{3}[-.\ ]\d{3}[-.\ ]\d{4}\b"), "[PHONE]"),
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "[EMAIL]"),
 ]

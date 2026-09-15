@@ -204,6 +204,22 @@ export type TriageProgress = {
   overridden: number;
 };
 
+export type ModelEvaluationRecord = {
+  model_name: string;
+  model_version?: string | null;
+  lifecycle: "PRODUCTION" | "CANDIDATE" | "EXPERIMENTAL" | "RETIRED" | string;
+  training_date?: string | null;
+  dataset_version?: string | null;
+  training_samples?: number | null;
+  validation_samples?: number | null;
+  test_samples?: number | null;
+  metrics: Record<string, number | null>;
+  confusion_matrix: Record<string, number>;
+  calibration: Record<string, number | null>;
+  false_positives?: number | null;
+  false_negatives?: number | null;
+};
+
 export type ReportSummary = {
   id: string;
   report_type: string;
@@ -545,6 +561,7 @@ export const api = {
     request<Array<{ id: string; model_version: string; feedback_count: number; metrics_before: Record<string, number>; metrics_after: Record<string, number>; created_at: string }>>(
       "/v1/admin/training-runs",
     ),
+  modelEvaluation: () => request<{ records: ModelEvaluationRecord[]; artifact_status: string }>("/v1/admin/model-evaluation"),
   createTrainingRun: () => request<{ model_version: string }>("/v1/admin/training-runs", { method: "POST" }),
   prioritySummary: (filters: DashboardFilters = {}) =>
     request<PrioritySummaryRow[]>(`/v1/dashboard/priority-summary${dashboardQuery(filters)}`),

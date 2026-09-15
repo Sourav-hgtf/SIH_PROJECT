@@ -90,6 +90,9 @@ def run_ingestion_migrations(engine: Engine) -> None:
         if "completed_at" not in columns:
             logger.info("Migrating ingestion_runs: Adding completed_at column")
             conn.execute(text("ALTER TABLE ingestion_runs ADD COLUMN completed_at DATETIME"))
+        if "created_by_user_id" not in columns:
+            logger.info("Migrating ingestion_runs: Adding created_by_user_id column")
+            conn.execute(text("ALTER TABLE ingestion_runs ADD COLUMN created_by_user_id VARCHAR(36)"))
         conn.commit()
     logger.info("Checked / migrated ingestion_runs table columns.")
 
@@ -252,9 +255,9 @@ def run_feedback_migrations(engine: Engine) -> None:
     in SifClassification. The SifClassification table is NEVER modified by analyst actions.
     """
     from app.database import Base
-    from app.models import AnalystDecision
+    from app.models import AnalystDecision, RefreshToken
 
-    Base.metadata.create_all(bind=engine, tables=[AnalystDecision.__table__])
+    Base.metadata.create_all(bind=engine, tables=[AnalystDecision.__table__, RefreshToken.__table__])
 
     inspector = inspect(engine)
     if "analyst_decisions" not in inspector.get_table_names():
@@ -279,4 +282,4 @@ def run_feedback_migrations(engine: Engine) -> None:
         )
         conn.commit()
         conn.close()
-    logger.info("Checked / created analyst_decisions table.")
+    logger.info("Checked / created analyst_decisions and refresh_tokens tables.")

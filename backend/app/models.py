@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -40,8 +40,27 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class RefreshToken(Base):
+    """Server-side refresh-token registry for rotation and revocation."""
+
+    __tablename__ = "refresh_tokens"
+    __table_args__ = (Index("ix_refresh_tokens_user_expires", "user_id", "expires_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Report(Base):
     __tablename__ = "reports"
+    __table_args__ = (
+        Index("ix_reports_site_reported_at", "site_id", "reported_at"),
+        Index("ix_reports_department_reported_at", "department", "reported_at"),
+        Index("ix_reports_lifecycle_reported_at", "lifecycle_status", "reported_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     source_report_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -86,6 +105,7 @@ class Report(Base):
 
 class SifClassification(Base):
     __tablename__ = "sif_classifications"
+    __table_args__ = (Index("ix_sif_classifications_label_probability", "sif_label", "sif_probability"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"), unique=True)
@@ -101,6 +121,7 @@ class SifClassification(Base):
 
 class LsrTag(Base):
     __tablename__ = "lsr_tags"
+    __table_args__ = (Index("ix_lsr_tags_category_report", "lsr_category", "report_id"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"))
@@ -117,6 +138,10 @@ class LsrTag(Base):
 
 class PrecursorTriple(Base):
     __tablename__ = "precursor_triples"
+    __table_args__ = (
+        Index("ix_precursor_triples_report", "report_id"),
+        Index("ix_precursor_triples_activity_report", "activity", "report_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"))
@@ -180,6 +205,7 @@ class ClusterMember(Base):
 
 class AnalystFeedback(Base):
     __tablename__ = "analyst_feedback"
+    __table_args__ = (Index("ix_analyst_feedback_report_created", "report_id", "created_at"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"))
@@ -234,6 +260,7 @@ class IngestionRun(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     source: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_by_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     record_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(50), default="PENDING")
     processed_count: Mapped[int] = mapped_column(Integer, default=0)

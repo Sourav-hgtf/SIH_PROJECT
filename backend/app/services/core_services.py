@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -38,6 +38,11 @@ def write_audit(
             after_value=after,
         )
     )
+
+
+def _utc_timestamp(value: datetime) -> datetime:
+    """Normalize SQLite's naïve datetimes before cross-record comparisons."""
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
 def ingest_and_process(
@@ -208,8 +213,8 @@ def rebuild_clusters(db: Session) -> int:
             cluster_confidence=group["cluster_confidence"],
             cluster_size=group["cluster_size"],
             trend_status=group["trend_status"],
-            first_seen_at=min((m["reported_at"] for m in group["members"]), default=utcnow()),
-            last_updated_at=max((m["reported_at"] for m in group["members"]), default=utcnow()),
+            first_seen_at=min((_utc_timestamp(m["reported_at"]) for m in group["members"]), default=utcnow()),
+            last_updated_at=max((_utc_timestamp(m["reported_at"]) for m in group["members"]), default=utcnow()),
         )
         db.add(cluster)
         db.flush()

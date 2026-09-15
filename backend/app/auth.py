@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import secrets
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,23 +13,22 @@ except ImportError:  # pragma: no cover
         JWTError = Exception  # type: ignore[assignment,misc]
         jwt = None  # type: ignore[assignment]
 import hashlib
+import bcrypt  # type: ignore
 
-try:
-    import bcrypt  # type: ignore
-    def hash_password(password: str) -> str:
-        return bcrypt.hashpw(password[:72].encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    def verify_password(password: str, password_hash: str) -> bool:
-        if password_hash.startswith("$2b$") or password_hash.startswith("$2a$"):
-            try:
-                return bcrypt.checkpw(password[:72].encode("utf-8"), password_hash.encode("utf-8"))
-            except Exception:
-                return False
-        return hashlib.sha256(password.encode("utf-8")).hexdigest() == password_hash
-except ImportError:  # pragma: no cover
-    def hash_password(password: str) -> str:
-        return hashlib.sha256(password.encode("utf-8")).hexdigest()
-    def verify_password(password: str, password_hash: str) -> bool:
-        return hashlib.sha256(password.encode("utf-8")).hexdigest() == password_hash
+
+def hash_password(password: str) -> str:
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("Password exceeds supported maximum length")
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    if len(password.encode("utf-8")) > 72 or not password_hash.startswith(("$2a$", "$2b$", "$2y$")):
+        return False
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 from sqlalchemy.orm import Session
 
@@ -46,14 +46,19 @@ ROLE_HIERARCHY = {
 }
 
 
-def create_token(subject: str, token_type: str, minutes: int) -> str:
+def create_token(subject: str, token_type: str, minutes: int, token_id: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
-    payload = {"sub": subject, "type": token_type, "exp": expire}
+    payload = {"sub": subject, "type": token_type, "exp": expire, "jti": token_id or secrets.token_urlsafe(24)}
     return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+
+
+def token_digest(token: str) -> str:
+    """Persist a one-way refresh-token digest, never the raw bearer value."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def get_current_user(

@@ -11,9 +11,9 @@ services:
     environment:
       - APP_ENV=production
       - DEMO_MODE=false
-      - SECRET_KEY=prod-secret-key-change-this-in-production-deployments-32chars
-      - DATABASE_URL=sqlite:////app/data/sif_sentinel.db
-      - CORS_ORIGINS=http://localhost:5173
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY through the deployment environment}
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL through the deployment environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set explicit CORS_ORIGINS through the deployment environment}
     volumes:
       - sif_data:/app/data
     restart: unless-stopped

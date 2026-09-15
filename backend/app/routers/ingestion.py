@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Qu
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import get_current_user, require_roles, scoped_site_ids
 from app.database import get_db
 from app.models import IngestionRun, Report, Site, User
 from app.nlp.preprocess import redact_pii
@@ -206,7 +206,7 @@ async def validate_file(
     raw_filename = file.filename or ""
     safe_filename = os.path.basename(raw_filename.replace("\\", "/")).lower()
     if "/" in raw_filename or "\\" in raw_filename or ".." in raw_filename:
-        logger.warning(f"Path traversal attempt detected in uploaded filename: {raw_filename}")
+        logger.warning("Rejected upload filename with path separators")
 
     if not (safe_filename.endswith(".csv") or safe_filename.endswith(".json")):
         raise HTTPException(
@@ -296,6 +296,19 @@ def confirm_ingestion(
     if not body.rows:
         raise HTTPException(status_code=400, detail="No rows supplied for ingestion.")
 
+    # Site-scoped users may only ingest to their assigned sites. Require an
+    # explicit site/default so the later processing fallback cannot cross scope.
+    allowed_sites = scoped_site_ids(user)
+    if allowed_sites is not None:
+        allowed = set(allowed_sites)
+        if body.default_site_id and body.default_site_id not in allowed:
+            raise HTTPException(status_code=403, detail="Default site is outside your assigned scope")
+        site_names = {site.name.lower().strip(): site.id for site in db.query(Site).all()}
+        for row in body.rows:
+            resolved_site = row.site_id or site_names.get((row.site_name or "").lower().strip()) or body.default_site_id
+            if not resolved_site or resolved_site not in allowed:
+                raise HTTPException(status_code=403, detail="Each ingested report must belong to an assigned site")
+
     # Create IngestionRun record
     run = log_ingestion_run(
         db,
@@ -303,6 +316,7 @@ def confirm_ingestion(
         record_count=len(body.rows),
         status="PENDING",
     )
+    run.created_by_user_id = user.id
     db.commit()
 
     rows_dict = [r.model_dump() for r in body.rows]
@@ -334,6 +348,8 @@ def list_jobs(
 ):
     """Lists recent ingestion jobs."""
     runs = db.query(IngestionRun).order_by(IngestionRun.created_at.desc()).limit(limit).all()
+    if user.role not in ("admin", "leadership"):
+        runs = [run for run in runs if run.created_by_user_id == user.id]
     return [
         IngestionJobOut(
             id=r.id,
@@ -359,6 +375,8 @@ def get_job(
     run = db.get(IngestionRun, job_id)
     if not run:
         raise HTTPException(status_code=404, detail="Ingestion job not found")
+    if user.role not in ("admin", "leadership") and run.created_by_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Ingestion job is outside your scope")
 
     return IngestionJobOut(
         id=run.id,
