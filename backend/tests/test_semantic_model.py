@@ -177,3 +177,40 @@ def test_semantic_model_evaluation_report_exists():
     sem_metrics = data["test"]["semantic_model"]
     for m in ("precision", "recall", "f1", "brier_score", "sif_recall", "false_negative_count", "false_positive_count"):
         assert m in sem_metrics, f"Missing metric {m} in semantic model evaluation"
+
+
+def test_embedding_model_unavailable_warning_logged_once(monkeypatch):
+    """Verify 'Embedding model unavailable' warning logs exactly once across repeated calls."""
+    from app.nlp import embeddings
+
+    embeddings.reset_embedding_cache()
+    warning_calls: list[str] = []
+
+    def fake_warning(msg, *args):
+        formatted = msg % args if args else str(msg)
+        warning_calls.append(formatted)
+
+    monkeypatch.setattr(embeddings.logger, "warning", fake_warning)
+    try:
+        def fake_sentence_transformer(*args, **kwargs):
+            raise RuntimeError("Simulated missing model weights")
+
+        import sentence_transformers
+        monkeypatch.setattr(sentence_transformers, "SentenceTransformer", fake_sentence_transformer)
+
+        for _ in range(25):
+            try:
+                embeddings.get_embedding_model()
+            except RuntimeError:
+                pass
+
+        unavailable_warnings = [
+            m for m in warning_calls
+            if "Embedding model unavailable" in m
+        ]
+        assert len(unavailable_warnings) == 1, f"Expected 1 warning, got {len(unavailable_warnings)}: {warning_calls}"
+        assert embeddings._WARNING_LOGGED is True
+        assert embeddings._LOAD_FAILED is True
+    finally:
+        embeddings.reset_embedding_cache()
+

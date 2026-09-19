@@ -10,7 +10,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 PriorityTier = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
-SifClassificationState = Literal["SIF_LIKELY", "UNCERTAIN", "NON_SIF"]
+SifClassificationState = Literal[
+    "SIF_LIKELY", "UNCERTAIN", "NON_SIF", "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW"
+]
 
 
 class PriorityComponent(BaseModel):

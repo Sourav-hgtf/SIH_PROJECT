@@ -21,6 +21,7 @@ from app.nlp.lsr import (
     CANONICAL_LSR_COUNT,
     LsrConfigFile,
     LsrRuleConfig,
+    get_canonical_rule_metadata,
     get_rule_by_id,
     get_rule_by_name,
     load_canonical_lsr_rules,
@@ -248,3 +249,21 @@ def test_dashboard_lsr_distribution_structure():
             assert row.count >= 0
     finally:
         db.close()
+
+
+def test_lsr_rules_metadata_canonical_and_extension_classification():
+    meta = get_canonical_rule_metadata()
+    assert len(meta) == 12
+
+    canonical_9 = [r for r in meta if r["is_iogp_canonical"] is True]
+    extensions_3 = [r for r in meta if r["is_iogp_canonical"] is False]
+
+    assert len(canonical_9) == 9
+    assert len(extensions_3) == 3
+
+    assert {r["rule_id"] for r in extensions_3} == {"LSR08", "LSR09", "LSR12"}
+    for r in canonical_9:
+        assert r["rule_type"] == "IOGP Core 9"
+    for r in extensions_3:
+        assert r["rule_type"] == "OIL-specific extension"
+

@@ -45,11 +45,11 @@ def compute_model_health(db: Session, site_ids: list[str] | None = None) -> dict
         return {
             "total_reviewed": 0,
             "insufficient_data": True,
-            "agreement_rate": 0.0,
-            "cohen_kappa": 0.0,
+            "agreement_rate": None,
+            "cohen_kappa": None,
             "confusion_matrix": {"tp": 0, "tn": 0, "fp": 0, "fn": 0},
-            "false_positive_rate": 0.0,
-            "false_negative_rate": 0.0,
+            "false_positive_rate": None,
+            "false_negative_rate": None,
             "agreement_by_model_version": {},
         }
 
@@ -69,19 +69,19 @@ def compute_model_health(db: Session, site_ids: list[str] | None = None) -> dict
             fn += 1
         version_agree[r.ai_model_version].append(ai == human)
 
-    agreement_rate = round((tp + tn) / total * 100, 1) if total else 0.0
-    fp_rate = round(fp / (fp + tn) * 100, 1) if (fp + tn) > 0 else 0.0
-    fn_rate = round(fn / (fn + tp) * 100, 1) if (fn + tp) > 0 else 0.0
+    agreement_rate = round((tp + tn) / total, 4) if total else None
+    fp_rate = round(fp / (fp + tn), 4) if (fp + tn) > 0 else 0.0
+    fn_rate = round(fn / (fn + tp), 4) if (fn + tp) > 0 else 0.0
 
     # Cohen's Kappa
     po = (tp + tn) / total
     pe_ai_pos = (tp + fp) / total
     pe_hu_pos = (tp + fn) / total
     pe = pe_ai_pos * pe_hu_pos + (1 - pe_ai_pos) * (1 - pe_hu_pos)
-    kappa = round((po - pe) / (1 - pe), 3) if pe < 1.0 else 1.0
+    kappa = round((po - pe) / (1 - pe), 4) if pe < 1.0 else 1.0
 
     agreement_by_version = {
-        ver: round(sum(agrees) / len(agrees) * 100, 1)
+        ver: round(sum(agrees) / len(agrees), 4)
         for ver, agrees in version_agree.items()
     }
 
@@ -234,9 +234,9 @@ def compute_intervention_effectiveness(db: Session, site_ids: list[str] | None =
     implemented = sum(1 for r in recs if r.status in ("IMPLEMENTED", "RESOLVED"))
     resolved = sum(1 for r in recs if r.status == "RESOLVED")
 
-    acceptance_rate = round(accepted / total * 100, 1) if total else 0.0
-    implementation_rate = round(implemented / total * 100, 1) if total else 0.0
-    resolution_rate = round(resolved / total * 100, 1) if total else 0.0
+    acceptance_rate = round(accepted / total, 4) if total else 0.0
+    implementation_rate = round(implemented / total, 4) if total else 0.0
+    resolution_rate = round(resolved / total, 4) if total else 0.0
 
     # Mean days to resolution
     report_q = db.query(Report).filter(
@@ -289,8 +289,8 @@ def compute_intervention_effectiveness(db: Session, site_ids: list[str] | None =
         second_half = all_reports[mid:]
         fh_sif = sum(1 for r in first_half if r.classification and r.classification.sif_label)
         sh_sif = sum(1 for r in second_half if r.classification and r.classification.sif_label)
-        sif_rate_before = round(fh_sif / len(first_half) * 100, 1) if first_half else None
-        sif_rate_after = round(sh_sif / len(second_half) * 100, 1) if second_half else None
+        sif_rate_before = round(fh_sif / len(first_half), 4) if first_half else None
+        sif_rate_after = round(sh_sif / len(second_half), 4) if second_half else None
 
     return {
         "insufficient_data": insufficient,
@@ -340,8 +340,8 @@ def compute_agreement_trend(db: Session, site_ids: list[str] | None = None) -> l
         result.append({
             "month": month,
             "total_reviews": total,
-            "agreement_rate": round(data["agree"] / total * 100, 1) if total else 0.0,
-            "false_positive_rate": round(data["fp"] / total * 100, 1) if total else 0.0,
-            "false_negative_rate": round(data["fn"] / total * 100, 1) if total else 0.0,
+            "agreement_rate": round(data["agree"] / total, 4) if total else 0.0,
+            "false_positive_rate": round(data["fp"] / total, 4) if total else 0.0,
+            "false_negative_rate": round(data["fn"] / total, 4) if total else 0.0,
         })
     return result

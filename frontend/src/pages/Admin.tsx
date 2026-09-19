@@ -15,6 +15,8 @@ interface SiteItem {
   name: string;
   region?: string;
 }
+import { api, type ModelEvaluationRecord, type Role } from "../api";
+import { formatPercent } from "../utils/format";
 
 export function AdminPage() {
   const currentUser = getStoredUser();
@@ -272,11 +274,10 @@ export function AdminPage() {
                             onClick={() => handleToggleActive(u)}
                             disabled={isSelf}
                             title={isSelf ? "Cannot deactivate yourself" : "Click to toggle active status"}
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border transition ${
-                              u.is_active
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border transition ${u.is_active
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                                 : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                            } ${isSelf ? "opacity-60 cursor-not-allowed" : ""}`}
+                              } ${isSelf ? "opacity-60 cursor-not-allowed" : ""}`}
                           >
                             <span className={`h-1.5 w-1.5 rounded-full mr-1 ${u.is_active ? "bg-emerald-500" : "bg-rose-500"}`}></span>
                             {u.is_active ? "Active" : "Deactivated"}
@@ -294,9 +295,8 @@ export function AdminPage() {
                               onClick={() => handleDeleteUser(u)}
                               disabled={isSelf}
                               title={isSelf ? "Cannot delete yourself" : "Delete user"}
-                              className={`rounded border border-red-200 bg-red-50/50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition ${
-                                isSelf ? "opacity-30 cursor-not-allowed" : ""
-                              }`}
+                              className={`rounded border border-red-200 bg-red-50/50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 transition ${isSelf ? "opacity-30 cursor-not-allowed" : ""
+                                }`}
                             >
                               Delete
                             </button>
@@ -602,151 +602,160 @@ export function AdminPage() {
 
         {trainingRuns.length ? (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 font-semibold">
-                <tr>
-                  <th className="py-2 px-3">Model Version</th>
-                  <th className="py-2 px-3">Reviewed Reports</th>
-                  <th className="py-2 px-3">Target Recall</th>
-                  <th className="py-2 px-3">Calibrated F1</th>
-                  <th className="py-2 px-3">Created At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {trainingRuns.map((run) => (
-                  <tr key={run.id} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{run.model_version}</td>
-                    <td className="py-2.5 px-3">{run.feedback_count}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-700">{Math.round((run.metrics_after.recall || 0) * 100)}%</td>
-                    <td className="py-2.5 px-3 font-semibold text-indigo-700">{Math.round((run.metrics_after.f1 || 0) * 100)}%</td>
-                    <td className="py-2.5 px-3 text-slate-500">{new Date(run.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+<<<<<<< HEAD
+  <table className="w-full text-left text-xs">
+    <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 font-semibold">
+      <tr>
+        <th className="py-2 px-3">Model Version</th>
+        <th className="py-2 px-3">Reviewed Reports</th>
+        <th className="py-2 px-3">Target Recall</th>
+        <th className="py-2 px-3">Calibrated F1</th>
+        <th className="py-2 px-3">Created At</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-slate-100">
+      {trainingRuns.map((run) => (
+        <tr key={run.id} className="hover:bg-slate-50/50">
+          <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{run.model_version}</td>
+          <td className="py-2.5 px-3">{run.feedback_count}</td>
+          <td className="py-2.5 px-3 font-semibold text-emerald-700">{Math.round((run.metrics_after.recall || 0) * 100)}%</td>
+          <td className="py-2.5 px-3 font-semibold text-indigo-700">{Math.round((run.metrics_after.f1 || 0) * 100)}%</td>
+          <td className="py-2.5 px-3 text-slate-500">{new Date(run.created_at).toLocaleString()}</td>
+        </tr>
+      ))}
+    </tbody>
+=======
+            <table className="w-full text-left text-[12px]">
+      <thead className="text-warm"><tr><th className="py-1 font-medium">Model version</th><th>Reviewed reports</th><th>Recall</th><th>F1</th><th>Created</th></tr></thead>
+      <tbody>{trainingRuns.map((run) => <tr key={run.id} className="border-t border-border"><td className="py-2">{run.model_version}</td><td>{run.feedback_count}</td><td>{formatPercent(run.metrics_after.recall || 0)}</td><td>{formatPercent(run.metrics_after.f1 || 0)}</td><td>{new Date(run.created_at).toLocaleString()}</td></tr>)}</tbody>
+>>>>>>> 274c737 (Update SIH project features and tests)
+    </table>
+  </div>
         ) : (
-          <p className="mt-4 text-xs text-slate-400 italic">No calibration runs performed yet.</p>
-        )}
-      </section>
+    <p className="mt-4 text-xs text-slate-400 italic">No calibration runs performed yet.</p>
+  )
+}
+      </section >
 
-      {/* Model Evaluation & Performance Section */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Model Performance & Evaluation Registry</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Read-only evaluation artifacts and immutable calibration-run metrics for compliance and audit verification.
-            </p>
-          </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 border border-slate-200">
-            Admin / Leadership Visibility
-          </span>
-        </div>
-
-        {evaluationError ? (
-          <p className="mt-4 text-xs text-red-600">Unable to load model evaluation: {evaluationError}</p>
-        ) : evaluations.length ? (
-          <div className="mt-4 space-y-4">
-            {evaluations.map((model, index) => {
-              const metricLabels: Array<[string, string]> = [
-                ["Precision", "precision"],
-                ["Recall", "recall"],
-                ["F1", "f1"],
-                ["Accuracy", "accuracy"],
-                ["ROC-AUC", "roc_auc"],
-                ["PR-AUC", "pr_auc"],
-                ["Specificity", "specificity"],
-                ["Brier Score", "brier_score"],
-              ];
-              const lifecycleClass =
-                model.lifecycle === "PRODUCTION"
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                  : model.lifecycle === "CANDIDATE"
-                  ? "bg-amber-100 text-amber-800 border-amber-300"
-                  : model.lifecycle === "RETIRED"
-                  ? "bg-slate-200 text-slate-700 border-slate-300"
-                  : "bg-indigo-100 text-indigo-800 border-indigo-300";
-
-              return (
-                <article key={`${model.model_name}-${model.model_version || index}`} className="rounded-lg border border-slate-200 bg-slate-50/40 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-slate-900">{model.model_name}</h3>
-                      <p className="mt-0.5 font-mono text-[11px] text-slate-500">{model.model_version || "Version not stored in artifact"}</p>
-                    </div>
-                    <span className={`rounded px-2 py-0.5 text-[10px] font-bold border ${lifecycleClass}`}>
-                      {model.lifecycle}
-                    </span>
-                  </div>
-
-                  {model.data_provenance?.startsWith("DEMO_FALLBACK") && (
-                    <p className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
-                      Demo/synthetic fallback: these performance metrics are not human-validated OIL results.
-                    </p>
-                  )}
-
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6">
-                    {[
-                      ["Training date", model.training_date ? new Date(model.training_date).toLocaleString() : "—"],
-                      ["Dataset", model.dataset_version || "—"],
-                      ["Data provenance", model.data_provenance || "UNKNOWN"],
-                      ["Training", model.training_samples ?? "—"],
-                      ["Validation", model.validation_samples ?? "—"],
-                      ["Test", model.test_samples ?? "—"],
-                    ].map(([label, value]) => (
-                      <div key={String(label)} className="rounded border border-slate-200 bg-white p-2">
-                        <div className="text-[10px] text-slate-500">{label}</div>
-                        <div className="mt-0.5 break-words font-medium text-slate-800">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-                    {metricLabels.map(([label, key]) => (
-                      <div key={key} className="rounded border border-slate-200 bg-white p-2 text-xs">
-                        <div className="text-[10px] text-slate-500">{label}</div>
-                        <div className="mt-0.5 font-mono font-bold text-slate-900">
-                          {model.metrics[key] === null || model.metrics[key] === undefined ? "—" : Number(model.metrics[key]).toFixed(3)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded border border-slate-200 bg-white p-3">
-                      <div className="text-xs font-bold text-slate-800">Confusion Matrix</div>
-                      <div className="mt-2 grid grid-cols-2 gap-1.5 text-center text-xs">
-                        <span className="rounded bg-slate-100 p-2 font-medium">TN {model.confusion_matrix.tn ?? "—"}</span>
-                        <span className="rounded bg-amber-50 text-amber-800 p-2 font-medium">FP {model.confusion_matrix.fp ?? "—"}</span>
-                        <span className="rounded bg-rose-50 text-rose-800 p-2 font-medium">FN {model.confusion_matrix.fn ?? "—"}</span>
-                        <span className="rounded bg-emerald-50 text-emerald-800 p-2 font-medium">TP {model.confusion_matrix.tp ?? "—"}</span>
-                      </div>
-                    </div>
-                    <div className="rounded border border-slate-200 bg-white p-3">
-                      <div className="text-xs font-bold text-slate-800">Calibration Diagnostics</div>
-                      <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                        {Object.keys(model.calibration).length ? (
-                          Object.entries(model.calibration).map(([key, value]) => (
-                            <div key={key} className="rounded bg-slate-50 p-2">
-                              <span className="text-slate-500">{key.replaceAll("_", " ")}: </span>
-                              <strong className="text-slate-900">{value === null ? "—" : Number(value).toFixed(3)}</strong>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 italic">No calibration diagnostics stored.</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="mt-4 text-xs text-slate-400 italic">No stored evaluation artifacts are available.</p>
-        )}
-      </section>
+  {/* Model Evaluation & Performance Section */ }
+  < section className = "rounded-xl border border-slate-200 bg-white p-5 shadow-sm" >
+    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900">Model Performance & Evaluation Registry</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Read-only evaluation artifacts and immutable calibration-run metrics for compliance and audit verification.
+        </p>
+      </div>
+      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 border border-slate-200">
+        Admin / Leadership Visibility
+      </span>
     </div>
+
+{
+  evaluationError ? (
+    <p className="mt-4 text-xs text-red-600">Unable to load model evaluation: {evaluationError}</p>
+  ) : evaluations.length ? (
+    <div className="mt-4 space-y-4">
+      {evaluations.map((model, index) => {
+        const metricLabels: Array<[string, string]> = [
+          ["Precision", "precision"],
+          ["Recall", "recall"],
+          ["F1", "f1"],
+          ["Accuracy", "accuracy"],
+          ["ROC-AUC", "roc_auc"],
+          ["PR-AUC", "pr_auc"],
+          ["Specificity", "specificity"],
+          ["Brier Score", "brier_score"],
+        ];
+        const lifecycleClass =
+          model.lifecycle === "PRODUCTION"
+            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+            : model.lifecycle === "CANDIDATE"
+              ? "bg-amber-100 text-amber-800 border-amber-300"
+              : model.lifecycle === "RETIRED"
+                ? "bg-slate-200 text-slate-700 border-slate-300"
+                : "bg-indigo-100 text-indigo-800 border-indigo-300";
+
+        return (
+          <article key={`${model.model_name}-${model.model_version || index}`} className="rounded-lg border border-slate-200 bg-slate-50/40 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-slate-900">{model.model_name}</h3>
+                <p className="mt-0.5 font-mono text-[11px] text-slate-500">{model.model_version || "Version not stored in artifact"}</p>
+              </div>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold border ${lifecycleClass}`}>
+                {model.lifecycle}
+              </span>
+            </div>
+
+            {model.data_provenance?.startsWith("DEMO_FALLBACK") && (
+              <p className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
+                Demo/synthetic fallback: these performance metrics are not human-validated OIL results.
+              </p>
+            )}
+
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                ["Training date", model.training_date ? new Date(model.training_date).toLocaleString() : "—"],
+                ["Dataset", model.dataset_version || "—"],
+                ["Data provenance", model.data_provenance || "UNKNOWN"],
+                ["Training", model.training_samples ?? "—"],
+                ["Validation", model.validation_samples ?? "—"],
+                ["Test", model.test_samples ?? "—"],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded border border-slate-200 bg-white p-2">
+                  <div className="text-[10px] text-slate-500">{label}</div>
+                  <div className="mt-0.5 break-words font-medium text-slate-800">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+              {metricLabels.map(([label, key]) => (
+                <div key={key} className="rounded border border-slate-200 bg-white p-2 text-xs">
+                  <div className="text-[10px] text-slate-500">{label}</div>
+                  <div className="mt-0.5 font-mono font-bold text-slate-900">
+                    {model.metrics[key] === null || model.metrics[key] === undefined ? "—" : Number(model.metrics[key]).toFixed(3)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded border border-slate-200 bg-white p-3">
+                <div className="text-xs font-bold text-slate-800">Confusion Matrix</div>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-center text-xs">
+                  <span className="rounded bg-slate-100 p-2 font-medium">TN {model.confusion_matrix.tn ?? "—"}</span>
+                  <span className="rounded bg-amber-50 text-amber-800 p-2 font-medium">FP {model.confusion_matrix.fp ?? "—"}</span>
+                  <span className="rounded bg-rose-50 text-rose-800 p-2 font-medium">FN {model.confusion_matrix.fn ?? "—"}</span>
+                  <span className="rounded bg-emerald-50 text-emerald-800 p-2 font-medium">TP {model.confusion_matrix.tp ?? "—"}</span>
+                </div>
+              </div>
+              <div className="rounded border border-slate-200 bg-white p-3">
+                <div className="text-xs font-bold text-slate-800">Calibration Diagnostics</div>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                  {Object.keys(model.calibration).length ? (
+                    Object.entries(model.calibration).map(([key, value]) => (
+                      <div key={key} className="rounded bg-slate-50 p-2">
+                        <span className="text-slate-500">{key.replaceAll("_", " ")}: </span>
+                        <strong className="text-slate-900">{value === null ? "—" : Number(value).toFixed(3)}</strong>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-slate-400 italic">No calibration diagnostics stored.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  ) : (
+    <p className="mt-4 text-xs text-slate-400 italic">No stored evaluation artifacts are available.</p>
+  )
+}
+      </section >
+    </div >
   );
 }

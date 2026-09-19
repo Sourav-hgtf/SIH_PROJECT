@@ -5,7 +5,9 @@ from typing import Literal
 
 from app.config import settings
 
-SifClassificationState = Literal["SIF_LIKELY", "UNCERTAIN", "NON_SIF"]
+SifClassificationState = Literal[
+    "SIF_LIKELY", "UNCERTAIN", "NON_SIF", "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW"
+]
 
 
 def state_for_probability(probability: float) -> SifClassificationState:
@@ -19,4 +21,5 @@ def state_for_probability(probability: float) -> SifClassificationState:
 
 
 def requires_analyst_review(state: SifClassificationState) -> bool:
-    return state == "UNCERTAIN"
+    return state in ("UNCERTAIN", "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW")
+

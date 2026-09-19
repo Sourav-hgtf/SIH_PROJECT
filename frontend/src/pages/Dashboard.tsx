@@ -13,8 +13,10 @@ import {
   type PrioritySummaryRow,
   type ReviewerAgreementSummaryOut,
   type DashboardFilters,
+  type LsrRuleMetadata,
 } from "../api";
 import { PriorityBadge } from "../components/Badges";
+import { formatPercent } from "../utils/format";
 
 type Kpis = { total_reports: number; sif_flagged: number; sif_rate: number; avg_confidence: number; queue_size: number; high_risk_reports: number; top_risk_site: string | null; top_lsr: string | null; top_precursor_pattern: string | null };
 
@@ -37,7 +39,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState<Array<{ id: string; name: string }>>([]);
   const [departments, setDepartments] = useState<string[]>([]);
-  const [lsrRules, setLsrRules] = useState<Array<{ name: string }>>([]);
+  const [lsrRules, setLsrRules] = useState<LsrRuleMetadata[]>([]);
   const [filters, setFilters] = useState<DashboardFilters>({});
 
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined && value !== "");
@@ -75,7 +77,7 @@ export function DashboardPage() {
         setDensity(d);
         setLsr(l);
         setFocusAreas(f);
-        setTrend(t.map((row) => ({ ...row, sif_rate: row.sif_rate * 100 })));
+        setTrend(t);
         setHumanAgreement(ra);
         setError("");
       })
@@ -122,7 +124,19 @@ export function DashboardPage() {
           <input aria-label="End date" type="date" value={filters.end_date || ""} onChange={(e) => updateFilter("end_date", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
           <select aria-label="Site" value={filters.site_id || ""} onChange={(e) => updateFilter("site_id", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All sites</option>{sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select>
           <select aria-label="Department" value={filters.department || ""} onChange={(e) => updateFilter("department", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All departments</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select>
-          <select aria-label="LSR category" value={filters.lsr_category || ""} onChange={(e) => updateFilter("lsr_category", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All LSR categories</option>{lsrRules.map((rule) => <option key={rule.name} value={rule.name}>{rule.name}</option>)}</select>
+          <select aria-label="LSR category" value={filters.lsr_category || ""} onChange={(e) => updateFilter("lsr_category", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs">
+            <option value="">All LSR categories</option>
+            <optgroup label="IOGP Core 9">
+              {lsrRules.filter((r) => r.is_iogp_canonical !== false).map((rule) => (
+                <option key={rule.name} value={rule.name}>{rule.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="OIL-specific extensions">
+              {lsrRules.filter((r) => r.is_iogp_canonical === false).map((rule) => (
+                <option key={rule.name} value={rule.name}>{rule.name}</option>
+              ))}
+            </optgroup>
+          </select>
           <input aria-label="Minimum SIF probability" type="number" min="0" max="1" step="0.05" placeholder="Min SIF probability" value={filters.min_confidence ?? ""} onChange={(e) => updateFilter("min_confidence", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
         </div>
         {hasActiveFilters && <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-warm">{Object.entries(filters).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => <span key={key} className="rounded bg-slate-100 px-2 py-1">{key.replaceAll("_", " ")}: {String(value)}</span>)}</div>}
@@ -134,7 +148,7 @@ export function DashboardPage() {
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          ["Total Reports", kpis.total_reports], ["SIF Potential Reports", kpis.sif_flagged], ["SIF Rate", `${Math.round(kpis.sif_rate * 100)}%`], ["High Risk Reports", kpis.high_risk_reports],
+          ["Total Reports", kpis.total_reports], ["SIF Potential Reports", kpis.sif_flagged], ["SIF Rate", formatPercent(kpis.sif_rate)], ["High Risk Reports", kpis.high_risk_reports],
           ["Top Risk Site", kpis.top_risk_site || "None"], ["Top LSR", kpis.top_lsr || "None"], ["Top Precursor Pattern", kpis.top_precursor_pattern || "None"],
         ].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-border bg-white p-3 shadow-card"><div className="text-[11px] font-medium text-warm">{label}</div><div className="mt-1 truncate text-lg font-bold text-ink" title={String(value)}>{value}</div></div>)}
       </section>
@@ -185,7 +199,7 @@ export function DashboardPage() {
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 shadow-sm">
               <div className="text-[11px] font-semibold text-slate-800">AI/Human Agreement</div>
               <div className="mt-1 text-2xl font-bold font-mono text-slate-900">
-                {lifecycleKpis.agreement_rate > 0 ? `${Math.round(lifecycleKpis.agreement_rate * 100)}%` : "N/A"}
+                {lifecycleKpis.agreement_rate !== null ? formatPercent(lifecycleKpis.agreement_rate) : "Not enough reviews yet"}
               </div>
               <div className="text-[10px] text-slate-600">Decision concordance</div>
             </div>
@@ -219,11 +233,15 @@ export function DashboardPage() {
               <div className="space-y-1.5 pt-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-warm">Confirmed as Predicted:</span>
-                  <strong className="text-emerald-700">{agreement.confirm_count} ({Math.round(agreement.agreement_rate * 100)}%)</strong>
+                  <strong className="text-emerald-700">
+                    {agreement.confirm_count} ({agreement.agreement_rate !== null ? formatPercent(agreement.agreement_rate) : "Not enough reviews yet"})
+                  </strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-warm">Analyst Overridden:</span>
-                  <strong className="text-purple-700">{agreement.override_count} ({Math.round(agreement.override_rate * 100)}%)</strong>
+                  <strong className="text-purple-700">
+                    {agreement.override_count} ({agreement.override_rate !== null ? formatPercent(agreement.override_rate) : "Not enough reviews yet"})
+                  </strong>
                 </div>
                 <div className="flex justify-between border-t border-border/50 pt-1">
                   <span className="text-warm">False Positives (Oversensitized):</span>
@@ -241,15 +259,15 @@ export function DashboardPage() {
               {Object.keys(agreement.reason_breakdown).length > 0 ? (
                 <div className="space-y-2 pt-1">
                   {Object.entries(agreement.reason_breakdown).map(([reason, count]) => {
-                    const pct = Math.round((count / (agreement.override_count || 1)) * 100);
+                    const frac = count / (agreement.override_count || 1);
                     return (
                       <div key={reason} className="space-y-0.5">
                         <div className="flex justify-between text-xs">
                           <span className="text-ink truncate max-w-[80%]">{reason}</span>
-                          <span className="font-mono text-warm">{count} ({pct}%)</span>
+                          <span className="font-mono text-warm">{count} ({formatPercent(frac)})</span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                          <div className="h-full bg-purple-600 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-purple-600 rounded-full" style={{ width: `${Math.min(frac * 100, 100)}%` }} />
                         </div>
                       </div>
                     );
@@ -315,9 +333,13 @@ export function DashboardPage() {
             <div className="rounded-lg bg-slate-50 border border-border/80 p-4 flex flex-col justify-between">
               <div>
                 <div className="text-xs font-semibold text-ink">AI-to-Human Kappa Index</div>
-                <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">{modelHealth.cohen_kappa}</div>
+                <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">
+                  {modelHealth.cohen_kappa !== null ? modelHealth.cohen_kappa : "—"}
+                </div>
                 <div className="mt-1 text-[11px] text-warm">
-                  {modelHealth.cohen_kappa >= 0.8
+                  {modelHealth.cohen_kappa === null
+                    ? "Not enough reviews yet"
+                    : modelHealth.cohen_kappa >= 0.8
                     ? "Almost Perfect Agreement"
                     : modelHealth.cohen_kappa >= 0.6
                     ? "Substantial Agreement"
@@ -330,7 +352,9 @@ export function DashboardPage() {
               </div>
               <div className="mt-3 border-t border-border/60 pt-2 text-[11px] text-warm flex justify-between">
                 <span>Agreement Rate:</span>
-                <strong className="text-ink">{modelHealth.agreement_rate}%</strong>
+                <strong className="text-ink">
+                  {modelHealth.agreement_rate !== null ? formatPercent(modelHealth.agreement_rate) : "Not enough reviews yet"}
+                </strong>
               </div>
             </div>
 
@@ -339,9 +363,13 @@ export function DashboardPage() {
               <div className="rounded-lg bg-slate-50 border border-border/80 p-4 flex flex-col justify-between">
                 <div>
                   <div className="text-xs font-semibold text-ink">Human Inter-Rater Kappa</div>
-                  <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">{humanAgreement.cohens_kappa}</div>
+                  <div className="mt-2 text-3xl font-bold font-mono text-indigo-900">
+                    {humanAgreement.cohens_kappa !== null ? humanAgreement.cohens_kappa : "—"}
+                  </div>
                   <div className="mt-1 text-[11px] text-warm">
-                    {humanAgreement.cohens_kappa >= 0.8
+                    {humanAgreement.cohens_kappa === null
+                      ? "Not enough reviews yet"
+                      : humanAgreement.cohens_kappa >= 0.8
                       ? "Almost Perfect Agreement"
                       : humanAgreement.cohens_kappa >= 0.6
                       ? "Substantial Agreement"
@@ -355,7 +383,9 @@ export function DashboardPage() {
                 <div className="mt-3 border-t border-border/60 pt-2 text-[11px] text-warm flex flex-col gap-1">
                   <div className="flex justify-between">
                     <span>Agreement Rate:</span>
-                    <strong className="text-ink">{Math.round(humanAgreement.observed_agreement * 100)}%</strong>
+                    <strong className="text-ink">
+                      {humanAgreement.observed_agreement !== null ? formatPercent(humanAgreement.observed_agreement) : "Not enough reviews yet"}
+                    </strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Pairs Reviewed:</span>
@@ -372,19 +402,23 @@ export function DashboardPage() {
                 <div>
                   <div className="flex justify-between text-warm mb-1">
                     <span>False Positive Rate:</span>
-                    <strong className="text-amber-800 font-mono">{modelHealth.false_positive_rate}%</strong>
+                    <strong className="text-amber-800 font-mono">
+                      {modelHealth.false_positive_rate !== null ? formatPercent(modelHealth.false_positive_rate) : "Not enough reviews yet"}
+                    </strong>
                   </div>
                   <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(modelHealth.false_positive_rate, 100)}%` }} />
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min((modelHealth.false_positive_rate ?? 0) * 100, 100)}%` }} />
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-warm mb-1">
                     <span>False Negative Rate:</span>
-                    <strong className="text-rose-800 font-mono">{modelHealth.false_negative_rate}%</strong>
+                    <strong className="text-rose-800 font-mono">
+                      {modelHealth.false_negative_rate !== null ? formatPercent(modelHealth.false_negative_rate) : "Not enough reviews yet"}
+                    </strong>
                   </div>
                   <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(modelHealth.false_negative_rate, 100)}%` }} />
+                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min((modelHealth.false_negative_rate ?? 0) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -398,7 +432,7 @@ export function DashboardPage() {
                   Object.entries(modelHealth.agreement_by_model_version).map(([ver, pct]) => (
                     <div key={ver} className="flex justify-between items-center border-b border-border/40 py-1">
                       <span className="font-mono text-warm text-[11px]">{ver}</span>
-                      <span className="font-semibold text-ink">{pct}%</span>
+                      <span className="font-semibold text-ink">{formatPercent(pct)}</span>
                     </div>
                   ))
                 ) : (
@@ -498,17 +532,17 @@ export function DashboardPage() {
             </div>
             <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
               <div className="text-[11px] font-medium text-blue-900">Acceptance Rate</div>
-              <div className="mt-1 text-2xl font-bold font-mono text-blue-950">{interventionEff.acceptance_rate}%</div>
+              <div className="mt-1 text-2xl font-bold font-mono text-blue-950">{formatPercent(interventionEff.acceptance_rate)}</div>
               <div className="text-[10px] text-blue-800">{interventionEff.accepted} accepted/edited</div>
             </div>
             <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3">
               <div className="text-[11px] font-medium text-purple-900">Implementation Rate</div>
-              <div className="mt-1 text-2xl font-bold font-mono text-purple-950">{interventionEff.implementation_rate}%</div>
+              <div className="mt-1 text-2xl font-bold font-mono text-purple-950">{formatPercent(interventionEff.implementation_rate)}</div>
               <div className="text-[10px] text-purple-800">{interventionEff.implemented} in field</div>
             </div>
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
               <div className="text-[11px] font-medium text-emerald-900">Case Resolution Rate</div>
-              <div className="mt-1 text-2xl font-bold font-mono text-emerald-950">{interventionEff.resolution_rate}%</div>
+              <div className="mt-1 text-2xl font-bold font-mono text-emerald-950">{formatPercent(interventionEff.resolution_rate)}</div>
               <div className="text-[10px] text-emerald-800">{interventionEff.resolved} closed</div>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-100 p-3">
@@ -589,7 +623,7 @@ export function DashboardPage() {
                       Trend: {area.trend_status.toUpperCase()}
                     </span>
                     <span className="rounded border border-border/60 bg-white px-2 py-0.5">
-                      {area.report_count} reports ({Math.round(area.sif_rate * 100)}% SIF)
+                      {area.report_count} reports ({formatPercent(area.sif_rate)} SIF)
                     </span>
                   </div>
                   <div className="mt-2 text-[11px] text-warm">
@@ -669,7 +703,7 @@ export function DashboardPage() {
                   <td className="py-1 text-ink">{row.group_label}</td>
                   <td>{row.sif_count}</td>
                   <td>{row.total_count}</td>
-                  <td>{Math.round(row.sif_rate * 100)}%</td>
+                  <td>{formatPercent(row.sif_rate)}</td>
                 </tr>
               ))}
             </tbody>
@@ -704,11 +738,11 @@ export function DashboardPage() {
               <CartesianGrid stroke="#e8e6e5" />
               <XAxis dataKey="period" tick={{ fontSize: 11 }} />
               <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-              <Tooltip />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(val: number) => formatPercent(val)} />
+              <Tooltip formatter={(value: any, name: any) => [name === "SIF rate" ? formatPercent(Number(value)) : value, name]} />
               <Legend />
               <Line yAxisId="left" type="monotone" dataKey="total_count" stroke="#78716c" name="Total reports" dot={false} />
-              <Line yAxisId="right" type="monotone" dataKey="sif_rate" stroke="#dc2626" name="SIF rate %" dot={false} />
+              <Line yAxisId="right" type="monotone" dataKey="sif_rate" stroke="#dc2626" name="SIF rate" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>

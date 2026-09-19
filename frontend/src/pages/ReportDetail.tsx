@@ -22,6 +22,7 @@ import {
   RecommendationStatusBadge,
   RiskBadge,
 } from "../components/Badges";
+import { formatPercent } from "../utils/format";
 
 function HighlightedText({ text, phrases }: { text?: string | null; phrases?: Array<{ phrase: string; weight: number }> | null }) {
   const safeText = text || "";
@@ -550,7 +551,7 @@ export function ReportDetailPage() {
                 <div className="text-[11px] font-medium text-warm">AI SIF Probability</div>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-xl font-bold font-mono text-ink">
-                    {Math.round((report.sif_probability ?? 0) * 100)}%
+                    {formatPercent(report.sif_probability ?? 0)}
                   </span>
                   <ConfidenceBar value={report.sif_probability} sifLabel={report.sif_label} />
                 </div>
@@ -625,7 +626,7 @@ export function ReportDetailPage() {
                 </div>
                 {report.precursor_triples[0]?.confidence != null && (
                   <span className="text-xs font-mono text-amber-800">
-                    Confidence: {Math.round((report.precursor_triples[0].confidence ?? 0) * 100)}%
+                    Confidence: {formatPercent(report.precursor_triples[0].confidence ?? 0)}
                   </span>
                 )}
               </div>
@@ -1321,7 +1322,7 @@ export function ReportDetailPage() {
                         <span className="text-xs font-semibold text-ink">{t.rule_name || t.lsr_category}</span>
                       </div>
                       <span className="text-[10px] font-mono rounded bg-white px-1.5 py-0.5 border border-border text-warm">
-                        {t.source === "analyst" ? "Analyst Verified" : `${Math.round(t.confidence * 100)}% AI`}
+                        {t.source === "analyst" ? "Analyst Verified" : `${formatPercent(t.confidence)} AI`}
                       </span>
                     </div>
 
@@ -1382,38 +1383,84 @@ export function ReportDetailPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {lsrRules.map((rule) => {
-                const isChecked = selectedLsrIds.includes(rule.rule_id);
-                return (
-                  <label
-                    key={rule.rule_id}
-                    className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer text-xs transition ${
-                      isChecked ? "border-cyan-edge bg-cyan-edge/5" : "border-border hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedLsrIds([...selectedLsrIds, rule.rule_id]);
-                        } else {
-                          setSelectedLsrIds(selectedLsrIds.filter((id) => id !== rule.rule_id));
-                        }
-                      }}
-                    />
-                    <div>
-                      <div className="font-semibold text-ink">
-                        <span className="text-cyan-edge mr-1">{rule.rule_id}</span>
-                        {rule.name}
+            {/* IOGP Core 9 */}
+            <div>
+              <div className="text-xs font-semibold text-warm uppercase tracking-wider mb-2">
+                IOGP Core 9
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {lsrRules.filter((r) => r.is_iogp_canonical !== false).map((rule) => {
+                  const isChecked = selectedLsrIds.includes(rule.rule_id);
+                  return (
+                    <label
+                      key={rule.rule_id}
+                      className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer text-xs transition ${
+                        isChecked ? "border-cyan-edge bg-cyan-edge/5" : "border-border hover:bg-slate-50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLsrIds([...selectedLsrIds, rule.rule_id]);
+                          } else {
+                            setSelectedLsrIds(selectedLsrIds.filter((id) => id !== rule.rule_id));
+                          }
+                        }}
+                      />
+                      <div>
+                        <div className="font-semibold text-ink">
+                          <span className="text-cyan-edge mr-1">{rule.rule_id}</span>
+                          {rule.name}
+                        </div>
+                        <div className="text-[10px] text-warm line-clamp-1">{rule.description}</div>
                       </div>
-                      <div className="text-[10px] text-warm line-clamp-1">{rule.description}</div>
-                    </div>
-                  </label>
-                );
-              })}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* OIL-Specific Extensions */}
+            <div>
+              <div className="text-xs font-semibold text-warm uppercase tracking-wider mb-2">
+                OIL-Specific Extensions
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {lsrRules.filter((r) => r.is_iogp_canonical === false).map((rule) => {
+                  const isChecked = selectedLsrIds.includes(rule.rule_id);
+                  return (
+                    <label
+                      key={rule.rule_id}
+                      className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer text-xs transition ${
+                        isChecked ? "border-cyan-edge bg-cyan-edge/5" : "border-border hover:bg-slate-50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLsrIds([...selectedLsrIds, rule.rule_id]);
+                          } else {
+                            setSelectedLsrIds(selectedLsrIds.filter((id) => id !== rule.rule_id));
+                          }
+                        }}
+                      />
+                      <div>
+                        <div className="font-semibold text-ink">
+                          <span className="text-cyan-edge mr-1">{rule.rule_id}</span>
+                          {rule.name}
+                        </div>
+                        <div className="text-[10px] text-warm line-clamp-1">{rule.description}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-1">

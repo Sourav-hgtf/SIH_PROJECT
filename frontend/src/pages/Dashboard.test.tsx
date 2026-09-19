@@ -38,4 +38,39 @@ describe("DashboardPage", () => {
     loadDashboard(); api.kpis.mockRejectedValue(new Error("offline")); render(<DashboardPage />);
     expect(await screen.findByText(/Unable to load the dashboard: offline/)).toBeInTheDocument();
   });
+  it("renders 'Not enough reviews yet' when lifecycle agreement_rate is null", async () => {
+    loadDashboard();
+    api.lifecycleKpis.mockResolvedValue({
+      pending_review: 1,
+      confirmed_sif: 0,
+      ai_overrides: 0,
+      open_actions: 0,
+      overdue_actions: 0,
+      resolved_cases: 0,
+      reopened_cases: 0,
+      agreement_rate: null,
+      total_cases: 1,
+    });
+    render(<DashboardPage />);
+    expect(await screen.findByText("Not enough reviews yet")).toBeInTheDocument();
+    expect(screen.queryByText("100%")).not.toBeInTheDocument();
+    expect(screen.queryByText("10000%")).not.toBeInTheDocument();
+  });
+  it("renders formatted percentage when lifecycle agreement_rate is present", async () => {
+    loadDashboard();
+    api.lifecycleKpis.mockResolvedValue({
+      pending_review: 0,
+      confirmed_sif: 1,
+      ai_overrides: 0,
+      open_actions: 0,
+      overdue_actions: 0,
+      resolved_cases: 1,
+      reopened_cases: 0,
+      agreement_rate: 0.92,
+      total_cases: 2,
+    });
+    render(<DashboardPage />);
+    expect(await screen.findByText("92%")).toBeInTheDocument();
+    expect(screen.queryByText("9200%")).not.toBeInTheDocument();
+  });
 });

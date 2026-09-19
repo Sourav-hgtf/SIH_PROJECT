@@ -630,7 +630,20 @@ def extract_precursor(
     """
     # This function is also a public extraction entry point. Apply the shared
     # preprocessing boundary so direct callers cannot bypass negation handling.
-    text = preprocess(text)["processed_text"] if text else text
+    prep = preprocess(text) if text else None
+    if prep and prep.get("language_unsupported"):
+        return PrecursorRecord(
+            activity=None,
+            location=None,
+            barrier_failure=None,
+            hazard_exposure=None,
+            relevant_lsr=None,
+            relevant_lsr_id=None,
+            evidence_phrase=None,
+            confidence=0.0,
+            extraction_method="unsupported_language",
+        )
+    text = prep["processed_text"] if prep else text
     if not text or not text.strip():
         return PrecursorRecord(
             activity=None,

@@ -121,7 +121,7 @@ class SifClassification(Base):
     report_id: Mapped[str] = mapped_column(String(36), ForeignKey("reports.id"), unique=True)
     sif_probability: Mapped[float] = mapped_column(Float, nullable=False)
     sif_label: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    classification_state: Mapped[str] = mapped_column(String(20), default="NON_SIF", nullable=False)
+    classification_state: Mapped[str] = mapped_column(String(50), default="NON_SIF", nullable=False)
     requires_analyst_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     model_version: Mapped[str] = mapped_column(String(50), default="heuristic-v1")
     contributing_phrases: Mapped[list] = mapped_column(JSON, default=list)

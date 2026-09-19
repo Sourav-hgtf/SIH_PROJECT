@@ -362,9 +362,9 @@ def get_lifecycle_kpis(db: Session = Depends(get_db), user: User = Depends(get_c
     )
     if reviews:
         agreed = sum(1 for r in reviews if r.ai_sif_label == r.final_sif_label)
-        agreement_rate = round((agreed / len(reviews)) * 100.0, 1)
+        agreement_rate = round(agreed / len(reviews), 4)
     else:
-        agreement_rate = 100.0
+        agreement_rate = None
 
     total_cases = base_q.count()
 
@@ -395,11 +395,11 @@ def get_agreement_analytics(db: Session = Depends(get_db), user: User = Depends(
         return AgreementAnalyticsOut(
             total_reviewed=0,
             agreement_count=0,
-            agreement_rate=100.0,
+            agreement_rate=None,
             confirm_count=0,
-            confirm_rate=100.0,
+            confirm_rate=None,
             override_count=0,
-            override_rate=0.0,
+            override_rate=None,
             false_positives=0,
             false_negatives=0,
             reason_breakdown={},
@@ -420,11 +420,11 @@ def get_agreement_analytics(db: Session = Depends(get_db), user: User = Depends(
     return AgreementAnalyticsOut(
         total_reviewed=total,
         agreement_count=agreed,
-        agreement_rate=round((agreed / total) * 100.0, 1),
+        agreement_rate=round(agreed / total, 4),
         confirm_count=confirms,
-        confirm_rate=round((confirms / total) * 100.0, 1),
+        confirm_rate=round(confirms / total, 4),
         override_count=overrides,
-        override_rate=round((overrides / total) * 100.0, 1),
+        override_rate=round(overrides / total, 4),
         false_positives=fp,
         false_negatives=fn,
         reason_breakdown=reasons,

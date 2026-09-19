@@ -45,9 +45,9 @@ def calculate_cohens_kappa(
     """
     if len(rater1) != len(rater2) or len(rater1) == 0:
         return {
-            "cohens_kappa": 1.0 if len(rater1) == 0 else 0.0,
-            "observed_agreement": 1.0 if len(rater1) == 0 else 0.0,
-            "expected_agreement": 0.0,
+            "cohens_kappa": None,
+            "observed_agreement": None,
+            "expected_agreement": None,
             "sample_size": len(rater1),
             "interpretation": "Insufficient pairs for Kappa calculation",
         }

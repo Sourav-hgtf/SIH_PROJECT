@@ -273,6 +273,14 @@ def test_lifecycle_kpis_and_agreement_analytics(client, analyst_headers):
     assert analytics["confirm_count"] >= 1
     assert analytics["override_count"] >= 1
     assert "False positive" in str(analytics["reason_breakdown"])
+    if kpis["agreement_rate"] is not None:
+        assert 0.0 <= kpis["agreement_rate"] <= 1.0
+    if analytics["agreement_rate"] is not None:
+        assert 0.0 <= analytics["agreement_rate"] <= 1.0
+    if analytics["confirm_rate"] is not None:
+        assert 0.0 <= analytics["confirm_rate"] <= 1.0
+    if analytics["override_rate"] is not None:
+        assert 0.0 <= analytics["override_rate"] <= 1.0
 
 
 def test_confirm_sif_does_not_modify_ai_prediction(client, analyst_headers, db_session):
@@ -336,3 +344,23 @@ def test_override_sif_does_not_modify_ai_prediction(client, analyst_headers, db_
     db_session.refresh(clf)
     assert clf.sif_probability == original_prob
     assert clf.sif_label == original_label
+
+
+def test_lifecycle_kpis_zero_reviews_returns_none(db_session):
+    from app.auth import User
+    from app.models import ReportReview
+    from app.routers.dashboard import get_agreement_analytics, get_lifecycle_kpis
+
+    test_user = User(username="test_admin", role="admin")
+    db_session.query(ReportReview).delete()
+    db_session.commit()
+
+    kpis = get_lifecycle_kpis(db=db_session, user=test_user)
+    assert kpis.agreement_rate is None
+
+    analytics = get_agreement_analytics(db=db_session, user=test_user)
+    assert analytics.agreement_rate is None
+    assert analytics.confirm_rate is None
+    assert analytics.override_rate is None
+    assert analytics.total_reviewed == 0
+

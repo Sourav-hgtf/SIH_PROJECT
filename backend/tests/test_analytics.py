@@ -17,6 +17,9 @@ def test_analytics_empty_db():
         health = compute_model_health(db)
         assert "total_reviewed" in health
         assert "insufficient_data" in health
+        if health["total_reviewed"] == 0:
+            assert health["agreement_rate"] is None
+            assert health["cohen_kappa"] is None
 
         errors = compute_error_analysis(db)
         assert "false_positives" in errors

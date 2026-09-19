@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field
 from app.priority.schemas import PriorityOut
 
 Role = Literal["analyst", "site_manager", "leadership", "admin"]
-SifClassificationState = Literal["SIF_LIKELY", "UNCERTAIN", "NON_SIF"]
+SifClassificationState = Literal[
+    "SIF_LIKELY", "UNCERTAIN", "NON_SIF", "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW"
+]
 ReportType = Literal["ua_uc", "near_miss", "incident"]
 FeedbackType = Literal["confirm_sif", "override_sif", "adjust_lsr"]
 # The LSR engine may combine lexical rules with semantic matching.  Preserve
@@ -84,6 +86,8 @@ class LsrRuleMetadataOut(BaseModel):
     name: str
     short_name: str
     description: str
+    is_iogp_canonical: bool = True
+    rule_type: str = "IOGP Core 9"
     related_energy_types: list[str] = Field(default_factory=list)
     related_exposure_types: list[str] = Field(default_factory=list)
     related_barrier_types: list[str] = Field(default_factory=list)
@@ -168,9 +172,9 @@ class ReviewerAgreementSummaryOut(BaseModel):
     total_comparison_pairs: int
     consensus_agreements: int
     disagreements: int
-    cohens_kappa: float
-    observed_agreement: float
-    expected_agreement: float
+    cohens_kappa: float | None = None
+    observed_agreement: float | None = None
+    expected_agreement: float | None = None
     sample_size: int
     interpretation: str
 
@@ -507,18 +511,18 @@ class LifecycleKpiOut(BaseModel):
     overdue_actions: int
     resolved_cases: int
     reopened_cases: int
-    agreement_rate: float
+    agreement_rate: float | None = None
     total_cases: int = 0
 
 
 class AgreementAnalyticsOut(BaseModel):
     total_reviewed: int
     agreement_count: int
-    agreement_rate: float
+    agreement_rate: float | None = None
     confirm_count: int
-    confirm_rate: float
+    confirm_rate: float | None = None
     override_count: int
-    override_rate: float
+    override_rate: float | None = None
     false_positives: int
     false_negatives: int
     reason_breakdown: dict[str, int]
@@ -536,11 +540,11 @@ class ConfusionMatrixOut(BaseModel):
 class ModelHealthOut(BaseModel):
     total_reviewed: int
     insufficient_data: bool
-    agreement_rate: float
-    cohen_kappa: float
+    agreement_rate: float | None = None
+    cohen_kappa: float | None = None
     confusion_matrix: ConfusionMatrixOut
-    false_positive_rate: float
-    false_negative_rate: float
+    false_positive_rate: float | None = None
+    false_negative_rate: float | None = None
     agreement_by_model_version: dict[str, float]
 
 
@@ -600,6 +604,6 @@ class InterventionEffectivenessOut(BaseModel):
 class AgreementTrendRow(BaseModel):
     month: str
     total_reviews: int
-    agreement_rate: float
-    false_positive_rate: float
-    false_negative_rate: float
+    agreement_rate: float | None = None
+    false_positive_rate: float | None = None
+    false_negative_rate: float | None = None

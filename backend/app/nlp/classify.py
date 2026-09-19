@@ -64,7 +64,10 @@ def tag_life_saving_rules(
     """
     # Public callers may invoke this module directly, so enforce the same
     # negation boundary used by the full ingestion pipeline.
-    text = preprocess(text)["processed_text"]
+    prep = preprocess(text)
+    if prep.get("language_unsupported"):
+        return []
+    text = prep["processed_text"]
     canonical_rules = load_canonical_lsr_rules()
     lowered = text.lower()
     features = extract_features(text)
@@ -246,8 +249,43 @@ def tag_life_saving_rules(
 
 
 def classify_sif(text: str, threshold: float | None = None) -> dict:
+    prep = preprocess(text)
+    if prep.get("language_unsupported"):
+        eff_threshold = threshold if threshold is not None else float(settings.sif_threshold)
+        return {
+            "sif_probability": 0.0,
+            "calibrated_sif_probability": None,
+            "is_calibrated": False,
+            "calibration_status": "LANGUAGE_UNSUPPORTED",
+            "sif_label": False,
+            "classification_state": "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW",
+            "requires_analyst_review": True,
+            "model_version": "unsupported-language-fallback",
+            "feature_version": "not-invoked",
+            "preprocessing_version": prep.get("preprocessing_version", "prep-pii-spell-abbr-v1"),
+            "calibration_version": "not-invoked",
+            "threshold_version": "not-invoked",
+            "threshold": eff_threshold,
+            "contributing_phrases": [],
+            "features": {
+                "energy_types": [],
+                "energy_count": 0,
+                "proximity_present": False,
+                "barrier_failed": False,
+                "barrier_intact": False,
+                "contributing_spans": [],
+            },
+            "weak_supervision": {
+                "weak_label": None,
+                "weak_agreement": False,
+                "matched_rules": [],
+            },
+            "language_unsupported": True,
+            "detected_script": prep.get("detected_script"),
+        }
+
     # Keep weak supervision and explainability features aligned with ML input.
-    text = preprocess(text)["processed_text"]
+    text = prep["processed_text"]
     features = extract_features(text)
     weak = apply_labeling_functions(text)
 

@@ -1,0 +1,865 @@
+{
+  "evaluation_report_version": "sif-evaluation-v2",
+  "model_version": "sif-logreg-v1-20260918155736",
+  "training_run_id": "90c1c1b6-e483-417e-9968-4ebaf55bb046",
+  "data_provenance": "HUMAN_VALIDATED_NON_SYNTHETIC",
+  "python_version": "3.14.2",
+  "scikit_learn_version": "1.9.0",
+  "created_at": "2026-09-18T15:57:44.030159+00:00",
+  "global_metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "specificity": 1.0,
+    "false_negative_rate": 0.0,
+    "confusion_matrix": {
+      "tn": 52,
+      "fp": 0,
+      "fn": 0,
+      "tp": 52
+    }
+  },
+  "calibration_curve": [
+    {
+      "bin": 0,
+      "mean_predicted_probability": 0.0189,
+      "observed_positive_rate": 0.0
+    },
+    {
+      "bin": 1,
+      "mean_predicted_probability": 0.9821,
+      "observed_positive_rate": 1.0
+    }
+  ],
+  "segment_metrics": {
+    "site_id": {
+      "0d1f62ba-179e-44ed-9811-12fdc8f9ebe9": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "1be7f591-c550-4bfd-95ee-9a4e5b7b02d5": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "23c20a36-c9fc-43f3-be66-b7f5e42d6316": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "2dcb95e6-42a5-4e5c-9c39-639000422e4f": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "32e3b74e-6b6c-4e2a-8021-2304244c4955": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "39563970-f195-4aea-8202-a786859047d2": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "3ae13a17-a960-4952-a43a-d4cc003348be": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "3b437082-150c-466e-9622-d08b04ca3287": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "454046f9-76be-4601-97ef-7105c9d77661": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "49c57524-df5a-4510-8ee5-0fd6af8dac6b": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "52ab126d-6d2e-401f-869b-685c2aeaf3ab": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "5c5868fc-3ade-4e61-9ffc-5ecfa70ff8dc": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "6b3db12e-36d3-4ca5-a497-5cb97a9c3478": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "72871bf1-a6f5-4682-b2f6-7e6c3f6a50ee": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "7f8229c5-3d98-4fe7-9fe4-a0af1467f669": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "8304df39-8c5b-4b05-8e57-1902d3dedab6": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "90ab7b3c-cb53-4525-8f7a-e21e5d617f71": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "ada4d88c-0cd9-4f7c-b052-f7140393b3c3": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "c3a8c4c2-5903-4b45-9a99-4e08c23bed39": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "c488da0c-d5b0-4fd0-8bb1-b0b3fac95ece": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "c84e4737-053f-47bb-9339-3bb3136d7272": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "d0dfee93-727b-4db2-b0c4-f392c989ec56": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "d82b5ba7-ad95-4692-82c4-f478d160a137": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "d8702d29-4f9b-430d-8ef1-03db6e730d18": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "ef0b431f-ce3c-4808-8eb4-14ac33cf0a37": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0174,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9808,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "f29edc58-e498-47f2-99cf-e56cbbd77915": {
+        "sample_size": 4,
+        "positives": 2,
+        "negatives": 2,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 0,
+          "fn": 0,
+          "tp": 2
+        },
+        "calibration_curve": [
+          {
+            "bin": 0,
+            "mean_predicted_probability": 0.0205,
+            "observed_positive_rate": 0.0
+          },
+          {
+            "bin": 1,
+            "mean_predicted_probability": 0.9833,
+            "observed_positive_rate": 1.0
+          }
+        ],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      }
+    },
+    "department": {},
+    "report_type": {
+      "incident": {
+        "sample_size": 52,
+        "positives": 52,
+        "negatives": 0,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 0.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 0,
+          "fn": 0,
+          "tp": 52
+        },
+        "calibration_curve": [],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      },
+      "observation": {
+        "sample_size": 52,
+        "positives": 0,
+        "negatives": 52,
+        "accuracy": 1.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "tn": 52,
+          "fp": 0,
+          "fn": 0,
+          "tp": 0
+        },
+        "calibration_curve": [],
+        "quality_gate": "SKIPPED_INSUFFICIENT_SEGMENT_DATA"
+      }
+    }
+  },
+  "segment_quality_thresholds": {
+    "min_segment_size": 10,
+    "min_precision": 0.5,
+    "min_recall": 0.7
+  }
+}

@@ -146,7 +146,7 @@ _DEVANAGARI_SUBJECT_NAME_RE = re.compile(
 
 def _contains_non_latin_script(value: str) -> bool:
     """spaCy's English NER is unreliable for these scripts; use local rules."""
-    return any("\u0900" <= char <= "\u097f" or "\u4e00" <= char <= "\u9fff" for char in value)
+    return any("\u0900" <= char <= "\u09ff" or "\u4e00" <= char <= "\u9fff" for char in value)
 
 
 def _is_excluded(span: str) -> bool:
@@ -360,8 +360,52 @@ def correct_spelling(text: str) -> str:
     return re.sub(r"[A-Za-z']+", repl, text)
 
 
+def detect_unsupported_language_script(text: str) -> str | None:
+    """Detect majority-Devanagari or majority-Assamese script characters in text.
+
+    Returns 'devanagari' if Devanagari is the dominant script,
+    'assamese' if Assamese/Bengali is the dominant script,
+    or None if the text is primarily English/Latin or supported.
+    """
+    if not text or not text.strip():
+        return None
+
+    devanagari_count = sum(1 for ch in text if "\u0900" <= ch <= "\u097f")
+    assamese_count = sum(1 for ch in text if "\u0980" <= ch <= "\u09ff")
+    latin_count = sum(1 for ch in text if ("a" <= ch <= "z" or "A" <= ch <= "Z"))
+
+    indic_total = devanagari_count + assamese_count
+    if indic_total == 0:
+        return None
+
+    if indic_total > latin_count:
+        if devanagari_count >= assamese_count:
+            return "devanagari"
+        return "assamese"
+
+    return None
+
+
 def preprocess(raw_text: str) -> dict:
     """Full preprocessing pipeline. Output keys are backward-compatible."""
+    unsupported_script = detect_unsupported_language_script(raw_text)
+    if unsupported_script:
+        redacted, pii_count = redact_pii(raw_text)
+        return {
+            "raw_text_redacted": redacted,
+            "processed_text": redacted,
+            "pii_replacements": pii_count,
+            "pii_redacted": True,
+            "preprocessing_version": PREPROCESSING_VERSION,
+            "negation_detection_enabled": False,
+            "negation_detection_method": "unsupported_language",
+            "negated_phrases": [],
+            "language_unsupported": True,
+            "detected_script": unsupported_script,
+            "classification_state": "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW",
+            "requires_analyst_review": True,
+        }
+
     redacted, pii_count = redact_pii(raw_text)
     spelled = correct_spelling(redacted)
     expanded = expand_abbreviations(spelled)
@@ -379,4 +423,9 @@ def preprocess(raw_text: str) -> dict:
         "negation_detection_enabled": settings.negation_detection_enabled,
         "negation_detection_method": negation.method if negation else "disabled",
         "negated_phrases": negation.negated_phrases if negation else [],
+        "language_unsupported": False,
+        "detected_script": None,
+        "classification_state": None,
+        "requires_analyst_review": False,
     }
+

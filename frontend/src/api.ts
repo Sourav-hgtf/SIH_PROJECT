@@ -19,6 +19,8 @@ export type LsrRuleMetadata = {
   name: string;
   short_name: string;
   description: string;
+  is_iogp_canonical?: boolean;
+  rule_type?: string;
   related_energy_types: string[];
   related_exposure_types: string[];
   related_barrier_types: string[];
@@ -75,7 +77,11 @@ export type LifecycleStatus =
   | "REOPENED"
   | "REJECTED";
 
-export type SifClassificationState = "SIF_LIKELY" | "UNCERTAIN" | "NON_SIF";
+export type SifClassificationState =
+  | "SIF_LIKELY"
+  | "UNCERTAIN"
+  | "NON_SIF"
+  | "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW";
 
 export type ReportReviewOut = {
   id: string;
@@ -109,7 +115,7 @@ export type LifecycleKpiOut = {
   overdue_actions: number;
   resolved_cases: number;
   reopened_cases: number;
-  agreement_rate: number;
+  agreement_rate: number | null;
   total_cases: number;
 };
 
@@ -117,12 +123,12 @@ export type AgreementAnalyticsOut = {
   total_reviewed: number;
   confirm_count: number;
   override_count: number;
-  agreement_rate: number;
-  override_rate: number;
+  agreement_rate: number | null;
+  override_rate: number | null;
   false_positive_count: number;
   false_negative_count: number;
   reason_breakdown: Record<string, number>;
-  monthly_trend: Array<{ month: string; confirmed: number; overridden: number; agreement_rate: number }>;
+  monthly_trend: Array<{ month: string; confirmed: number; overridden: number; agreement_rate: number | null }>;
 };
 
 export type LabelState = "SIF" | "NON_SIF" | "UNCERTAIN" | "UNLABELED";
@@ -160,9 +166,9 @@ export type ReviewerAgreementSummaryOut = {
   total_comparison_pairs: number;
   consensus_agreements: number;
   disagreements: number;
-  cohens_kappa: number;
-  observed_agreement: number;
-  expected_agreement: number;
+  cohens_kappa: number | null;
+  observed_agreement: number | null;
+  expected_agreement: number | null;
   sample_size: number;
   interpretation: string;
 };
@@ -350,11 +356,11 @@ export type ConfusionMatrixOut = {
 export type ModelHealthOut = {
   total_reviewed: number;
   insufficient_data: boolean;
-  agreement_rate: number;
-  cohen_kappa: number;
+  agreement_rate: number | null;
+  cohen_kappa: number | null;
   confusion_matrix: ConfusionMatrixOut;
-  false_positive_rate: number;
-  false_negative_rate: number;
+  false_positive_rate: number | null;
+  false_negative_rate: number | null;
   agreement_by_model_version: Record<string, number>;
 };
 

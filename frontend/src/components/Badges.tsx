@@ -1,3 +1,5 @@
+import { formatPercent } from "../utils/format";
+
 export function riskTier(sifLabel?: boolean | null, probability?: number | null): "critical" | "medium" | "low" | "unclassified" {
   if (sifLabel == null) return "unclassified";
   if (sifLabel && (probability ?? 0) >= 0.7) return "critical";
@@ -5,8 +7,8 @@ export function riskTier(sifLabel?: boolean | null, probability?: number | null)
   return "low";
 }
 
-export function RiskBadge({ sifLabel, probability, classificationState }: { sifLabel?: boolean | null; probability?: number | null; classificationState?: "SIF_LIKELY" | "UNCERTAIN" | "NON_SIF" | null }) {
-  if (classificationState === "UNCERTAIN") {
+export function RiskBadge({ sifLabel, probability, classificationState }: { sifLabel?: boolean | null; probability?: number | null; classificationState?: "SIF_LIKELY" | "UNCERTAIN" | "NON_SIF" | "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW" | null }) {
+  if (classificationState === "UNCERTAIN" || classificationState === "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-amber-900">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Analyst review required
@@ -39,7 +41,7 @@ export function ConfidenceBar({ value, sifLabel }: { value?: number | null; sifL
       <span className="h-1.5 w-10 overflow-hidden rounded-full bg-muted">
         <span className={`block h-full ${fill}`} style={{ width: `${pct}%` }} />
       </span>
-      <span className="text-[11px] text-warm">{pct}%</span>
+      <span className="text-[11px] text-warm">{formatPercent(value)}</span>
     </span>
   );
 }
@@ -55,7 +57,7 @@ export function LsrChip({
   ruleId?: string;
   confidence?: number;
 }) {
-  const confText = confidence != null ? `${Math.round(confidence * 100)}%` : null;
+  const confText = confidence != null ? formatPercent(confidence) : null;
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border border-cyan-edge bg-cyan-edge/5 px-2.5 py-0.5 text-[11px] font-medium text-ink"
@@ -176,7 +178,7 @@ export function PriorityBreakdownCard({ priority }: { priority: PriorityOut }) {
                 <span className="font-mono text-muted-foreground">
                   +{comp.weighted_score.toFixed(1)} pts{" "}
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({(comp.weight * 100).toFixed(0)}% wt · raw: {String(comp.raw_value)})
+                    ({formatPercent(comp.weight)} wt · raw: {String(comp.raw_value)})
                   </span>
                 </span>
               </div>
@@ -297,7 +299,7 @@ export function AiPredictionBadge({
   return (
     <span className="inline-flex items-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-800" title={`Model: ${modelVersion || "unknown"}`}>
       <span>AI: {aiLabel ? "SIF" : "Non-SIF"}</span>
-      <span className="font-mono">{aiProbability != null ? Math.round(aiProbability * 100) : "—"}%</span>
+      <span className="font-mono">{formatPercent(aiProbability)}</span>
     </span>
   );
 }

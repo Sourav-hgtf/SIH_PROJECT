@@ -44,6 +44,17 @@ CACHE_DIR = Path(__file__).resolve().parents[3] / "data" / "model_artifacts" / "
 
 _MODEL_INSTANCE: Any = None
 _DEVICE: str = "cpu"
+_WARNING_LOGGED: bool = False
+_LOAD_FAILED: bool = False
+
+
+def reset_embedding_cache() -> None:
+    """Reset module-level cache and warning flags."""
+    global _MODEL_INSTANCE, _DEVICE, _WARNING_LOGGED, _LOAD_FAILED
+    _MODEL_INSTANCE = None
+    _DEVICE = "cpu"
+    _WARNING_LOGGED = False
+    _LOAD_FAILED = False
 
 
 def get_preferred_device() -> str:
@@ -61,33 +72,47 @@ def get_preferred_device() -> str:
 
 def get_embedding_model(model_name: str = DEFAULT_EMBEDDING_MODEL) -> Any:
     """Load and cache SentenceTransformer model locally."""
-    global _MODEL_INSTANCE, _DEVICE
+    global _MODEL_INSTANCE, _DEVICE, _WARNING_LOGGED, _LOAD_FAILED
     if _MODEL_INSTANCE is not None:
         return _MODEL_INSTANCE
+
+    if _LOAD_FAILED:
+        if not _WARNING_LOGGED:
+            logger.warning("Embedding model unavailable")
+            _WARNING_LOGGED = True
+        raise RuntimeError("Embedding model unavailable")
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     _DEVICE = get_preferred_device()
     logger.info(f"Loading local embedding model '{model_name}' on device '{_DEVICE}' (cache={CACHE_DIR})")
 
-    from sentence_transformers import SentenceTransformer
-
-    # Attempt to load from local cache first, or download once and cache locally
     try:
-        _MODEL_INSTANCE = SentenceTransformer(
-            model_name,
-            device=_DEVICE,
-            cache_folder=str(CACHE_DIR),
-            local_files_only=True,
-        )
+        from sentence_transformers import SentenceTransformer
+
+        # Attempt to load from local cache first, or download once and cache locally
+        try:
+            _MODEL_INSTANCE = SentenceTransformer(
+                model_name,
+                device=_DEVICE,
+                cache_folder=str(CACHE_DIR),
+                local_files_only=True,
+            )
+        except Exception as e:
+            if not _WARNING_LOGGED:
+                logger.warning(f"Failed to load with default settings, attempting CPU fallback: {e}")
+            _DEVICE = "cpu"
+            _MODEL_INSTANCE = SentenceTransformer(
+                model_name,
+                device="cpu",
+                cache_folder=str(CACHE_DIR),
+                local_files_only=True,
+            )
     except Exception as e:
-        logger.warning(f"Failed to load with default settings, attempting CPU fallback: {e}")
-        _DEVICE = "cpu"
-        _MODEL_INSTANCE = SentenceTransformer(
-            model_name,
-            device="cpu",
-            cache_folder=str(CACHE_DIR),
-            local_files_only=True,
-        )
+        _LOAD_FAILED = True
+        if not _WARNING_LOGGED:
+            logger.warning(f"Embedding model unavailable: {e}")
+            _WARNING_LOGGED = True
+        raise RuntimeError(f"Embedding model unavailable: {e}") from e
 
     return _MODEL_INSTANCE
 

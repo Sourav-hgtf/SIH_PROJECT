@@ -19,64 +19,64 @@ Every route below passed the unauthenticated/malformed safety sweep described ab
 
 | Route | Inputs | Expected output | Status |
 |---|---|---|---|
-| `GET /health` | none | process liveness JSON | PENDING |
-| `GET /health/readiness` | none | DB/model readiness JSON or 503 | PENDING |
-| `GET /model-info` | bearer token | model/version/provenance/integrity JSON | PENDING |
-| `POST /predict` | `PredictRequest` | `PredictResponse` with redacted processed text | PENDING |
-| `POST /v1/auth/login` | `LoginRequest` | access and refresh tokens | PENDING |
-| `POST /v1/auth/refresh` | `RefreshRequest` | rotated access and refresh tokens | PENDING |
-| `GET /v1/auth/me` | bearer token | current `UserOut` | PENDING |
-| `GET /v1/reports` | query filters, page, page_size | paginated report summaries | PENDING |
-| `POST /v1/reports` | `ReportCreate` | created report summary | PENDING |
-| `GET /v1/reports/triage-progress` | optional site query | triage progress JSON | PENDING |
-| `GET /v1/reports/reviewer-agreement` | bearer token | reviewer agreement JSON | PENDING |
-| `GET /v1/reports/{id}` | report ID | report detail | PENDING |
-| `POST /v1/reports/{id}/label-review` | `LabelReviewIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/confirm` | `ReportConfirmIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/override` | `ReportOverrideIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/lsr-review` | `LsrReviewIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/precursor-review` | `PrecursorReviewIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/priority-review` | `PriorityAdjustmentIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/resolve` | `CaseResolutionIn` | updated report detail | PENDING |
-| `POST /v1/reports/{id}/reopen` | `CaseReopenIn` | updated report detail | PENDING |
-| `GET /v1/reports/{id}/label-history` | report ID | label review history | PENDING |
-| `GET /v1/reports/{id}/timeline` | report ID | chronological timeline | PENDING |
-| `GET /v1/reports/{id}/classification` | report ID | SIF classification | PENDING |
-| `GET /v1/reports/{id}/tags` | report ID | LSR tag list | PENDING |
-| `GET /v1/lsr-rules` | bearer token | canonical LSR metadata | PENDING |
-| `GET /v1/clusters` | site/sort query | precursor cluster list | PENDING |
-| `GET /v1/clusters/{id}` | cluster ID | cluster detail | PENDING |
-| `GET /v1/clusters/{id}/recommendations` | cluster ID | recommendation list | PENDING |
-| `GET /v1/dashboard/sites` | bearer token | visible sites | PENDING |
-| `GET /v1/dashboard/filter-options` | bearer token | filter values | PENDING |
-| `GET /v1/dashboard/sif-density` | group/filter query | density rows | PENDING |
-| `GET /v1/dashboard/lsr-distribution` | filter query | LSR distribution | PENDING |
-| `GET /v1/dashboard/trend` | interval/filter query | trend rows | PENDING |
-| `GET /v1/dashboard/kpis` | filter query | KPI JSON | PENDING |
-| `GET /v1/dashboard/lifecycle-kpis` | bearer token | lifecycle KPI JSON | PENDING |
-| `GET /v1/dashboard/agreement-analytics` | bearer token | agreement analytics | PENDING |
-| `GET /v1/dashboard/priority-summary` | filter query | priority rows | PENDING |
-| `GET /v1/dashboard/model-health` | bearer token | model health | PENDING |
-| `GET /v1/dashboard/error-analysis` | bearer token | error analysis | PENDING |
-| `GET /v1/dashboard/model-drift` | bearer token | drift state | PENDING |
-| `GET /v1/dashboard/intervention-effectiveness` | bearer token | intervention metrics | PENDING |
-| `GET /v1/dashboard/recommended-focus-areas` | optional limit query | focus areas | PENDING |
-| `POST /v1/feedback` | `FeedbackCreate` | feedback record | PENDING |
-| `POST /v1/ingestion/validate-file` | multipart file | ingestion quality report | PENDING |
-| `POST /v1/ingestion/validate-json` | array of upload rows | ingestion quality report | PENDING |
-| `POST /v1/ingestion/confirm` | `IngestionConfirmRequest` | 202 ingestion job | PENDING |
-| `GET /v1/ingestion/jobs` | optional limit query | ingestion jobs | PENDING |
-| `GET /v1/ingestion/jobs/{id}` | job ID | ingestion job | PENDING |
-| `GET /v1/ingestion/template` | bearer token | sample CSV response | PENDING |
-| `POST /v1/admin/training-runs` | admin token | 201 training run | PENDING |
-| `GET /v1/admin/training-runs` | admin token | training runs | PENDING |
-| `GET /v1/admin/model-evaluation` | leadership/admin token | evaluation dashboard | PENDING |
-| `GET /v1/admin/users` | admin token | users | PENDING |
-| `POST /v1/admin/users` | `UserCreate`, admin token | 201 user | PENDING |
-| `GET /v1/admin/audit-log` | filters, admin token | audit log | PENDING |
-| `GET /v1/admin/priority-config` | analyst/admin token | priority config | PENDING |
-| `GET/POST /v1/recommendations/{id}/{accept,edit,reject,implement,resolve}` | recommendation ID and action schema where required | updated recommendation | PENDING |
-| `GET /v1/reports/{id}/recommendations` | report ID | recommendation list | PENDING |
+| `GET /health` | none | process liveness JSON | TESTED |
+| `GET /health/readiness` | none | DB/model readiness JSON or 503 | TESTED |
+| `GET /model-info` | bearer token | model/version/provenance/integrity JSON | TESTED |
+| `POST /predict` | `PredictRequest` | `PredictResponse` with redacted processed text | TESTED |
+| `POST /v1/auth/login` | `LoginRequest` | access and refresh tokens | TESTED |
+| `POST /v1/auth/refresh` | `RefreshRequest` | rotated access and refresh tokens | TESTED |
+| `GET /v1/auth/me` | bearer token | current `UserOut` | TESTED |
+| `GET /v1/reports` | query filters, page, page_size | paginated report summaries | TESTED |
+| `POST /v1/reports` | `ReportCreate` | created report summary | TESTED |
+| `GET /v1/reports/triage-progress` | optional site query | triage progress JSON | TESTED |
+| `GET /v1/reports/reviewer-agreement` | bearer token | reviewer agreement JSON | TESTED |
+| `GET /v1/reports/{id}` | report ID | report detail | TESTED |
+| `POST /v1/reports/{id}/label-review` | `LabelReviewIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/confirm` | `ReportConfirmIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/override` | `ReportOverrideIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/lsr-review` | `LsrReviewIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/precursor-review` | `PrecursorReviewIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/priority-review` | `PriorityAdjustmentIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/resolve` | `CaseResolutionIn` | updated report detail | TESTED |
+| `POST /v1/reports/{id}/reopen` | `CaseReopenIn` | updated report detail | TESTED |
+| `GET /v1/reports/{id}/label-history` | report ID | label review history | TESTED |
+| `GET /v1/reports/{id}/timeline` | report ID | chronological timeline | TESTED |
+| `GET /v1/reports/{id}/classification` | report ID | SIF classification | TESTED |
+| `GET /v1/reports/{id}/tags` | report ID | LSR tag list | TESTED |
+| `GET /v1/lsr-rules` | bearer token | canonical LSR metadata | TESTED |
+| `GET /v1/clusters` | site/sort query | precursor cluster list | TESTED |
+| `GET /v1/clusters/{id}` | cluster ID | cluster detail | TESTED |
+| `GET /v1/clusters/{id}/recommendations` | cluster ID | recommendation list | TESTED |
+| `GET /v1/dashboard/sites` | bearer token | visible sites | TESTED |
+| `GET /v1/dashboard/filter-options` | bearer token | filter values | TESTED |
+| `GET /v1/dashboard/sif-density` | group/filter query | density rows | TESTED |
+| `GET /v1/dashboard/lsr-distribution` | filter query | LSR distribution | TESTED |
+| `GET /v1/dashboard/trend` | interval/filter query | trend rows | TESTED |
+| `GET /v1/dashboard/kpis` | filter query | KPI JSON | TESTED |
+| `GET /v1/dashboard/lifecycle-kpis` | bearer token | lifecycle KPI JSON | TESTED |
+| `GET /v1/dashboard/agreement-analytics` | bearer token | agreement analytics | TESTED |
+| `GET /v1/dashboard/priority-summary` | filter query | priority rows | TESTED |
+| `GET /v1/dashboard/model-health` | bearer token | model health | TESTED |
+| `GET /v1/dashboard/error-analysis` | bearer token | error analysis | TESTED |
+| `GET /v1/dashboard/model-drift` | bearer token | drift state | TESTED |
+| `GET /v1/dashboard/intervention-effectiveness` | bearer token | intervention metrics | TESTED |
+| `GET /v1/dashboard/recommended-focus-areas` | optional limit query | focus areas | TESTED |
+| `POST /v1/feedback` | `FeedbackCreate` | feedback record | TESTED |
+| `POST /v1/ingestion/validate-file` | multipart file | ingestion quality report | TESTED |
+| `POST /v1/ingestion/validate-json` | array of upload rows | ingestion quality report | TESTED |
+| `POST /v1/ingestion/confirm` | `IngestionConfirmRequest` | 202 ingestion job | TESTED |
+| `GET /v1/ingestion/jobs` | optional limit query | ingestion jobs | TESTED |
+| `GET /v1/ingestion/jobs/{id}` | job ID | ingestion job | TESTED |
+| `GET /v1/ingestion/template` | bearer token | sample CSV response | TESTED |
+| `POST /v1/admin/training-runs` | admin token | 201 training run | TESTED |
+| `GET /v1/admin/training-runs` | admin token | training runs | TESTED |
+| `GET /v1/admin/model-evaluation` | leadership/admin token | evaluation dashboard | TESTED |
+| `GET /v1/admin/users` | admin token | users | TESTED |
+| `POST /v1/admin/users` | `UserCreate`, admin token | 201 user | TESTED |
+| `GET /v1/admin/audit-log` | filters, admin token | audit log | TESTED |
+| `GET /v1/admin/priority-config` | analyst/admin token | priority config | TESTED |
+| `GET/POST /v1/recommendations/{id}/{accept,edit,reject,implement,resolve}` | recommendation ID and action schema where required | updated recommendation | TESTED |
+| `GET /v1/reports/{id}/recommendations` | report ID | recommendation list | TESTED |
 
 ## Frontend interaction inventory
 

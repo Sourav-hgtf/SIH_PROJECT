@@ -11,6 +11,16 @@ def process_report_text(
 ) -> dict:
     """Full NLP pipeline: preprocess → classify SIF → tag LSR → extract precursors (semantic)."""
     cleaned = preprocess(raw_text)
+    if cleaned.get("language_unsupported"):
+        classification = classify_sif(cleaned["processed_text"], threshold=threshold)
+        return {
+            **cleaned,
+            "classification": classification,
+            "lsr_tags": [],
+            "triple": None,
+            "precursor": None,
+        }
+
     classification = classify_sif(cleaned["processed_text"], threshold=threshold)
     tags = tag_life_saving_rules(cleaned["processed_text"])
 

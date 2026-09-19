@@ -23,6 +23,7 @@ CANONICAL_LSR_COUNT = 12
 class LsrRuleConfig(BaseModel):
     id: str = Field(..., description="Unique rule ID, e.g. LSR01 to LSR12")
     name: str = Field(..., description="Full canonical rule name")
+    is_iogp_canonical: bool = Field(default=True, description="Whether this rule belongs to IOGP official Core 9")
     short_name: str = Field(..., description="Short canonical display name")
     description: str = Field(..., description="Safety intent and requirement")
     keywords: list[str] = Field(default_factory=list, description="Single token triggers")
@@ -165,6 +166,8 @@ def get_canonical_rule_metadata() -> list[dict[str, Any]]:
             "name": r.name,
             "short_name": r.short_name,
             "description": r.description,
+            "is_iogp_canonical": r.is_iogp_canonical,
+            "rule_type": "IOGP Core 9" if r.is_iogp_canonical else "OIL-specific extension",
             "related_energy_types": r.related_energy_types,
             "related_exposure_types": r.related_exposure_types,
             "related_barrier_types": r.related_barrier_types,

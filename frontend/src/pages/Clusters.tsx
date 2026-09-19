@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Cluster, type Recommendation, type ReportSummary } from "../api";
 import { ConfidenceBar, PriorityBadge, PriorityBreakdownCard, RiskBadge } from "../components/Badges";
+import { formatPercent } from "../utils/format";
 
 function trendMark(status: string) {
   if (status === "growing") return { icon: "▲", cls: "text-risk-medium" };
@@ -157,7 +158,7 @@ export function ClusterDetailPage() {
                   <div key={cr.id} className="rounded-lg border border-border bg-canvas/40 p-3">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-semibold uppercase tracking-wider text-warm">{cr.category.replace("_", " ")}</span>
-                      <span className="font-medium text-ink">{Math.round(cr.confidence * 100)}% support</span>
+                      <span className="font-medium text-ink">{formatPercent(cr.confidence)} support</span>
                     </div>
                     <h3 className="mt-1 text-xs font-semibold text-ink">{cr.title}</h3>
                     <p className="mt-1 text-xs leading-relaxed text-ink/90 font-medium">{cr.action}</p>

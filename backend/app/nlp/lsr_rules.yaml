@@ -6,6 +6,7 @@
 rules:
   - id: "LSR01"
     name: "Bypassing Safety Controls"
+    is_iogp_canonical: true
     short_name: "Bypassing Controls"
     description: "Obtain authorization before overriding, disabling, or bypassing safety controls and interlocks."
     keywords:
@@ -46,6 +47,7 @@ rules:
 
   - id: "LSR02"
     name: "Confined Space"
+    is_iogp_canonical: true
     short_name: "Confined Space"
     description: "Obtain authorization and verify atmospheric testing before entering a confined space."
     keywords:
@@ -84,6 +86,7 @@ rules:
 
   - id: "LSR03"
     name: "Driving"
+    is_iogp_canonical: true
     short_name: "Driving Safety"
     description: "Follow journey management rules, wear seatbelts, obey speed limits, and avoid distractions while driving."
     keywords:
@@ -119,6 +122,7 @@ rules:
 
   - id: "LSR04"
     name: "Energy Isolation"
+    is_iogp_canonical: true
     short_name: "Energy Isolation"
     description: "Verify isolation and zero energy state before work begins; apply Lock-Out/Tag-Out (LOTO)."
     keywords:
@@ -162,6 +166,7 @@ rules:
 
   - id: "LSR05"
     name: "Hot Work"
+    is_iogp_canonical: true
     short_name: "Hot Work"
     description: "Control flammables and ignition sources, perform gas tests, and maintain fire watch during hot work."
     keywords:
@@ -197,6 +202,7 @@ rules:
 
   - id: "LSR06"
     name: "Line of Fire"
+    is_iogp_canonical: true
     short_name: "Line of Fire"
     description: "Position yourself and others outside the path of moving objects, dropped objects, and released energy."
     keywords:
@@ -235,6 +241,7 @@ rules:
 
   - id: "LSR07"
     name: "Safe Mechanical Lifting"
+    is_iogp_canonical: true
     short_name: "Mechanical Lifting"
     description: "Plan lifting operations, inspect rigging, establish exclusion zones, and never walk under a suspended load."
     keywords:
@@ -274,6 +281,7 @@ rules:
 
   - id: "LSR08"
     name: "Managing Change"
+    is_iogp_canonical: false
     short_name: "Managing Change"
     description: "Manage and document all organizational, procedural, equipment, or design changes through formal MOC."
     keywords:
@@ -305,6 +313,7 @@ rules:
 
   - id: "LSR09"
     name: "Fit for Duty"
+    is_iogp_canonical: false
     short_name: "Fit for Duty"
     description: "Ensure mental and physical readiness for work, free from the effects of fatigue, illness, drugs, or alcohol."
     keywords:
@@ -334,6 +343,7 @@ rules:
 
   - id: "LSR10"
     name: "Work Authorization"
+    is_iogp_canonical: true
     short_name: "Work Authorization"
     description: "Confirm that a valid Permit to Work (PTW) is issued, hazards are assessed, and controls are in place before starting work."
     keywords:
@@ -372,6 +382,7 @@ rules:
 
   - id: "LSR11"
     name: "Working at Height"
+    is_iogp_canonical: true
     short_name: "Working at Height"
     description: "Protect against falls from height, inspect scaffolding, use certified fall arrest systems, and secure loose tools."
     keywords:
@@ -407,6 +418,7 @@ rules:
 
   - id: "LSR12"
     name: "Personal Protective Equipment"
+    is_iogp_canonical: false
     short_name: "PPE"
     description: "Wear the correct personal protective equipment (PPE) specified for the hazard and task."
     keywords:

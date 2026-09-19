@@ -348,6 +348,11 @@ def test_cohens_kappa_calculation():
     k_dis = calculate_cohens_kappa(r3, r4)
     assert k_dis["observed_agreement"] == 0.0
 
+    # Empty sample fallback - must return None instead of fabricating 1.0
+    k_empty = calculate_cohens_kappa([], [])
+    assert k_empty["cohens_kappa"] is None
+    assert k_empty["observed_agreement"] is None
+
 
 def test_reviewer_agreement_endpoint(client):
     token = create_token("user-analyst-1", "access", 60)

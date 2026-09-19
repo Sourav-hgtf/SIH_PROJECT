@@ -167,9 +167,31 @@ def predict_sif_details(text: str) -> dict[str, Any]:
 
     Returns structured inference payload with complete version and threshold metadata.
     """
-    # 1. Consistent preprocessing (PII redaction, spelling, abbreviation expansion)
     prep = preprocess(text)
     processed_text = prep["processed_text"]
+
+    if prep.get("language_unsupported"):
+        return {
+            "sif_probability": 0.0,
+            "calibrated_sif_probability": None,
+            "is_calibrated": False,
+            "calibration_status": "LANGUAGE_UNSUPPORTED",
+            "sif_potential": False,
+            "classification_state": "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW",
+            "requires_analyst_review": True,
+            "model_version": "unsupported-language-fallback",
+            "feature_version": "not-invoked",
+            "preprocessing_version": PREPROCESSING_VERSION,
+            "dataset_version": "not-invoked",
+            "calibration_version": "not-invoked",
+            "threshold_version": "not-invoked",
+            "threshold": settings.sif_threshold,
+            "training_run_id": "",
+            "processed_text": processed_text,
+            "processing_error": "LANGUAGE_UNSUPPORTED_NEEDS_REVIEW",
+            "language_unsupported": True,
+            "detected_script": prep.get("detected_script"),
+        }
 
     # This must occur before vectorization or estimator prediction. Do not log
     # the rejected content: callers receive a stable, non-sensitive code only.

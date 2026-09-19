@@ -11,6 +11,7 @@ import {
   PriorityBadge,
   RiskBadge,
 } from "../components/Badges";
+import { formatPercent } from "../utils/format";
 
 type LifecycleTab = "PENDING_REVIEW" | "REVIEWED" | "OPEN_ACTIONS" | "RESOLVED" | "REOPENED" | "ALL";
 
@@ -312,7 +313,7 @@ export function TriagePage() {
                 <p className="text-sm text-ink leading-relaxed"><span className="font-semibold">Evidence:</span> {row.excerpt}</p>
 
                 <div className="text-[11px] text-warm">
-                  <span className="font-semibold text-ink">AI:</span> {row.ai_prediction?.ai_label ?? row.sif_label ? "SIF Potential" : "Non-SIF"} · {Math.round((row.ai_prediction?.ai_probability ?? row.sif_probability ?? 0) * 100)}% · {row.ai_prediction?.model_version || "Model version unavailable"}
+                  <span className="font-semibold text-ink">AI:</span> {row.ai_prediction?.ai_label ?? row.sif_label ? "SIF Potential" : "Non-SIF"} · {formatPercent(row.ai_prediction?.ai_probability ?? row.sif_probability ?? 0)} · {row.ai_prediction?.model_version || "Model version unavailable"}
                 </div>
 
                 <div className="text-[11px] text-warm"><span className="font-semibold text-ink">Precursor:</span> {row.precursor_summary || "Not detected"}</div>
