@@ -17,6 +17,8 @@ from app.schemas import (
     ModelTrainingRunOut,
     UserCreate,
     UserOut,
+    UserToggleActive,
+    UserUpdate,
 )
 from app.services import write_audit
 from app.training import run_feedback_calibration
@@ -183,6 +185,140 @@ def create_user(
         email=user.email,
         is_active=user.is_active,
     )
+
+
+@router.patch("/users/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: str,
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles("admin")),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    before_state = {
+        "role": user.role,
+        "site_scope": user.site_scope or [],
+        "email": user.email,
+        "is_active": user.is_active,
+    }
+
+    if body.role is not None:
+        user.role = body.role
+    if body.site_scope is not None:
+        user.site_scope = body.site_scope
+    if body.email is not None:
+        user.email = body.email
+    if body.is_active is not None:
+        if admin.id == user.id and not body.is_active:
+            raise HTTPException(status_code=400, detail="Cannot deactivate your own active admin account")
+        user.is_active = body.is_active
+    if body.password is not None and body.password.strip():
+        user.password_hash = hash_password(body.password.strip())
+
+    after_state = {
+        "role": user.role,
+        "site_scope": user.site_scope or [],
+        "email": user.email,
+        "is_active": user.is_active,
+        "password_changed": bool(body.password and body.password.strip()),
+    }
+
+    write_audit(
+        db,
+        "user_updated",
+        "user",
+        user.id,
+        user_id=admin.id,
+        before=before_state,
+        after=after_state,
+    )
+    db.commit()
+    db.refresh(user)
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        role=user.role,  # type: ignore[arg-type]
+        site_scope=user.site_scope or [],
+        email=user.email,
+        is_active=user.is_active,
+    )
+
+
+@router.post("/users/{user_id}/toggle-active", response_model=UserOut)
+def toggle_user_active(
+    user_id: str,
+    body: UserToggleActive,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles("admin")),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if admin.id == user.id and not body.is_active:
+        raise HTTPException(status_code=400, detail="Cannot deactivate your own active admin account")
+
+    before_val = {"is_active": user.is_active}
+    user.is_active = body.is_active
+    after_val = {"is_active": user.is_active}
+
+    write_audit(
+        db,
+        "user_status_changed",
+        "user",
+        user.id,
+        user_id=admin.id,
+        before=before_val,
+        after=after_val,
+    )
+    db.commit()
+    db.refresh(user)
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        role=user.role,  # type: ignore[arg-type]
+        site_scope=user.site_scope or [],
+        email=user.email,
+        is_active=user.is_active,
+    )
+
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles("admin")),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if admin.id == user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own active admin account")
+
+    username = user.username
+    before_state = {
+        "username": user.username,
+        "role": user.role,
+        "email": user.email,
+        "is_active": user.is_active,
+    }
+
+    db.delete(user)
+    write_audit(
+        db,
+        "user_deleted",
+        "user",
+        user_id,
+        user_id=admin.id,
+        before=before_state,
+        after=None,
+    )
+    db.commit()
+    return {"message": f"User '{username}' deleted successfully"}
 
 
 @router.get("/audit-log", response_model=list[AuditLogEntry])

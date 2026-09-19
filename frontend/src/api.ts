@@ -566,7 +566,13 @@ export const api = {
     request("/v1/feedback", { method: "POST", body: JSON.stringify(body) }),
   users: () => request<Array<{ id: string; username: string; role: Role; site_scope: string[]; is_active: boolean; email?: string }>>("/v1/admin/users"),
   createUser: (body: Record<string, unknown>) =>
-    request("/v1/admin/users", { method: "POST", body: JSON.stringify(body) }),
+    request<{ id: string; username: string; role: Role; site_scope: string[]; is_active: boolean; email?: string }>("/v1/admin/users", { method: "POST", body: JSON.stringify(body) }),
+  updateUser: (id: string, body: Record<string, unknown>) =>
+    request<{ id: string; username: string; role: Role; site_scope: string[]; is_active: boolean; email?: string }>(`/v1/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  toggleUserActive: (id: string, is_active: boolean) =>
+    request<{ id: string; username: string; role: Role; site_scope: string[]; is_active: boolean; email?: string }>(`/v1/admin/users/${id}/toggle-active`, { method: "POST", body: JSON.stringify({ is_active }) }),
+  deleteUser: (id: string) =>
+    request<{ message: string }>(`/v1/admin/users/${id}`, { method: "DELETE" }),
   audit: () => request<Array<{ id: string; user_id: string | null; action_type: string; entity_type: string; entity_id: string | null; created_at: string }>>("/v1/admin/audit-log"),
   trainingRuns: () =>
     request<Array<{ id: string; model_version: string; feedback_count: number; metrics_before: Record<string, number>; metrics_after: Record<string, number>; created_at: string }>>(

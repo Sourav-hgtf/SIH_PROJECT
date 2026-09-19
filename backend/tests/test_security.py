@@ -130,3 +130,82 @@ def test_health_and_readiness_endpoints():
     data = readiness_res.json()
     assert "database" in data
     assert "model_integrity" in data
+
+
+def test_admin_user_management_crud_and_audit():
+    db = SessionLocal()
+    try:
+        admin_user = db.query(User).filter(User.role == "admin").first()
+        if not admin_user:
+            admin_user = User(username="admin_test_mgr", password_hash=hash_password("admin123"), role="admin")
+            db.add(admin_user)
+            db.commit()
+        admin_token = create_token(admin_user.id, "access", minutes=60)
+        auth_header = {"Authorization": f"Bearer {admin_token}"}
+
+        # 1. Create a user
+        create_res = client.post(
+            "/v1/admin/users",
+            json={
+                "username": "test_field_lead",
+                "password": "password123",
+                "role": "site_manager",
+                "site_scope": ["Duliajan GCS"],
+                "email": "lead@oilindia.example",
+            },
+            headers=auth_header,
+        )
+        assert create_res.status_code == 201
+        created_data = create_res.json()
+        user_id = created_data["id"]
+        assert created_data["username"] == "test_field_lead"
+        assert created_data["role"] == "site_manager"
+        assert created_data["site_scope"] == ["Duliajan GCS"]
+
+        # 2. Update user role and site_scope
+        update_res = client.patch(
+            f"/v1/admin/users/{user_id}",
+            json={
+                "role": "analyst",
+                "site_scope": ["Duliajan GCS", "Digboi Refinery Area"],
+                "email": "analyst.lead@oilindia.example",
+            },
+            headers=auth_header,
+        )
+        assert update_res.status_code == 200
+        updated_data = update_res.json()
+        assert updated_data["role"] == "analyst"
+        assert len(updated_data["site_scope"]) == 2
+
+        # 3. Toggle active status
+        toggle_res = client.post(
+            f"/v1/admin/users/{user_id}/toggle-active",
+            json={"is_active": False},
+            headers=auth_header,
+        )
+        assert toggle_res.status_code == 200
+        assert toggle_res.json()["is_active"] is False
+
+        # 4. Self-deactivation and self-deletion protections
+        self_toggle = client.post(
+            f"/v1/admin/users/{admin_user.id}/toggle-active",
+            json={"is_active": False},
+            headers=auth_header,
+        )
+        assert self_toggle.status_code == 400
+        assert "Cannot deactivate your own" in self_toggle.json()["detail"]
+
+        self_delete = client.delete(f"/v1/admin/users/{admin_user.id}", headers=auth_header)
+        assert self_delete.status_code == 400
+        assert "Cannot delete your own" in self_delete.json()["detail"]
+
+        # 5. Delete created user
+        delete_res = client.delete(f"/v1/admin/users/{user_id}", headers=auth_header)
+        assert delete_res.status_code == 200
+
+        # Verify user is deleted
+        get_users = client.get("/v1/admin/users", headers=auth_header)
+        assert not any(u["id"] == user_id for u in get_users.json())
+    finally:
+        db.close()
+

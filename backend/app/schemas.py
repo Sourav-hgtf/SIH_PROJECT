@@ -326,6 +326,18 @@ class UserCreate(BaseModel):
     email: str | None = None
 
 
+class UserUpdate(BaseModel):
+    role: Role | None = None
+    site_scope: list[str] | None = None
+    email: str | None = None
+    is_active: bool | None = None
+    password: str | None = None
+
+
+class UserToggleActive(BaseModel):
+    is_active: bool
+
+
 class AuditLogEntry(BaseModel):
     id: str
     user_id: str | None

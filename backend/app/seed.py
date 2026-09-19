@@ -16,10 +16,20 @@ SITES = [
 ]
 
 USERS = [
-    ("analyst", "analyst123", "analyst", "hse.analyst@oilindia.example"),
-    ("manager", "manager123", "site_manager", "site.manager@oilindia.example"),
-    ("leadership", "leader123", "leadership", "hsse.lead@oilindia.example"),
-    ("admin", "admin123", "admin", "admin@oilindia.example"),
+    # Administrators (Org-wide access)
+    ("admin", "admin123", "admin", "admin@oilindia.example", []),
+    ("admin_sec", "admin123", "admin", "sec.admin@oilindia.example", []),
+    # HSE Analysts (Triage Queue, Overrides, Assigned Sites)
+    ("analyst", "analyst123", "analyst", "hse.analyst@oilindia.example", ["Duliajan GCS", "Digboi Refinery Area"]),
+    ("analyst_field", "analyst123", "analyst", "field.analyst@oilindia.example", ["Moran Field", "Jorhat Asset", "Baghjan Field"]),
+    # Site HSE Managers (Site-scoped dashboards & action tracking)
+    ("manager", "manager123", "site_manager", "manager.duliajan@oilindia.example", ["Duliajan GCS"]),
+    ("manager_digboi", "manager123", "site_manager", "manager.digboi@oilindia.example", ["Digboi Refinery Area"]),
+    ("manager_moran", "manager123", "site_manager", "manager.moran@oilindia.example", ["Moran Field"]),
+    ("manager_jorhat", "manager123", "site_manager", "manager.jorhat@oilindia.example", ["Jorhat Asset"]),
+    ("manager_baghjan", "manager123", "site_manager", "manager.baghjan@oilindia.example", ["Baghjan Field"]),
+    # HSSE Corporate Leadership (Org-wide read-only trend dashboards)
+    ("leadership", "leader123", "leadership", "hsse.lead@oilindia.example", []),
 ]
 
 
@@ -171,29 +181,43 @@ def seed_if_empty(db: Session) -> None:
     if not settings.demo_mode or settings.app_env.lower() == "production":
         return
 
-    if db.query(User).count() > 0:
-        return
-
-
+    # 1. Ensure all standard sites exist
     sites: list[Site] = []
     for name, region in SITES:
-        site = Site(name=name, region=region)
-        db.add(site)
-        sites.append(site)
+        existing_site = db.query(Site).filter(Site.name == name).first()
+        if not existing_site:
+            existing_site = Site(name=name, region=region)
+            db.add(existing_site)
+            db.flush()
+        sites.append(existing_site)
+
+    site_map = {s.name: s.id for s in sites}
+
+    # 2. Ensure all standard users exist and have updated scopes
+    for username, password, role, email, scope_names in USERS:
+        scope_ids = [site_map[s] for s in scope_names if s in site_map]
+        existing_user = db.query(User).filter(User.username == username).first()
+        if not existing_user:
+            db.add(
+                User(
+                    username=username,
+                    password_hash=hash_password(password),
+                    role=role,
+                    site_scope=scope_ids,
+                    email=email,
+                )
+            )
+        else:
+            existing_user.role = role
+            existing_user.site_scope = scope_ids
+            existing_user.email = email
+            existing_user.is_active = True
     db.flush()
 
-    duliajan = sites[0].id
-    for username, password, role, email in USERS:
-        scope = [duliajan] if role in ("analyst", "site_manager") else []
-        db.add(
-            User(
-                username=username,
-                password_hash=hash_password(password),
-                role=role,
-                site_scope=scope,
-                email=email,
-            )
-        )
+    from app.models import Report
+    if db.query(Report).count() > 0:
+        db.commit()
+        return
 
     rng = Random(7)
     count = 0
