@@ -1,14 +1,14 @@
-"""Comprehensive tests for canonical 12 IOGP Life-Saving Rules system.
+"""Comprehensive tests for canonical 9 IOGP Life-Saving Rules system.
 
 Validates:
-1. Configuration integrity (exactly 12 rules, unique IDs/names, non-empty metadata).
+1. Configuration integrity (exactly 9 rules, unique IDs/names, non-empty metadata).
 2. Fail-fast configuration validation.
-3. Classification scenarios across all hazard categories.
+3. Classification scenarios across all 9 canonical hazard categories.
 4. Negative test: zero false positives on routine low-risk text.
 5. Multi-rule classification on composite hazard reports.
 6. Structured evidence extraction (phrase, keyword, energy, barrier cross-signals).
 7. API response contracts (/v1/lsr-rules, /v1/dashboard/lsr-distribution).
-8. Dashboard canonical 12-rule ordering and zero-count inclusion.
+8. Dashboard canonical 9-rule ordering and zero-count inclusion.
 """
 
 import pytest
@@ -33,26 +33,27 @@ from app.nlp.lsr import (
 
 def test_canonical_configuration_count_and_uniqueness():
     rules = load_canonical_lsr_rules()
-    assert len(rules) == CANONICAL_LSR_COUNT == 12
+    assert len(rules) == CANONICAL_LSR_COUNT == 9
 
     ids = [r.id for r in rules]
-    assert len(set(ids)) == 12
-    # Verify IDs are LSR01 through LSR12
-    for i in range(1, 13):
+    assert len(set(ids)) == 9
+    # Verify IDs are LSR01 through LSR09
+    for i in range(1, 10):
         expected_id = f"LSR{i:02d}"
         assert expected_id in ids
 
     names = [r.name for r in rules]
-    assert len(set(names)) == 12
+    assert len(set(names)) == 9
 
     short_names = [r.short_name for r in rules]
-    assert len(set(short_names)) == 12
+    assert len(set(short_names)) == 9
 
     for r in rules:
         assert r.id
         assert r.name
         assert r.short_name
         assert r.description
+        assert r.is_iogp_canonical is True
         assert len(r.keywords) > 0
         assert len(r.phrases) > 0
 
@@ -68,14 +69,14 @@ def test_config_validation_fails_on_duplicate_or_invalid():
             keywords=[f"kw{i}"],
             phrases=[f"phrase {i}"],
         )
-        for i in range(12)
+        for i in range(9)
     ]
     with pytest.raises(ValidationError):
         LsrConfigFile(rules=bad_rules)
 
-    # Missing rules (fewer than 12)
+    # Missing rules (fewer than 9)
     with pytest.raises(ValidationError):
-        LsrConfigFile(rules=bad_rules[:10])
+        LsrConfigFile(rules=bad_rules[:7])
 
 
 def test_rule_lookups_by_id_and_name():
@@ -91,6 +92,7 @@ def test_rule_lookups_by_id_and_name():
     assert get_rule_by_name("energy_isolation") is not None
     assert get_rule_by_name("energy isolation") is not None
     assert get_rule_by_name("working_at_height") is not None
+    assert get_rule_by_name("work_authorization") is not None
 
 
 # ==========================================
@@ -107,7 +109,7 @@ def test_rule_lookups_by_id_and_name():
         ),
         (
             "Worker fell from incomplete scaffold platform. No harness worn while working at height.",
-            "LSR11",
+            "LSR09",
             "Working at Height",
         ),
         (
@@ -141,28 +143,13 @@ def test_rule_lookups_by_id_and_name():
             "Bypassing Safety Controls",
         ),
         (
-            "Temporary modification left on ESD circuit. MOC not raised and procedure deviation unapproved.",
-            "LSR08",
-            "Managing Change",
-        ),
-        (
-            "Worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.",
-            "LSR09",
-            "Fit for Duty",
-        ),
-        (
             "Work carried out without permit to work. PTW expired and JSA not done before entry.",
-            "LSR10",
+            "LSR08",
             "Work Authorization",
-        ),
-        (
-            "Worker observed with missing gloves and no safety boots. PPE reminder issued.",
-            "LSR12",
-            "Personal Protective Equipment",
         ),
     ],
 )
-def test_all_12_lsr_scenarios_detected(text, expected_rule_id, expected_rule_name):
+def test_all_9_lsr_scenarios_detected(text, expected_rule_id, expected_rule_name):
     tags = tag_life_saving_rules(text)
     matched_ids = [t["rule_id"] for t in tags]
     matched_names = [t["rule_name"] for t in tags]
@@ -203,9 +190,9 @@ def test_multi_rule_detection():
     tags = tag_life_saving_rules(text, threshold=0.50)
     rule_ids = {t["rule_id"] for t in tags}
 
-    # Must catch at least Hot Work (LSR05) and either Confined Space (LSR02) or Work Authorization (LSR10)
+    # Must catch at least Hot Work (LSR05) and either Confined Space (LSR02) or Work Authorization (LSR08)
     assert "LSR05" in rule_ids
-    assert ("LSR02" in rule_ids) or ("LSR10" in rule_ids)
+    assert ("LSR02" in rule_ids) or ("LSR08" in rule_ids)
 
 
 # ==========================================
@@ -225,7 +212,7 @@ def test_cross_signal_evidence_attached():
 
 
 # ==========================================
-# 6. DASHBOARD 12-RULE DISTRIBUTION & ZERO COUNT
+# 6. DASHBOARD 9-RULE DISTRIBUTION & ZERO COUNT
 # ==========================================
 
 def test_dashboard_lsr_distribution_structure():
@@ -236,10 +223,10 @@ def test_dashboard_lsr_distribution_structure():
         dummy_user = User(username="test_analyst", role="analyst", site_scope=[])
         dist = lsr_distribution(db=db, user=dummy_user)
 
-        # Must return exactly 12 items
-        assert len(dist) == 12
+        # Must return exactly 9 items
+        assert len(dist) == 9
 
-        # In canonical order LSR01 through LSR12
+        # In canonical order LSR01 through LSR09
         for idx, row in enumerate(dist):
             expected_id = f"LSR{idx + 1:02d}"
             assert row.rule_id == expected_id
@@ -251,19 +238,13 @@ def test_dashboard_lsr_distribution_structure():
         db.close()
 
 
-def test_lsr_rules_metadata_canonical_and_extension_classification():
+def test_lsr_rules_metadata_canonical():
     meta = get_canonical_rule_metadata()
-    assert len(meta) == 12
+    assert len(meta) == 9
 
-    canonical_9 = [r for r in meta if r["is_iogp_canonical"] is True]
-    extensions_3 = [r for r in meta if r["is_iogp_canonical"] is False]
+    assert [r["rule_id"] for r in meta] == [f"LSR{i:02d}" for i in range(1, 10)]
+    for r in meta:
+        assert r["is_iogp_canonical"] is True
+        assert r["rule_type"] == "IOGP Canonical"
 
-    assert len(canonical_9) == 9
-    assert len(extensions_3) == 3
-
-    assert {r["rule_id"] for r in extensions_3} == {"LSR08", "LSR09", "LSR12"}
-    for r in canonical_9:
-        assert r["rule_type"] == "IOGP Core 9"
-    for r in extensions_3:
-        assert r["rule_type"] == "OIL-specific extension"
 

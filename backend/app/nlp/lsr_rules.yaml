@@ -1,7 +1,7 @@
-# Canonical 12 Life-Saving Rules Configuration
+# Canonical 9 Life-Saving Rules Configuration
 # Mirror of configs/lsr_rules.yaml for backend-local packaging/deployments.
-# Framework: IOGP Life-Saving Rules used as the safety taxonomy for this prototype.
-# Total Rules: Exactly 12 rules
+# Framework: IOGP Life-Saving Rules (Report 459) used as the safety taxonomy for this prototype.
+# Total Rules: Exactly 9 rules
 
 rules:
   - id: "LSR01"
@@ -280,68 +280,6 @@ rules:
       - "tag line"
 
   - id: "LSR08"
-    name: "Managing Change"
-    is_iogp_canonical: false
-    short_name: "Managing Change"
-    description: "Manage and document all organizational, procedural, equipment, or design changes through formal MOC."
-    keywords:
-      - "moc"
-      - "modification"
-      - "deviation"
-      - "workaround"
-    phrases:
-      - "management of change"
-      - "moc not raised"
-      - "temporary modification"
-      - "procedure deviation"
-      - "unauthorized change"
-      - "design change without review"
-      - "temporary bypass left in place"
-      - "undocumented modification"
-      - "change not approved"
-      - "workaround without moc"
-      - "unapproved deviation"
-    related_energy_types:
-      - "mechanical"
-      - "electrical"
-      - "chemical"
-      - "pressure"
-    related_exposure_types: []
-    related_barrier_types:
-      - "moc"
-      - "authorization"
-
-  - id: "LSR09"
-    name: "Fit for Duty"
-    is_iogp_canonical: false
-    short_name: "Fit for Duty"
-    description: "Ensure mental and physical readiness for work, free from the effects of fatigue, illness, drugs, or alcohol."
-    keywords:
-      - "fatigue"
-      - "impairment"
-      - "unfit"
-      - "alcohol"
-      - "medication"
-    phrases:
-      - "fatigue"
-      - "unfit for duty"
-      - "under influence"
-      - "medication"
-      - "heat stress"
-      - "not fit to work"
-      - "alcohol"
-      - "sleep deprivation"
-      - "illness on duty"
-      - "impairment"
-      - "14-hour shift"
-      - "exhaustion"
-    related_energy_types:
-      - "thermal"
-    related_exposure_types: []
-    related_barrier_types:
-      - "supervision"
-
-  - id: "LSR10"
     name: "Work Authorization"
     is_iogp_canonical: true
     short_name: "Work Authorization"
@@ -380,7 +318,7 @@ rules:
       - "jsa"
       - "authorization"
 
-  - id: "LSR11"
+  - id: "LSR09"
     name: "Working at Height"
     is_iogp_canonical: true
     short_name: "Working at Height"
@@ -415,37 +353,3 @@ rules:
       - "harness"
       - "guard"
       - "edge protection"
-
-  - id: "LSR12"
-    name: "Personal Protective Equipment"
-    is_iogp_canonical: false
-    short_name: "PPE"
-    description: "Wear the correct personal protective equipment (PPE) specified for the hazard and task."
-    keywords:
-      - "ppe"
-      - "helmet"
-      - "gloves"
-      - "goggles"
-      - "respirator"
-      - "coverall"
-    phrases:
-      - "ppe"
-      - "no helmet"
-      - "missing gloves"
-      - "no goggles"
-      - "hearing protection"
-      - "flame resistant clothing"
-      - "no fr clothing"
-      - "safety boots"
-      - "face shield"
-      - "respirator not worn"
-      - "hard hat not worn"
-      - "ppe reminder"
-      - "missing safety boots"
-    related_energy_types:
-      - "chemical"
-      - "thermal"
-      - "kinetic"
-    related_exposure_types: []
-    related_barrier_types:
-      - "ppe"

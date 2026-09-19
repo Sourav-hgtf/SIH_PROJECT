@@ -5,7 +5,7 @@ Extracts meaningful SIF precursor patterns across 6 core dimensions:
 2. Location (Physical site/asset; strictly null if not stated in report)
 3. Barrier Failure (Compromised, missing, or defeated safeguard)
 4. Hazard / Exposure (Physical energy, toxic exposure, or kinetic hazard)
-5. Relevant LSR (Canonical 12 IOGP Life-Saving Rule)
+5. Relevant LSR (Canonical 9 IOGP Life-Saving Rule)
 6. Evidence Phrase (Direct verbatim substrings supporting the extraction)
 
 Architecture:
@@ -144,7 +144,7 @@ CANONICAL_ACTIVITIES: list[dict[str, Any]] = [
     },
     {
         "name": "Working at height",
-        "lsr_id": "LSR11",
+        "lsr_id": "LSR09",
         "patterns": [
             r"\b(working\s+at\s+height|scaffold(ing)?|elevated\s+platform|manlift|derrick\s+ladder|mast\s+climbing)\b",
         ],
@@ -183,7 +183,7 @@ CANONICAL_ACTIVITIES: list[dict[str, Any]] = [
     },
     {
         "name": "Drilling operations",
-        "lsr_id": "LSR10",
+        "lsr_id": "LSR08",
         "patterns": [
             r"\b(drilling|trip(ping)?\s+pipe|casing\s+running|top\s+drive|making\s+connection)\b",
         ],
@@ -209,7 +209,7 @@ CANONICAL_ACTIVITIES: list[dict[str, Any]] = [
     },
     {
         "name": "Excavation / trenching",
-        "lsr_id": "LSR10",
+        "lsr_id": "LSR08",
         "patterns": [
             r"\b(excavat(ing|ion)|trench(ing)?|digging\s+pit|earthwork)\b",
         ],
@@ -260,7 +260,7 @@ CANONICAL_BARRIERS: list[dict[str, Any]] = [
     },
     {
         "name": "Missing / expired PTW",
-        "lsr_id": "LSR10",
+        "lsr_id": "LSR08",
         "patterns": [
             r"\b(no\s+permit|permit\s+(expired|missing)|without\s+(valid\s+)?(ptw|permit))\b",
             r"\bunauthorized\s+work\b",
@@ -274,7 +274,7 @@ CANONICAL_BARRIERS: list[dict[str, Any]] = [
     },
     {
         "name": "Missing fall protection",
-        "lsr_id": "LSR11",
+        "lsr_id": "LSR09",
         "patterns": [
             r"\b(no\s+harness|without\s+(safety\s+)?harness|harness\s+(unhooked|unclipped|not\s+anchored))\b",
             r"\b(missing\s+fall\s+(arrest|protection)|no\s+lifeline)\b",
@@ -380,7 +380,7 @@ CANONICAL_BARRIERS: list[dict[str, Any]] = [
     },
     {
         "name": "PPE not worn / inadequate",
-        "lsr_id": "LSR12",
+        "lsr_id": None,
         "patterns": [
             r"\b(without\s+(face\s+shield|safety\s+glasses|ppe|respirator)|ppe\s+not\s+worn|missing\s+ppe)\b",
         ],
@@ -451,7 +451,7 @@ CANONICAL_HAZARDS: list[dict[str, Any]] = [
     },
     {
         "name": "Fall from height",
-        "lsr_id": "LSR11",
+        "lsr_id": "LSR09",
         "patterns": [
             r"\b(fall\s+from\s+height|fall\s+hazard|elevated\s+work|open\s+edge|floor\s+opening)\b",
         ],

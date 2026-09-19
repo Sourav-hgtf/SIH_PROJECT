@@ -126,16 +126,9 @@ export function DashboardPage() {
           <select aria-label="Department" value={filters.department || ""} onChange={(e) => updateFilter("department", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs"><option value="">All departments</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select>
           <select aria-label="LSR category" value={filters.lsr_category || ""} onChange={(e) => updateFilter("lsr_category", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs">
             <option value="">All LSR categories</option>
-            <optgroup label="IOGP Core 9">
-              {lsrRules.filter((r) => r.is_iogp_canonical !== false).map((rule) => (
-                <option key={rule.name} value={rule.name}>{rule.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="OIL-specific extensions">
-              {lsrRules.filter((r) => r.is_iogp_canonical === false).map((rule) => (
-                <option key={rule.name} value={rule.name}>{rule.name}</option>
-              ))}
-            </optgroup>
+            {lsrRules.map((rule) => (
+              <option key={rule.name} value={rule.name}>{rule.name}</option>
+            ))}
           </select>
           <input aria-label="Minimum SIF probability" type="number" min="0" max="1" step="0.05" placeholder="Min SIF probability" value={filters.min_confidence ?? ""} onChange={(e) => updateFilter("min_confidence", e.target.value)} className="rounded border border-border px-2 py-1.5 text-xs" />
         </div>
@@ -712,7 +705,7 @@ export function DashboardPage() {
 
         <section className="rounded-xl border border-border bg-white p-5 shadow-card">
           <h2 className="text-[18px] font-semibold text-ink">Life-Saving Rule distribution</h2>
-          <p className="mt-0.5 text-[12px] text-warm">Unique reports tagged per canonical rule (all 12 IOGP rules represented)</p>
+          <p className="mt-0.5 text-[12px] text-warm">Unique reports tagged per canonical rule (all 9 canonical IOGP rules represented)</p>
           <div className="mt-4 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={lsr} margin={{ bottom: 72, left: 8 }}>

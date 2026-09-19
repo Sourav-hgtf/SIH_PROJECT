@@ -991,5 +991,5 @@ def get_tags(report_id: str, db: Session = Depends(get_db), user: User = Depends
 
 @router.get("/lsr-rules", response_model=list[LsrRuleMetadataOut])
 def get_canonical_rules(user: User = Depends(get_current_user)):
-    """Returns the canonical 12 IOGP Life-Saving Rules metadata."""
+    """Returns the 9 canonical IOGP Life-Saving Rules (Report 459) metadata."""
     return get_canonical_rule_metadata()

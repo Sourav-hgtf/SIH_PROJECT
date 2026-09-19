@@ -1,32 +1,32 @@
 {
-  "benchmark_dataset_size": 53,
+  "benchmark_dataset_size": 47,
   "macro_metrics": {
     "rule_baseline": {
-      "precision": 0.6393,
-      "recall": 0.6144,
-      "f1": 0.5586
+      "precision": 0.6024,
+      "recall": 0.6417,
+      "f1": 0.5667
     },
     "hybrid_semantic": {
-      "precision": 0.7212,
-      "recall": 0.7819,
-      "f1": 0.679
+      "precision": 0.687,
+      "recall": 0.7185,
+      "f1": 0.6461
     }
   },
   "micro_metrics": {
     "rule_baseline": {
-      "precision": 0.4528,
-      "recall": 0.4706,
-      "f1": 0.4615,
-      "tp": 24,
-      "fp": 29,
-      "fn": 27
+      "precision": 0.5263,
+      "recall": 0.4545,
+      "f1": 0.4878,
+      "tp": 20,
+      "fp": 18,
+      "fn": 24
     },
     "hybrid_semantic": {
-      "precision": 0.549,
-      "recall": 0.549,
-      "f1": 0.549,
-      "tp": 28,
-      "fp": 23,
+      "precision": 0.6,
+      "recall": 0.4773,
+      "f1": 0.5316,
+      "tp": 21,
+      "fp": 14,
       "fn": 23
     }
   },
@@ -39,7 +39,7 @@
         "tp": 2,
         "fp": 0,
         "fn": 0,
-        "tn": 51,
+        "tn": 45,
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0
@@ -48,7 +48,7 @@
         "tp": 2,
         "fp": 0,
         "fn": 0,
-        "tn": 51,
+        "tn": 45,
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0
@@ -62,19 +62,19 @@
         "tp": 1,
         "fp": 5,
         "fn": 1,
-        "tn": 46,
+        "tn": 40,
         "precision": 0.1667,
         "recall": 0.5,
         "f1": 0.25
       },
       "hybrid_semantic": {
         "tp": 2,
-        "fp": 3,
+        "fp": 4,
         "fn": 0,
-        "tn": 48,
-        "precision": 0.4,
+        "tn": 41,
+        "precision": 0.3333,
         "recall": 1.0,
-        "f1": 0.5714
+        "f1": 0.5
       }
     },
     "LSR03": {
@@ -85,7 +85,7 @@
         "tp": 1,
         "fp": 0,
         "fn": 1,
-        "tn": 51,
+        "tn": 45,
         "precision": 1.0,
         "recall": 0.5,
         "f1": 0.6667
@@ -94,7 +94,7 @@
         "tp": 2,
         "fp": 0,
         "fn": 0,
-        "tn": 51,
+        "tn": 45,
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0
@@ -108,7 +108,7 @@
         "tp": 4,
         "fp": 3,
         "fn": 6,
-        "tn": 40,
+        "tn": 34,
         "precision": 0.5714,
         "recall": 0.4,
         "f1": 0.4706
@@ -117,7 +117,7 @@
         "tp": 3,
         "fp": 2,
         "fn": 7,
-        "tn": 41,
+        "tn": 35,
         "precision": 0.6,
         "recall": 0.3,
         "f1": 0.4
@@ -131,7 +131,7 @@
         "tp": 3,
         "fp": 2,
         "fn": 0,
-        "tn": 48,
+        "tn": 42,
         "precision": 0.6,
         "recall": 1.0,
         "f1": 0.75
@@ -140,7 +140,7 @@
         "tp": 3,
         "fp": 1,
         "fn": 0,
-        "tn": 49,
+        "tn": 43,
         "precision": 0.75,
         "recall": 1.0,
         "f1": 0.8571
@@ -154,7 +154,7 @@
         "tp": 3,
         "fp": 2,
         "fn": 9,
-        "tn": 39,
+        "tn": 33,
         "precision": 0.6,
         "recall": 0.25,
         "f1": 0.3529
@@ -163,7 +163,7 @@
         "tp": 3,
         "fp": 2,
         "fn": 9,
-        "tn": 39,
+        "tn": 33,
         "precision": 0.6,
         "recall": 0.25,
         "f1": 0.3529
@@ -177,7 +177,7 @@
         "tp": 2,
         "fp": 3,
         "fn": 0,
-        "tn": 48,
+        "tn": 42,
         "precision": 0.4,
         "recall": 1.0,
         "f1": 0.5714
@@ -186,7 +186,7 @@
         "tp": 2,
         "fp": 3,
         "fn": 0,
-        "tn": 48,
+        "tn": 42,
         "precision": 0.4,
         "recall": 1.0,
         "f1": 0.5714
@@ -194,117 +194,48 @@
     },
     "LSR08": {
       "rule_id": "LSR08",
-      "rule_name": "Managing Change",
-      "ground_truth_count": 2,
+      "rule_name": "Work Authorization",
+      "ground_truth_count": 8,
       "rule_baseline": {
         "tp": 1,
-        "fp": 0,
-        "fn": 1,
-        "tn": 51,
-        "precision": 1.0,
-        "recall": 0.5,
-        "f1": 0.6667
+        "fp": 2,
+        "fn": 7,
+        "tn": 37,
+        "precision": 0.3333,
+        "recall": 0.125,
+        "f1": 0.1818
       },
       "hybrid_semantic": {
         "tp": 2,
-        "fp": 0,
-        "fn": 0,
-        "tn": 51,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0
+        "fp": 2,
+        "fn": 6,
+        "tn": 37,
+        "precision": 0.5,
+        "recall": 0.25,
+        "f1": 0.3333
       }
     },
     "LSR09": {
       "rule_id": "LSR09",
-      "rule_name": "Fit for Duty",
-      "ground_truth_count": 2,
-      "rule_baseline": {
-        "tp": 1,
-        "fp": 0,
-        "fn": 1,
-        "tn": 51,
-        "precision": 1.0,
-        "recall": 0.5,
-        "f1": 0.6667
-      },
-      "hybrid_semantic": {
-        "tp": 1,
-        "fp": 0,
-        "fn": 1,
-        "tn": 51,
-        "precision": 1.0,
-        "recall": 0.5,
-        "f1": 0.6667
-      }
-    },
-    "LSR10": {
-      "rule_id": "LSR10",
-      "rule_name": "Work Authorization",
-      "ground_truth_count": 9,
-      "rule_baseline": {
-        "tp": 2,
-        "fp": 2,
-        "fn": 7,
-        "tn": 42,
-        "precision": 0.5,
-        "recall": 0.2222,
-        "f1": 0.3077
-      },
-      "hybrid_semantic": {
-        "tp": 3,
-        "fp": 1,
-        "fn": 6,
-        "tn": 43,
-        "precision": 0.75,
-        "recall": 0.3333,
-        "f1": 0.4615
-      }
-    },
-    "LSR11": {
-      "rule_id": "LSR11",
       "rule_name": "Working at Height",
       "ground_truth_count": 3,
       "rule_baseline": {
         "tp": 3,
         "fp": 1,
         "fn": 0,
-        "tn": 49,
+        "tn": 43,
         "precision": 0.75,
         "recall": 1.0,
         "f1": 0.8571
       },
       "hybrid_semantic": {
-        "tp": 3,
-        "fp": 0,
-        "fn": 0,
-        "tn": 50,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0
-      }
-    },
-    "LSR12": {
-      "rule_id": "LSR12",
-      "rule_name": "Personal Protective Equipment",
-      "ground_truth_count": 2,
-      "rule_baseline": {
-        "tp": 1,
-        "fp": 11,
-        "fn": 1,
-        "tn": 40,
-        "precision": 0.0833,
-        "recall": 0.5,
-        "f1": 0.1429
-      },
-      "hybrid_semantic": {
         "tp": 2,
-        "fp": 11,
-        "fn": 0,
-        "tn": 40,
-        "precision": 0.1538,
-        "recall": 1.0,
-        "f1": 0.2667
+        "fp": 0,
+        "fn": 1,
+        "tn": 44,
+        "precision": 1.0,
+        "recall": 0.6667,
+        "f1": 0.8
       }
     }
   },
@@ -392,14 +323,14 @@
         "LSR03"
       ],
       "rule_baseline_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "hybrid_semantic_rules": [
         "LSR03"
       ],
       "rule_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "confidence": 0.53,
           "source": "rule"
@@ -559,24 +490,16 @@
         "LSR07"
       ],
       "rule_baseline_rules": [
-        "LSR07",
-        "LSR12"
+        "LSR07"
       ],
       "hybrid_semantic_rules": [
-        "LSR07",
-        "LSR12"
+        "LSR07"
       ],
       "rule_tags": [
         {
           "rule_id": "LSR07",
           "rule_name": "Safe Mechanical Lifting",
           "confidence": 0.82,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
           "source": "rule"
         }
       ],
@@ -609,29 +532,13 @@
             "crane",
             "lifting"
           ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
         }
       ]
     },
     {
       "id": "PARA-08",
       "type": "paraphrase",
-      "text_excerpt": "Instrumentation piping altered without an engineering review or formal variance approval.",
+      "text_excerpt": "Subcontractor commenced flange replacement without securing valid task clearance documentation.",
       "expected_rules": [
         "LSR08"
       ],
@@ -643,75 +550,6 @@
       "hybrid_tags": [
         {
           "rule_id": "LSR08",
-          "rule_name": "Managing Change",
-          "lsr_category": "Managing Change",
-          "confidence": 0.84,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Semantic paraphrase: 'instrumentation piping altered without an engineering review or formal variance approval.' (similarity: 0.74; concepts: alter, approval, review, engineering)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
-        }
-      ]
-    },
-    {
-      "id": "PARA-09",
-      "type": "paraphrase",
-      "text_excerpt": "Drilling hand appeared visibly disoriented from severe chronic insomnia and extreme dehydration.",
-      "expected_rules": [
-        "LSR09"
-      ],
-      "rule_baseline_rules": [
-        "LSR12"
-      ],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
-      "rule_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
-        }
-      ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "PARA-10",
-      "type": "paraphrase",
-      "text_excerpt": "Subcontractor commenced flange replacement without securing valid task clearance documentation.",
-      "expected_rules": [
-        "LSR10"
-      ],
-      "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [
-        "LSR10"
-      ],
-      "rule_tags": [],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR10",
           "rule_name": "Work Authorization",
           "lsr_category": "Work Authorization",
           "confidence": 0.84,
@@ -727,101 +565,25 @@
       ]
     },
     {
-      "id": "PARA-11",
+      "id": "PARA-09",
       "type": "paraphrase",
       "text_excerpt": "Painter slipped off the third tier catwalk having no fall arrest lanyard tethered to an anchor point.",
       "expected_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "rule_baseline_rules": [
-        "LSR11",
-        "LSR12"
+        "LSR09"
       ],
-      "hybrid_semantic_rules": [
-        "LSR11",
-        "LSR12"
-      ],
+      "hybrid_semantic_rules": [],
       "rule_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "confidence": 0.69,
           "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
         }
       ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR11",
-          "rule_name": "Working at Height",
-          "lsr_category": "Working at Height",
-          "confidence": 0.81,
-          "source": "hybrid",
-          "evidence": [
-            {
-              "text": "fall arrest",
-              "type": "phrase"
-            },
-            {
-              "text": "Semantic alignment: 'painter slipped off the third tier catwalk having no fall arrest lanyard tethered to an anchor point.' (similarity: 0.76; concepts: catwalk, lanyard, fall arrest, anchor, fall)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": [
-            "fall arrest"
-          ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "PARA-12",
-      "type": "paraphrase",
-      "text_excerpt": "Wielder operated angle grinder without eye shield protection or flame-resistant apparel.",
-      "expected_rules": [
-        "LSR12"
-      ],
-      "rule_baseline_rules": [],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
-      "rule_tags": [],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.84,
-          "source": "semantic",
-          "evidence": [
-            {
-              "text": "Semantic paraphrase: '[person] operated angle grinder without eye shield protection or flame-resistant apparel.' (similarity: 0.74; concepts: eye shield, without, protect, apparel)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": []
-        }
-      ]
+      "hybrid_tags": []
     },
     {
       "id": "CANON-01",
@@ -1091,11 +853,11 @@
       ],
       "rule_baseline_rules": [
         "LSR05",
-        "LSR10"
+        "LSR08"
       ],
       "hybrid_semantic_rules": [
         "LSR05",
-        "LSR10",
+        "LSR08",
         "LSR02"
       ],
       "rule_tags": [
@@ -1106,7 +868,7 @@
           "source": "rule"
         },
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "confidence": 0.81,
           "source": "rule"
@@ -1145,7 +907,7 @@
               "type": "barrier"
             },
             {
-              "text": "Semantic alignment: 'hot work welding near hydrocarbon line without permit.' (similarity: 0.72; concepts: weld, hot work, hydrocarbon)",
+              "text": "Semantic alignment: 'hot work welding near hydrocarbon line without permit.' (similarity: 0.94; concepts: weld, hot work, hydrocarbon)",
               "type": "semantic"
             }
           ],
@@ -1156,7 +918,7 @@
           ]
         },
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "lsr_category": "Work Authorization",
           "confidence": 0.93,
@@ -1219,12 +981,10 @@
         "LSR06"
       ],
       "rule_baseline_rules": [
-        "LSR06",
-        "LSR12"
+        "LSR06"
       ],
       "hybrid_semantic_rules": [
         "LSR06",
-        "LSR12",
         "LSR04"
       ],
       "rule_tags": [
@@ -1232,12 +992,6 @@
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
           "confidence": 0.95,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
           "source": "rule"
         }
       ],
@@ -1262,10 +1016,6 @@
               "type": "phrase"
             },
             {
-              "text": "hose whip",
-              "type": "phrase"
-            },
-            {
               "text": "Energy hazard detected: pressure",
               "type": "energy"
             },
@@ -1285,24 +1035,7 @@
           "matched_phrases": [
             "line of fire",
             "under load",
-            "standing under",
-            "hose whip"
-          ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
+            "standing under"
           ]
         },
         {
@@ -1334,13 +1067,11 @@
       ],
       "rule_baseline_rules": [
         "LSR07",
-        "LSR06",
-        "LSR12"
+        "LSR06"
       ],
       "hybrid_semantic_rules": [
         "LSR07",
-        "LSR06",
-        "LSR12"
+        "LSR06"
       ],
       "rule_tags": [
         {
@@ -1353,12 +1084,6 @@
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
           "confidence": 0.75,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
           "source": "rule"
         }
       ],
@@ -1434,150 +1159,25 @@
           "matched_phrases": [
             "dropped object"
           ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
         }
       ]
     },
     {
       "id": "CANON-08",
       "type": "canonical",
-      "text_excerpt": "Temporary modification left on ESD circuit. MOC not raised and procedure deviation unapproved.",
-      "expected_rules": [
-        "LSR08"
-      ],
-      "rule_baseline_rules": [
-        "LSR08"
-      ],
-      "hybrid_semantic_rules": [
-        "LSR08"
-      ],
-      "rule_tags": [
-        {
-          "rule_id": "LSR08",
-          "rule_name": "Managing Change",
-          "confidence": 0.83,
-          "source": "rule"
-        }
-      ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR08",
-          "rule_name": "Managing Change",
-          "lsr_category": "Managing Change",
-          "confidence": 0.83,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "moc not raised",
-              "type": "phrase"
-            },
-            {
-              "text": "temporary modification",
-              "type": "phrase"
-            },
-            {
-              "text": "procedure deviation",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "moc not raised",
-            "temporary modification",
-            "procedure deviation"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "CANON-09",
-      "type": "canonical",
-      "text_excerpt": "Worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.",
-      "expected_rules": [
-        "LSR09"
-      ],
-      "rule_baseline_rules": [
-        "LSR09"
-      ],
-      "hybrid_semantic_rules": [
-        "LSR09"
-      ],
-      "rule_tags": [
-        {
-          "rule_id": "LSR09",
-          "rule_name": "Fit for Duty",
-          "confidence": 0.84,
-          "source": "rule"
-        }
-      ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR09",
-          "rule_name": "Fit for Duty",
-          "lsr_category": "Fit for Duty",
-          "confidence": 0.95,
-          "source": "hybrid",
-          "evidence": [
-            {
-              "text": "fatigue",
-              "type": "phrase"
-            },
-            {
-              "text": "unfit for duty",
-              "type": "phrase"
-            },
-            {
-              "text": "heat stress",
-              "type": "phrase"
-            },
-            {
-              "text": "14-hour shift",
-              "type": "phrase"
-            },
-            {
-              "text": "Semantic alignment: 'worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.' (similarity: 0.74; concepts: fatigue, duty, shift, worker)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": [
-            "fatigue",
-            "unfit for duty",
-            "heat stress",
-            "14-hour shift"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "CANON-10",
-      "type": "canonical",
       "text_excerpt": "Work carried out without permit to work. PTW expired and JSA not done before entry.",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "hybrid_semantic_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_tags": [
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "confidence": 0.9,
           "source": "rule"
@@ -1585,10 +1185,10 @@
       ],
       "hybrid_tags": [
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "lsr_category": "Work Authorization",
-          "confidence": 0.98,
+          "confidence": 0.93,
           "source": "hybrid",
           "evidence": [
             {
@@ -1596,19 +1196,7 @@
               "type": "phrase"
             },
             {
-              "text": "ptw",
-              "type": "phrase"
-            },
-            {
-              "text": "jsa not done",
-              "type": "phrase"
-            },
-            {
               "text": "without permit",
-              "type": "phrase"
-            },
-            {
-              "text": "ptw expired",
               "type": "phrase"
             },
             {
@@ -1616,40 +1204,37 @@
               "type": "barrier"
             },
             {
-              "text": "Barrier failure detected: permit to work. PTW expired",
+              "text": "Barrier failure detected: Permit to Work expired",
               "type": "barrier"
             },
             {
-              "text": "Semantic alignment: 'permit to work expired and job safety analysis not done before entry.' (similarity: 0.74; concepts: permit, expired, before, work)",
+              "text": "Semantic alignment: 'permit to work expired and [person] not done before entry.' (similarity: 0.79; concepts: permit, expired, before, work)",
               "type": "semantic"
             }
           ],
           "matched_phrases": [
             "permit to work",
-            "ptw",
-            "jsa not done",
-            "without permit",
-            "ptw expired"
+            "without permit"
           ]
         }
       ]
     },
     {
-      "id": "CANON-11",
+      "id": "CANON-09",
       "type": "canonical",
       "text_excerpt": "Worker fell from incomplete scaffold platform. No harness worn while working at height.",
       "expected_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "rule_baseline_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "hybrid_semantic_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "rule_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "confidence": 0.89,
           "source": "rule"
@@ -1657,7 +1242,7 @@
       ],
       "hybrid_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "lsr_category": "Working at Height",
           "confidence": 0.98,
@@ -1692,65 +1277,6 @@
             "working at height",
             "no harness",
             "incomplete scaffold"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "CANON-12",
-      "type": "canonical",
-      "text_excerpt": "Worker observed with missing gloves and no safety boots. PPE reminder issued.",
-      "expected_rules": [
-        "LSR12"
-      ],
-      "rule_baseline_rules": [
-        "LSR12"
-      ],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
-      "rule_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.84,
-          "source": "rule"
-        }
-      ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.95,
-          "source": "hybrid",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            },
-            {
-              "text": "missing gloves",
-              "type": "phrase"
-            },
-            {
-              "text": "safety boots",
-              "type": "phrase"
-            },
-            {
-              "text": "ppe reminder",
-              "type": "phrase"
-            },
-            {
-              "text": "Semantic alignment: 'worker observed with missing gloves and no safety boots.' (similarity: 0.74; concepts: glove, boot, missing, no )",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": [
-            "ppe",
-            "missing gloves",
-            "safety boots",
-            "ppe reminder"
           ]
         }
       ]
@@ -1809,7 +1335,7 @@
       "type": "real_authority",
       "text_excerpt": "A pinhole leak due to localized external corrosion under damaged coating was discovered on 36-inch main line near MP 452. Line was immediate",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [
         "LSR04",
@@ -1840,15 +1366,15 @@
         "LSR04"
       ],
       "rule_baseline_rules": [
-        "LSR10",
+        "LSR08",
         "LSR04"
       ],
       "hybrid_semantic_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_tags": [
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "confidence": 0.75,
           "source": "rule"
@@ -1862,14 +1388,14 @@
       ],
       "hybrid_tags": [
         {
-          "rule_id": "LSR10",
+          "rule_id": "LSR08",
           "rule_name": "Work Authorization",
           "lsr_category": "Work Authorization",
           "confidence": 0.87,
           "source": "hybrid",
           "evidence": [
             {
-              "text": "ptw",
+              "text": "permit to work",
               "type": "phrase"
             },
             {
@@ -1881,12 +1407,12 @@
               "type": "energy"
             },
             {
-              "text": "Semantic alignment: 'permit to work was active but seal flush line isolation had not been verified.' (similarity: 0.70; concepts: permit, work)",
+              "text": "Semantic alignment: 'permit to work was active seal flush line isolation had not been verified.' (similarity: 0.70; concepts: permit, work)",
               "type": "semantic"
             }
           ],
           "matched_phrases": [
-            "ptw"
+            "permit to work"
           ]
         }
       ]
@@ -1908,40 +1434,12 @@
       "type": "real_authority",
       "text_excerpt": "Gasket blow-out on 12-inch station header flange caused 15 barrels of heavy crude release onto frozen ground. Emergency ESD button depressed",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
-      "rule_baseline_rules": [
-        "LSR12"
-      ],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
-      "rule_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
-        }
-      ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
-        }
-      ]
+      "rule_baseline_rules": [],
+      "hybrid_semantic_rules": [],
+      "rule_tags": [],
+      "hybrid_tags": []
     },
     {
       "id": "PHMSA-20230004",
@@ -1960,7 +1458,7 @@
       "type": "real_authority",
       "text_excerpt": "Low spot in crude gathering line developed internal pitting corrosion under stagnant sludge layer. Smart pig in-line inspection anomaly had ",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [],
       "hybrid_semantic_rules": [],
@@ -1975,24 +1473,16 @@
         "LSR04"
       ],
       "rule_baseline_rules": [
-        "LSR04",
-        "LSR12"
+        "LSR04"
       ],
       "hybrid_semantic_rules": [
-        "LSR04",
-        "LSR12"
+        "LSR04"
       ],
       "rule_tags": [
         {
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
           "confidence": 0.75,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
           "source": "rule"
         }
       ],
@@ -2024,30 +1514,6 @@
           "matched_phrases": [
             "residual pressure"
           ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.81,
-          "source": "hybrid",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            },
-            {
-              "text": "helmet",
-              "type": "keyword"
-            },
-            {
-              "text": "Semantic alignment: 'crude spray struck the maintenance technician helmet and protective suit.' (similarity: 0.70; concepts: helmet, protect)",
-              "type": "semantic"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
         }
       ]
     },
@@ -2056,7 +1522,7 @@
       "type": "real_authority",
       "text_excerpt": "A flange connection on the suction header of booster pump unit 2 developed a sudden spray leak at the Darfield pump station. Sump containmen",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [],
       "hybrid_semantic_rules": [],
@@ -2066,7 +1532,7 @@
     {
       "id": "CER-INC2021-018",
       "type": "real_authority",
-      "text_excerpt": "Trenching machine operated by contractor struck a 10-inch lateral pipeline during tie-in activities on the Peace River section. The lateral ",
+      "text_excerpt": "Trenching machine operated by contractor struck a 10-inch lateral pipeline during tie-in activities on the [PERSON] section. The lateral had",
       "expected_rules": [
         "LSR06"
       ],
@@ -2080,7 +1546,7 @@
       "type": "real_authority",
       "text_excerpt": "Sour natural gas release occurred from a 1/2-inch instrument tubing fitting downstream of separator vessel V-12. Ambient H2S detection monit",
       "expected_rules": [
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [
         "LSR02"
@@ -2192,7 +1658,7 @@
     {
       "id": "CER-INC2023-064",
       "type": "real_authority",
-      "text_excerpt": "NGL vapor leak detected at meter manifold packing gland during product batch changeover from propane to butane. Automatic gas detection init",
+      "text_excerpt": "NGL vapor leak detected at [PERSON] packing gland during product batch changeover from propane to butane. Automatic gas detection initiated ",
       "expected_rules": [
         "LSR04"
       ],
@@ -2222,14 +1688,11 @@
       ],
       "rule_baseline_rules": [
         "LSR04",
-        "LSR06",
-        "LSR12",
-        "LSR10"
+        "LSR06"
       ],
       "hybrid_semantic_rules": [
         "LSR06",
-        "LSR04",
-        "LSR12"
+        "LSR04"
       ],
       "rule_tags": [
         {
@@ -2242,18 +1705,6 @@
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
           "confidence": 0.8,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR10",
-          "rule_name": "Work Authorization",
-          "confidence": 0.59,
           "source": "rule"
         }
       ],
@@ -2309,22 +1760,6 @@
           "matched_phrases": [
             "residual pressure"
           ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
         }
       ]
     },
@@ -2334,14 +1769,15 @@
       "text_excerpt": "Contract welders commenced structural grinding and tack welding on a mezzanine grating near the crude desalter vessel without checking local",
       "expected_rules": [
         "LSR05",
-        "LSR10"
+        "LSR08"
       ],
       "rule_baseline_rules": [
         "LSR05",
         "LSR02"
       ],
       "hybrid_semantic_rules": [
-        "LSR05"
+        "LSR05",
+        "LSR02"
       ],
       "rule_tags": [
         {
@@ -2395,6 +1831,32 @@
             "grinding",
             "spark"
           ]
+        },
+        {
+          "rule_id": "LSR02",
+          "rule_name": "Confined Space",
+          "lsr_category": "Confined Space",
+          "confidence": 0.64,
+          "source": "rule",
+          "evidence": [
+            {
+              "text": "vessel",
+              "type": "keyword"
+            },
+            {
+              "text": "sewer",
+              "type": "keyword"
+            },
+            {
+              "text": "Energy hazard detected: chemical",
+              "type": "energy"
+            },
+            {
+              "text": "Energy hazard detected: thermal",
+              "type": "energy"
+            }
+          ],
+          "matched_phrases": []
         }
       ]
     },
@@ -2406,19 +1868,10 @@
         "LSR06"
       ],
       "rule_baseline_rules": [
-        "LSR12",
         "LSR04"
       ],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
+      "hybrid_semantic_rules": [],
       "rule_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
-        },
         {
           "rule_id": "LSR04",
           "rule_name": "Energy Isolation",
@@ -2426,29 +1879,12 @@
           "source": "rule"
         }
       ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
-        }
-      ]
+      "hybrid_tags": []
     },
     {
       "id": "OISD-OISD-CS-2022-11",
       "type": "real_authority",
-      "text_excerpt": "Overhead gantry crane was used to lift a 1.2 metric ton compressor cylinder head. The synthetic webbing sling was rigged over sharp unpadded",
+      "text_excerpt": "Overhead gantry crane was used to lift a 1.2 metric ton compressor [PERSON]. The synthetic webbing sling was rigged over sharp unpadded cast",
       "expected_rules": [
         "LSR06"
       ],
@@ -2605,17 +2041,17 @@
       "type": "real_authority",
       "text_excerpt": "A derrickman working on the monkey board 85 feet above the rig floor unhooked his fall protection lanyard from the inertia reel while attemp",
       "expected_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "rule_baseline_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "hybrid_semantic_rules": [
-        "LSR11"
+        "LSR09"
       ],
       "rule_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "confidence": 0.69,
           "source": "rule"
@@ -2623,7 +2059,7 @@
       ],
       "hybrid_tags": [
         {
-          "rule_id": "LSR11",
+          "rule_id": "LSR09",
           "rule_name": "Working at Height",
           "lsr_category": "Working at Height",
           "confidence": 0.71,
@@ -2694,24 +2130,16 @@
         "LSR06"
       ],
       "rule_baseline_rules": [
-        "LSR07",
-        "LSR12"
+        "LSR07"
       ],
       "hybrid_semantic_rules": [
-        "LSR07",
-        "LSR12"
+        "LSR07"
       ],
       "rule_tags": [
         {
           "rule_id": "LSR07",
           "rule_name": "Safe Mechanical Lifting",
           "confidence": 0.75,
-          "source": "rule"
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
           "source": "rule"
         }
       ],
@@ -2735,22 +2163,6 @@
           "matched_phrases": [
             "rigging"
           ]
-        },
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
         }
       ]
     },
@@ -2762,19 +2174,10 @@
         "LSR06"
       ],
       "rule_baseline_rules": [
-        "LSR12",
         "LSR06"
       ],
-      "hybrid_semantic_rules": [
-        "LSR12"
-      ],
+      "hybrid_semantic_rules": [],
       "rule_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "confidence": 0.69,
-          "source": "rule"
-        },
         {
           "rule_id": "LSR06",
           "rule_name": "Line of Fire",
@@ -2782,24 +2185,7 @@
           "source": "rule"
         }
       ],
-      "hybrid_tags": [
-        {
-          "rule_id": "LSR12",
-          "rule_name": "Personal Protective Equipment",
-          "lsr_category": "Personal Protective Equipment",
-          "confidence": 0.71,
-          "source": "rule",
-          "evidence": [
-            {
-              "text": "ppe",
-              "type": "phrase"
-            }
-          ],
-          "matched_phrases": [
-            "ppe"
-          ]
-        }
-      ]
+      "hybrid_tags": []
     }
   ]
 }

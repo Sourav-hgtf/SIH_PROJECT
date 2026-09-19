@@ -1,7 +1,17 @@
-"""Canonical Life-Saving Rules (LSR) Configuration Loader and Validator.
+"""Life-Saving Rules (LSR) Configuration Loader and Validator.
 
-Standardizes on the 12 IOGP Life-Saving Rules used as the safety taxonomy
-for the HSSE/SIF Sentinel prototype.
+This prototype strictly implements the 9 Canonical IOGP Life-Saving Rules (Report 459, revised 2023):
+  - LSR01: Bypassing Safety Controls
+  - LSR02: Confined Space
+  - LSR03: Driving
+  - LSR04: Energy Isolation
+  - LSR05: Hot Work
+  - LSR06: Line of Fire
+  - LSR07: Safe Mechanical Lifting
+  - LSR08: Work Authorization
+  - LSR09: Working at Height
+
+Reference: https://www.iogp.org/bookstore/product/life-saving-rules/
 """
 
 from __future__ import annotations
@@ -16,12 +26,12 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
-# Expected canonical rule IDs in order
-CANONICAL_LSR_COUNT = 12
+# Total rules in config: exactly 9 canonical IOGP Life-Saving Rules
+CANONICAL_LSR_COUNT = 9
 
 
 class LsrRuleConfig(BaseModel):
-    id: str = Field(..., description="Unique rule ID, e.g. LSR01 to LSR12")
+    id: str = Field(..., description="Unique rule ID, e.g. LSR01 to LSR09")
     name: str = Field(..., description="Full canonical rule name")
     is_iogp_canonical: bool = Field(default=True, description="Whether this rule belongs to IOGP official Core 9")
     short_name: str = Field(..., description="Short canonical display name")
@@ -110,7 +120,7 @@ def find_canonical_lsr_config_path() -> Path:
 
 @lru_cache(maxsize=1)
 def load_canonical_lsr_rules() -> list[LsrRuleConfig]:
-    """Loads and validates the canonical 12 Life-Saving Rules.
+    """Loads and validates the 9 Canonical IOGP Life-Saving Rules (Report 459).
     Fails fast with ValueError / FileNotFoundError if invalid.
     """
     path = find_canonical_lsr_config_path()
@@ -121,7 +131,7 @@ def load_canonical_lsr_rules() -> list[LsrRuleConfig]:
         raise ValueError(f"Invalid LSR YAML structure at {path}. Root must contain 'rules' list.")
 
     config = LsrConfigFile(**data)
-    # Sort by ID order: LSR01 to LSR12
+    # Sort by ID order: LSR01 to LSR09
     return sorted(config.rules, key=lambda r: r.id)
 
 
@@ -154,7 +164,7 @@ def get_rule_by_name(name_or_alias: str) -> LsrRuleConfig | None:
 
 
 def get_canonical_rule_names() -> list[str]:
-    """Returns canonical names of all 12 rules in canonical order (LSR01 to LSR12)."""
+    """Returns canonical names of all 9 rules in canonical order (LSR01 to LSR09)."""
     return [r.name for r in load_canonical_lsr_rules()]
 
 
@@ -167,7 +177,7 @@ def get_canonical_rule_metadata() -> list[dict[str, Any]]:
             "short_name": r.short_name,
             "description": r.description,
             "is_iogp_canonical": r.is_iogp_canonical,
-            "rule_type": "IOGP Core 9" if r.is_iogp_canonical else "OIL-specific extension",
+            "rule_type": "IOGP Canonical",
             "related_energy_types": r.related_energy_types,
             "related_exposure_types": r.related_exposure_types,
             "related_barrier_types": r.related_barrier_types,

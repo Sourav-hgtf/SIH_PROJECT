@@ -3,7 +3,7 @@
 Verifies:
 1. Paraphrase detection (including prompt example: "Atmospheric conditions were not verified before entry.").
 2. Weak keyword suppression (no false positives on incidental/benign keywords).
-3. Preservation of all 12 canonical categories.
+3. Preservation of all 9 canonical categories.
 4. Support for multiple justified LSR categories.
 5. Structured evidence payload on each assigned tag.
 6. Confidence score independence from SIF probability.
@@ -63,11 +63,11 @@ def test_multi_category_detection_on_composite_incident():
     assigned_ids = [t["rule_id"] for t in tags]
 
     assert "LSR05" in assigned_ids, "Hot Work (LSR05) should be detected"
-    assert "LSR10" in assigned_ids, "Work Authorization (LSR10) should be detected"
+    assert "LSR08" in assigned_ids, "Work Authorization (LSR08) should be detected"
 
 
 def test_never_invents_lsr_category():
-    """Verify that every assigned category belongs strictly to the 12 canonical IOGP rules."""
+    """Verify that every assigned category belongs strictly to the 9 canonical IOGP rules."""
     canonical_rules = load_canonical_lsr_rules()
     valid_ids = {r.id for r in canonical_rules}
     valid_names = {r.name for r in canonical_rules}
@@ -121,12 +121,13 @@ def test_structured_evidence_schema_contract():
             assert ev["type"] in ("phrase", "keyword", "semantic", "energy", "barrier", "exposure")
 
 
-def test_all_12_canonical_rules_remain_accessible():
-    """Verify that all 12 canonical rules are loaded and queryable."""
+def test_all_9_canonical_rules_remain_accessible():
+    """Verify that all 9 canonical rules are loaded and queryable."""
     rules = load_canonical_lsr_rules()
-    assert len(rules) == CANONICAL_LSR_COUNT == 12
-    for i in range(1, 13):
+    assert len(rules) == CANONICAL_LSR_COUNT == 9
+    for i in range(1, 10):
         rid = f"LSR{i:02d}"
         rule = get_rule_by_id(rid)
         assert rule is not None
         assert rule.id == rid
+

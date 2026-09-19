@@ -143,7 +143,7 @@ export function Layout() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-ink">SIH Smart Automation — SIF Precursor Detection & Prevention</span>
               <span className="hidden sm:inline-block rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-mono font-semibold text-indigo-700">
-                IOGP 12 LSR Engine v1.0
+                IOGP 9 LSR Engine v1.0
               </span>
             </div>
           </div>

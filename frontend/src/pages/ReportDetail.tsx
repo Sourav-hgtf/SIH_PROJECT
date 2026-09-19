@@ -1302,7 +1302,7 @@ export function ReportDetailPage() {
           <section className="rounded-xl border border-border bg-white p-5 shadow-card">
             <div className="flex items-center justify-between border-b border-border pb-2.5">
               <h2 className="text-sm font-semibold text-ink">Life-Saving Rules (IOGP)</h2>
-              <span className="text-[11px] font-medium text-warm">Canonical 12</span>
+              <span className="text-[11px] font-medium text-warm">Canonical 9</span>
             </div>
 
             <div className="mt-3 space-y-2.5">
@@ -1379,57 +1379,14 @@ export function ReportDetailPage() {
             <div className="border-b border-border pb-2">
               <h3 className="text-base font-bold text-ink">Review & Edit Life-Saving Rules</h3>
               <p className="text-xs text-warm">
-                Select applicable rules from the canonical 12 IOGP Life-Saving Rules taxonomy.
+                Select applicable rules from the canonical 9 IOGP Life-Saving Rules taxonomy.
               </p>
             </div>
 
-            {/* IOGP Core 9 */}
+            {/* 9 Canonical IOGP Rules */}
             <div>
-              <div className="text-xs font-semibold text-warm uppercase tracking-wider mb-2">
-                IOGP Core 9
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {lsrRules.filter((r) => r.is_iogp_canonical !== false).map((rule) => {
-                  const isChecked = selectedLsrIds.includes(rule.rule_id);
-                  return (
-                    <label
-                      key={rule.rule_id}
-                      className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer text-xs transition ${
-                        isChecked ? "border-cyan-edge bg-cyan-edge/5" : "border-border hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedLsrIds([...selectedLsrIds, rule.rule_id]);
-                          } else {
-                            setSelectedLsrIds(selectedLsrIds.filter((id) => id !== rule.rule_id));
-                          }
-                        }}
-                      />
-                      <div>
-                        <div className="font-semibold text-ink">
-                          <span className="text-cyan-edge mr-1">{rule.rule_id}</span>
-                          {rule.name}
-                        </div>
-                        <div className="text-[10px] text-warm line-clamp-1">{rule.description}</div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* OIL-Specific Extensions */}
-            <div>
-              <div className="text-xs font-semibold text-warm uppercase tracking-wider mb-2">
-                OIL-Specific Extensions
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {lsrRules.filter((r) => r.is_iogp_canonical === false).map((rule) => {
+                {lsrRules.map((rule) => {
                   const isChecked = selectedLsrIds.includes(rule.rule_id);
                   return (
                     <label

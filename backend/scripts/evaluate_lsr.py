@@ -160,38 +160,17 @@ def build_evaluation_dataset() -> list[dict[str, Any]]:
         },
         {
             "id": "PARA-08",
-            "text": "Instrumentation piping altered without an engineering review or formal variance approval.",
-            "expected_rules": ["LSR08"],  # Managing Change
-            "type": "paraphrase",
-            "note": "Paraphrase of unapproved modification / change management",
-        },
-        {
-            "id": "PARA-09",
-            "text": "Drilling hand appeared visibly disoriented from severe chronic insomnia and extreme dehydration.",
-            "expected_rules": ["LSR09"],  # Fit for Duty
-            "type": "paraphrase",
-            "note": "Paraphrase of worker impairment / fatigue unfit for duty",
-        },
-        {
-            "id": "PARA-10",
             "text": "Subcontractor commenced flange replacement without securing valid task clearance documentation.",
-            "expected_rules": ["LSR10"],  # Work Authorization
+            "expected_rules": ["LSR08"],  # Work Authorization
             "type": "paraphrase",
             "note": "Paraphrase of working without a valid permit to work",
         },
         {
-            "id": "PARA-11",
+            "id": "PARA-09",
             "text": "Painter slipped off the third tier catwalk having no fall arrest lanyard tethered to an anchor point.",
-            "expected_rules": ["LSR11"],  # Working at Height
+            "expected_rules": ["LSR09"],  # Working at Height
             "type": "paraphrase",
             "note": "Paraphrase of working at height without fall protection",
-        },
-        {
-            "id": "PARA-12",
-            "text": "Wielder operated angle grinder without eye shield protection or flame-resistant apparel.",
-            "expected_rules": ["LSR12"],  # PPE
-            "type": "paraphrase",
-            "note": "Paraphrase of missing personal protective equipment",
         },
 
         # --- Direct Canonical Phrasing Scenarios ---
@@ -246,38 +225,17 @@ def build_evaluation_dataset() -> list[dict[str, Any]]:
         },
         {
             "id": "CANON-08",
-            "text": "Temporary modification left on ESD circuit. MOC not raised and procedure deviation unapproved.",
+            "text": "Work carried out without permit to work. PTW expired and JSA not done before entry.",
             "expected_rules": ["LSR08"],
             "type": "canonical",
             "note": "Direct phrase match for LSR08",
         },
         {
             "id": "CANON-09",
-            "text": "Worker suffered fatigue after 14-hour shift, unfit for duty due to heat stress.",
+            "text": "Worker fell from incomplete scaffold platform. No harness worn while working at height.",
             "expected_rules": ["LSR09"],
             "type": "canonical",
             "note": "Direct phrase match for LSR09",
-        },
-        {
-            "id": "CANON-10",
-            "text": "Work carried out without permit to work. PTW expired and JSA not done before entry.",
-            "expected_rules": ["LSR10"],
-            "type": "canonical",
-            "note": "Direct phrase match for LSR10",
-        },
-        {
-            "id": "CANON-11",
-            "text": "Worker fell from incomplete scaffold platform. No harness worn while working at height.",
-            "expected_rules": ["LSR11"],
-            "type": "canonical",
-            "note": "Direct phrase match for LSR11",
-        },
-        {
-            "id": "CANON-12",
-            "text": "Worker observed with missing gloves and no safety boots. PPE reminder issued.",
-            "expected_rules": ["LSR12"],
-            "type": "canonical",
-            "note": "Direct phrase match for LSR12",
         },
 
         # --- Negative Controls / Isolated Incidental Keywords ---
@@ -318,9 +276,9 @@ def build_evaluation_dataset() -> list[dict[str, Any]]:
         rule_map = {
             "Energy Isolation": ["LSR04"],
             "Line of Fire": ["LSR06"],
-            "Working at Height": ["LSR11"],
-            "Hot Work / Work Authorisation": ["LSR05", "LSR10"],
-            "Asset Integrity / Work Authorisation": ["LSR10"],
+            "Working at Height": ["LSR09"],
+            "Hot Work / Work Authorisation": ["LSR05", "LSR08"],
+            "Asset Integrity / Work Authorisation": ["LSR08"],
             "Excavation / Line of Fire": ["LSR06"],
         }
         for item in raw:
@@ -586,9 +544,9 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
         "",
         "## 5. Architectural Guarantees & Constraints Met",
         "",
-        "1. **Canonical Taxonomy Integrity**: No new categories were invented; all 12 categories (`LSR01` to `LSR12`) strictly follow IOGP specifications.",
+        "1. **Canonical Taxonomy Integrity**: No new categories were invented; all 9 categories (`LSR01` to `LSR09`) strictly follow IOGP specifications.",
         "2. **Deterministic Trigger Preservation**: Whenever a direct canonical multi-word phrase is matched, the rule engine triggers with high confidence (`0.70 - 0.95`). If semantic agreement exists, it is marked `hybrid` with boosted confidence (`0.95 - 0.98`).",
-        "3. **Multi-Category Detection**: Compound incidents (e.g. welding near fuel tanks without clearance) correctly yield multiple tags (`LSR05: Hot Work` and `LSR10: Work Authorization`).",
+        "3. **Multi-Category Detection**: Compound incidents (e.g. welding near fuel tanks without clearance) correctly yield multiple tags (`LSR05: Hot Work` and `LSR08: Work Authorization`).",
         "4. **Separation of LSR Confidence and SIF Probability**: LSR confidence reflects rule-violation evidence strength and is computed independently from SIF probability.",
         "5. **Offline & Privacy-Preserving**: Both the optional dense matcher and the conservative concept matcher run locally, with no external classification API call.",
         "6. **Graceful Fallback**: If the optional embedding dependency or weights are unavailable, the deterministic rules remain active and the multi-concept semantic matcher continues paraphrase detection without throwing exceptions.",

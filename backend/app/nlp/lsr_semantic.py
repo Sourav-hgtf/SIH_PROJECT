@@ -12,7 +12,7 @@ Architecture:
 
 Guarantees:
 1. 100% Local / Offline execution — zero external API calls.
-2. Canonical taxonomy strictly enforced: only the 12 official IOGP LSR categories.
+2. Canonical taxonomy strictly enforced: only the 9 official IOGP LSR categories.
 3. Returns structured semantic evidence for explainability.
 4. Graceful fallback if embedding service is unavailable.
 """
@@ -51,11 +51,8 @@ _CONCEPT_PROFILES: dict[str, tuple[tuple[str, ...], ...]] = {
     "LSR05": (("weld", "grind", "torch", "cut", "spark", "hot work"), ("flammable", "combustible", "vapour", "ignition", "fire watch", "gas test", "hydrocarbon")),
     "LSR06": (("under", "line of fire", "drop zone", "pinch", "struck", "crush", "trajectory", "whip"), ("load", "object", "hose", "pressure", "moving", "release", "debris")),
     "LSR07": (("crane", "hoist", "rigging", "sling", "lift", "lifting", "forklift"), ("load", "rated", "capacity", "overload", "suspended", "shackle", "tag line")),
-    "LSR08": (("change", "modify", "alter", "deviation", "workaround"), ("approval", "review", "moc", "authorize", "document", "engineering")),
-    "LSR09": (("fatigue", "tired", "insomnia", "sleep", "exhaust", "disorient", "impair", "alcohol", "medication"), ("duty", "work", "shift", "operate", "worker", "operator")),
-    "LSR10": (("permit", "ptw", "authorization", "clearance", "jsa", "toolbox"), ("without", "missing", "expired", "valid", "before", "commence", "start", "work")),
-    "LSR11": (("height", "scaffold", "ladder", "platform", "roof", "elevated", "catwalk"), ("harness", "lanyard", "fall arrest", "anchor", "fall", "edge protection")),
-    "LSR12": (("ppe", "helmet", "glove", "goggle", "respirator", "coverall", "eye shield", "boot"), ("without", "missing", "no ", "not worn", "protect", "apparel")),
+    "LSR08": (("permit", "ptw", "authorization", "clearance", "jsa", "toolbox"), ("without", "missing", "expired", "valid", "before", "commence", "start", "work")),
+    "LSR09": (("height", "scaffold", "ladder", "platform", "roof", "elevated", "catwalk"), ("harness", "lanyard", "fall arrest", "anchor", "fall", "edge protection")),
 }
 
 
