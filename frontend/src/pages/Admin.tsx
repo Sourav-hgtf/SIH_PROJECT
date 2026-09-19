@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, getStoredUser, type ModelEvaluationRecord, type Role } from "../api";
+import { formatPercent } from "../utils/format";
 
 interface UserItem {
   id: string;
@@ -15,8 +16,6 @@ interface SiteItem {
   name: string;
   region?: string;
 }
-import { api, type ModelEvaluationRecord, type Role } from "../api";
-import { formatPercent } from "../utils/format";
 
 export function AdminPage() {
   const currentUser = getStoredUser();
@@ -602,43 +601,36 @@ export function AdminPage() {
 
         {trainingRuns.length ? (
           <div className="mt-4 overflow-x-auto">
-<<<<<<< HEAD
-  <table className="w-full text-left text-xs">
-    <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 font-semibold">
-      <tr>
-        <th className="py-2 px-3">Model Version</th>
-        <th className="py-2 px-3">Reviewed Reports</th>
-        <th className="py-2 px-3">Target Recall</th>
-        <th className="py-2 px-3">Calibrated F1</th>
-        <th className="py-2 px-3">Created At</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-slate-100">
-      {trainingRuns.map((run) => (
-        <tr key={run.id} className="hover:bg-slate-50/50">
-          <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{run.model_version}</td>
-          <td className="py-2.5 px-3">{run.feedback_count}</td>
-          <td className="py-2.5 px-3 font-semibold text-emerald-700">{Math.round((run.metrics_after.recall || 0) * 100)}%</td>
-          <td className="py-2.5 px-3 font-semibold text-indigo-700">{Math.round((run.metrics_after.f1 || 0) * 100)}%</td>
-          <td className="py-2.5 px-3 text-slate-500">{new Date(run.created_at).toLocaleString()}</td>
-        </tr>
-      ))}
-    </tbody>
-=======
-            <table className="w-full text-left text-[12px]">
-      <thead className="text-warm"><tr><th className="py-1 font-medium">Model version</th><th>Reviewed reports</th><th>Recall</th><th>F1</th><th>Created</th></tr></thead>
-      <tbody>{trainingRuns.map((run) => <tr key={run.id} className="border-t border-border"><td className="py-2">{run.model_version}</td><td>{run.feedback_count}</td><td>{formatPercent(run.metrics_after.recall || 0)}</td><td>{formatPercent(run.metrics_after.f1 || 0)}</td><td>{new Date(run.created_at).toLocaleString()}</td></tr>)}</tbody>
->>>>>>> 274c737 (Update SIH project features and tests)
-    </table>
-  </div>
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 bg-slate-50/70 text-slate-600 font-semibold">
+                <tr>
+                  <th className="py-2 px-3">Model Version</th>
+                  <th className="py-2 px-3">Reviewed Reports</th>
+                  <th className="py-2 px-3">Target Recall</th>
+                  <th className="py-2 px-3">Calibrated F1</th>
+                  <th className="py-2 px-3">Created At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {trainingRuns.map((run) => (
+                  <tr key={run.id} className="hover:bg-slate-50/50">
+                    <td className="py-2.5 px-3 font-mono font-medium text-slate-900">{run.model_version}</td>
+                    <td className="py-2.5 px-3">{run.feedback_count}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-700">{formatPercent(run.metrics_after.recall || 0)}</td>
+                    <td className="py-2.5 px-3 font-semibold text-indigo-700">{formatPercent(run.metrics_after.f1 || 0)}</td>
+                    <td className="py-2.5 px-3 text-slate-500">{new Date(run.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-    <p className="mt-4 text-xs text-slate-400 italic">No calibration runs performed yet.</p>
-  )
-}
-      </section >
+          <p className="mt-4 text-xs text-slate-400 italic">No calibration runs performed yet.</p>
+        )}
+      </section>
 
-  {/* Model Evaluation & Performance Section */ }
-  < section className = "rounded-xl border border-slate-200 bg-white p-5 shadow-sm" >
+      {/* Model Evaluation & Performance Section */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3">
       <div>
         <h2 className="text-lg font-bold text-slate-900">Model Performance & Evaluation Registry</h2>
@@ -753,9 +745,8 @@ export function AdminPage() {
     </div>
   ) : (
     <p className="mt-4 text-xs text-slate-400 italic">No stored evaluation artifacts are available.</p>
-  )
-}
-      </section >
-    </div >
+  )}
+      </section>
+    </div>
   );
 }
