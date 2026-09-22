@@ -1,0 +1,367 @@
+# ============================================================
+# SIF Sentinel — Centralized Business Rules
+# ============================================================
+# This file is the SINGLE SOURCE OF TRUTH for all tunable
+# business logic. Do NOT hard-code any of these values in
+# Python or TypeScript source code.
+#
+# Version: priority-v1
+# Last updated: 2026-09-07
+# ============================================================
+
+priority:
+  # ----------------------------------------------------------
+  # version
+  # Increment when weights or tier thresholds change materially.
+  # Persisted alongside every calculated priority result for
+  # auditability.
+  # ----------------------------------------------------------
+  version: "priority-v1"
+
+  # ----------------------------------------------------------
+  # Component weights  (must sum to 1.0)
+  #
+  # Rationale (safety-first design):
+  #   sif_probability (0.35) — the ML model's calibrated SIF
+  #     probability is the strongest individual signal; it
+  #     already integrates text features, energy types, and
+  #     barrier failures learned from the training corpus.
+  #
+  #   barrier_criticality (0.25) — a missing or failed critical
+  #     safety barrier is the most direct precursor to a
+  #     fatality; given a high SIF probability, barrier state
+  #     determines whether a bad outcome is still preventable.
+  #
+  #   recurrence (0.15) — the same hazard pattern recurring
+  #     repeatedly signals a systematic control weakness that
+  #     will not resolve itself without deliberate intervention.
+  #
+  #   trend (0.10) — an increasing frequency of reports signals
+  #     that conditions are deteriorating and intervention is
+  #     urgent before the pattern escalates further.
+  #
+  #   exposure (0.08) — a larger number of reports associated
+  #     with a pattern means more workers are being exposed;
+  #     weighted lower than recurrence to avoid double-counting
+  #     since exposure is correlated with cluster size.
+  #
+  #   cross_site (0.07) — the same pattern appearing at multiple
+  #     facilities suggests an organizational or equipment-level
+  #     root cause rather than a site-specific lapse; weighted
+  #     modestly because site count can be inflated in small
+  #     synthetic datasets.
+  # ----------------------------------------------------------
+  weights:
+    sif_probability: 0.35
+    barrier_criticality: 0.25
+    recurrence: 0.15
+    trend: 0.10
+    exposure: 0.08
+    cross_site: 0.07
+
+  # ----------------------------------------------------------
+  # Priority tier thresholds  (score is 0–100)
+  #
+  # CRITICAL: requires immediate escalation / investigation.
+  # HIGH:     should be actioned within the current reporting
+  #           cycle.
+  # MEDIUM:   monitor and schedule corrective action.
+  # LOW:      record; review in next periodic HSE meeting.
+  # ----------------------------------------------------------
+  tiers:
+    critical: 70
+    high: 50
+    medium: 30
+    # Below medium → LOW (no explicit threshold needed)
+
+  # ----------------------------------------------------------
+  # Trend scores
+  # Maps the trend_status string from the clustering engine
+  # to a normalized 0–1 priority contribution.
+  #
+  # "growing"  → immediate concern; pattern worsening.
+  # "new"      → insufficient history but emergence is urgent.
+  # "stable"   → ongoing concern; warrants monitoring.
+  # "shrinking"→ controls taking effect; lower urgency.
+  # "insufficient_data" → neutral; avoid penalizing sparse data.
+  # ----------------------------------------------------------
+  trend_scores:
+    growing: 1.0
+    new: 0.85
+    stable: 0.45
+    shrinking: 0.15
+    insufficient_data: 0.30
+
+  # ----------------------------------------------------------
+  # Cross-site scoring
+  # enabled: if false, cross_site component is always 0.0.
+  # max_sites: score saturates at this number of distinct sites.
+  # ----------------------------------------------------------
+  cross_site:
+    enabled: true
+    max_sites: 4
+
+  # ----------------------------------------------------------
+  # Normalization caps
+  # recurrence_cap: cluster_size beyond this is treated as max.
+  # exposure_cap:   report count beyond this is treated as max.
+  # Both use log normalization: log(1 + count) / log(1 + cap)
+  # clamped to [0, 1].
+  # ----------------------------------------------------------
+  normalization:
+    recurrence_cap: 10
+    exposure_cap: 20
+
+  # ----------------------------------------------------------
+  # Barrier criticality mapping
+  # Maps barrier evidence strings (substrings matched
+  # case-insensitively) to a criticality score 0.0–1.0.
+  #
+  # Only barriers explicitly defined here are scored.
+  # Evidence without a match contributes 0.5 (moderate) by
+  # default to avoid artificially suppressing partially-known
+  # barrier states.
+  #
+  # Criticality levels:
+  #   1.0 — loss of a primary energy control barrier
+  #   0.9 — life-safety system bypassed or absent
+  #   0.8 — critical procedural barrier missing
+  #   0.7 — secondary/supporting barrier missing
+  #   0.5 — default for unknown/unclassified barriers
+  # ----------------------------------------------------------
+  barrier_criticality:
+    "isolation": 1.0
+    "loto": 1.0
+    "lock-out": 1.0
+    "tag-out": 1.0
+    "not isolated": 1.0
+    "energy isolation": 1.0
+    "interlock": 0.9
+    "bypassed": 0.9
+    "bypass": 0.9
+    "guard removed": 0.9
+    "guarding defeated": 0.9
+    "exclusion zone": 0.8
+    "line-of-fire": 0.8
+    "fire watch": 0.85
+    "gas test": 0.85
+    "atmosphere not": 0.85
+    "permit": 0.8
+    "ptw": 0.8
+    "no permit": 0.9
+    "harness": 0.8
+    "fall protection": 0.8
+    "fall arrest": 0.8
+    "attendant": 0.75
+    "authorization": 0.75
+    "lifting": 0.7
+    "tag line": 0.7
+
+# ============================================================
+# Corrective & Preventive Action Recommendations
+# ============================================================
+recommendations:
+  version: "recommendations-v1"
+  max_recommendations_per_report: 3
+  categories:
+    - "ENGINEERING_CONTROL"
+    - "ADMINISTRATIVE_CONTROL"
+    - "PROCEDURE"
+    - "BARRIER_CONTROL"
+    - "TRAINING"
+    - "PPE"
+    - "SUPERVISION"
+    - "INSPECTION"
+    - "MONITORING"
+    - "EMERGENCY_PREPAREDNESS"
+
+  ranking_weights:
+    confidence_weight: 0.40
+    barrier_criticality_weight: 0.30
+    priority_boost_weight: 0.20
+    cross_signal_weight: 0.10
+
+  evidence_mappings:
+    barriers:
+      isolation:
+        category: "BARRIER_CONTROL"
+        title: "Verify positive energy isolation before work"
+        action: "Enforce Lock-Out/Tag-Out (LOTO) and verify zero-energy state with calibrated instruments prior to commencing work."
+        rationale: "Isolation barrier weakness or missing LOTO creates direct fatality exposure from uncontrolled hazardous energy."
+        base_confidence: 0.88
+      loto:
+        category: "BARRIER_CONTROL"
+        title: "Enforce Lock-Out/Tag-Out (LOTO) compliance and isolation verification"
+        action: "Apply personal padlocks and tags to all energy isolation points; verify zero energy before entering equipment."
+        rationale: "Unapplied or bypassed LOTO permits accidental re-energization during maintenance."
+        base_confidence: 0.89
+      interlock:
+        category: "ENGINEERING_CONTROL"
+        title: "Restore and test machine safeguarding and interlocks"
+        action: "Reinstall physical machine guards and test functional interlocks before energizing equipment."
+        rationale: "Bypassed or removed interlocks eliminate the primary engineering defense against entanglement and rotating machinery contact."
+        base_confidence: 0.86
+      exclusion_zone:
+        category: "ADMINISTRATIVE_CONTROL"
+        title: "Establish physical exclusion zone and demarcate perimeter"
+        action: "Erect physical barriers or warning tape around high-risk zone and assign a dedicated spotter to prohibit unauthorized entry."
+        rationale: "Absence of a defined exclusion zone allows personnel directly into the drop zone or path of travel."
+        base_confidence: 0.82
+      permit:
+        category: "PROCEDURE"
+        title: "Enforce Permit to Work (PTW) verification and authorization"
+        action: "Stop work immediately until a valid Permit to Work is issued, cross-checked by the area authority, and signed off by the performing authority."
+        rationale: "Work conducted without an active permit bypasses mandatory task hazard identification and SIMOPS checks."
+        base_confidence: 0.85
+      gas_test:
+        category: "MONITORING"
+        title: "Conduct continuous atmospheric gas testing"
+        action: "Perform multi-gas testing (O2, LEL, H2S, CO) at top, middle, and bottom levels prior to entry and maintain continuous calibrated monitoring."
+        rationale: "Untested or inadequately monitored atmospheres pose immediate life threats from asphyxiation, toxic gases, or explosion."
+        base_confidence: 0.90
+      fall_protection:
+        category: "PPE"
+        title: "Inspect 100% tie-off fall arrest system and anchor points"
+        action: "Require full-body harness with double lanyards, verify rated anchor points (5,000 lbs / 22 kN), and enforce 100% tie-off above 1.8m."
+        rationale: "Missing or improperly anchored fall arrest gear directly converts a routine loss of footing into a fatal fall."
+        base_confidence: 0.87
+      fire_watch:
+        category: "SUPERVISION"
+        title: "Assign dedicated fire watch and clear combustible materials"
+        action: "Deploy a certified fire watch with charged extinguishing equipment and clear flammable materials within a 15-meter radius for hot work."
+        rationale: "Hot work without active fire watch dramatically increases catastrophic fire and explosion probability in hydrocarbon facilities."
+        base_confidence: 0.84
+
+    energy:
+      electrical:
+        category: "ENGINEERING_CONTROL"
+        title: "Enforce electrical zero-energy verification and arc-flash boundaries"
+        action: "De-energize electrical circuits, apply lockouts, perform voltage test to prove zero energy, and observe arc-flash approach boundaries."
+        rationale: "Energized electrical sources and high-voltage gear carry fatal electrocution and arc flash blast risks."
+        base_confidence: 0.89
+      pressure:
+        category: "BARRIER_CONTROL"
+        title: "Verify positive depressurization and bleed-down before breaking containment"
+        action: "Verify complete depressurization via double block and bleed, check calibrated gauges, and utilize line-breaking shields."
+        rationale: "Stored hydraulic or pneumatic pressure poses severe projectile, injection, and line-of-fire hazards."
+        base_confidence: 0.88
+      gravity:
+        category: "ENGINEERING_CONTROL"
+        title: "Secure potential dropped objects and install secondary retention"
+        action: "Implement tool tethers, inspect toe-boards/netting, and secure elevated loose items with secondary rated retention cables."
+        rationale: "Dropped objects from elevated work decks constitute a leading cause of severe traumatic injuries."
+        base_confidence: 0.84
+      chemical:
+        category: "BARRIER_CONTROL"
+        title: "Verify chemical containment, ventilation, and emergency response readiness"
+        action: "Ensure positive chemical isolation, forced mechanical ventilation, appropriate respiratory protection, and active scrubber readiness."
+        rationale: "Hazardous chemical releases (H2S, hydrocarbons) present immediate toxic and asphyxiation risks to personnel."
+        base_confidence: 0.87
+      mechanical:
+        category: "ENGINEERING_CONTROL"
+        title: "Verify mechanical rotating equipment guarding and interlocks"
+        action: "Inspect fixed physical guards on rotating shafts, pulleys, and pinch points to prevent limb entrapment."
+        rationale: "Unprotected mechanical moving parts create severe crush and entanglement hazards."
+        base_confidence: 0.83
+      thermal:
+        category: "PROCEDURE"
+        title: "Verify hot work thermal barrier insulation and atmospheric permits"
+        action: "Apply flame-retardant blankets, conduct atmospheric testing for combustibles, and secure nearby heat-sensitive lines."
+        rationale: "Open flames and high thermal energy in operating facilities require active heat containment barriers."
+        base_confidence: 0.83
+      kinetic:
+        category: "ADMINISTRATIVE_CONTROL"
+        title: "Enforce vehicle-pedestrian segregation and path of travel controls"
+        action: "Designate dedicated pedestrian walkways, deploy physical crash-rated bollards, and enforce spotters during vehicle reversing."
+        rationale: "Interactions between heavy mobile plant and ground personnel represent critical kinetic impact precursors."
+        base_confidence: 0.85
+
+    proximity:
+      line_of_fire:
+        category: "ADMINISTRATIVE_CONTROL"
+        title: "Reposition work party outside the line-of-fire zone"
+        action: "Establish visual hazard boundaries, position all personnel clear of trajectory vectors, and use hands-free tools where possible."
+        rationale: "Personnel positioned in the direct line of fire are vulnerable to sudden release of stored energy, projectiles, or moving loads."
+        base_confidence: 0.85
+      under_load:
+        category: "PROCEDURE"
+        title: "Prohibit standing or working under suspended loads"
+        action: "Enforce strict zero-tolerance policy against working beneath suspended loads and maintain physical clearance."
+        rationale: "Suspended load failure without an exclusion buffer leads directly to fatal crushing."
+        base_confidence: 0.90
+      drop_zone:
+        category: "ADMINISTRATIVE_CONTROL"
+        title: "Barricade drop zone beneath overhead work"
+        action: "Erect hard barricades beneath elevated work areas and post warning signs prohibiting entry while work overhead is in progress."
+        rationale: "Personnel entering unbarricaded drop zones face immediate head and bodily trauma from dropped tools or materials."
+        base_confidence: 0.85
+
+    lsr:
+      LSR-01:
+        category: "BARRIER_CONTROL"
+        title: "Require formal management of bypass authorization for safety controls"
+        action: "Obtain authorized safety bypass certificate, log override in control room register, and establish compensatory physical barriers."
+        rationale: "Bypassing safety-critical equipment without formal authorization invalidates baseline process safety layers."
+        base_confidence: 0.91
+      LSR-02:
+        category: "PROCEDURE"
+        title: "Enforce confined space entry permit, ventilation, and standby attendant"
+        action: "Confirm atmospheric testing, verify continuous mechanical forced ventilation, and station a dedicated standby attendant with emergency retrieval gear."
+        rationale: "Confined space entries without strict entry controls and standby rescue readiness are highly prone to multiple fatalities."
+        base_confidence: 0.92
+      LSR-04:
+        category: "BARRIER_CONTROL"
+        title: "Mandate positive mechanical and electrical isolation verification"
+        action: "Verify positive mechanical isolation (spade/blind) and electrical lockout with residual pressure/voltage bleed-off."
+        rationale: "Isolation compliance is the single most critical safeguard against unexpected energization during maintenance."
+        base_confidence: 0.93
+      LSR-05:
+        category: "PROCEDURE"
+        title: "Verify hot work permit, flammable gas testing, and fire watch"
+        action: "Confirm continuous flammable gas monitoring, clear all combustibles within 15m, and maintain dedicated fire watch for 30 minutes post-work."
+        rationale: "Hot work sparks in hydrocarbon environments present immediate explosion and catastrophic fire potential."
+        base_confidence: 0.90
+      LSR-06:
+        category: "ADMINISTRATIVE_CONTROL"
+        title: "Establish line-of-fire exclusion zone and re-route pedestrian pathways"
+        action: "Barricade hazardous trajectory zones and redirect foot traffic away from active hoisting, pressure, or machinery paths."
+        rationale: "Separating workers physically from dynamic hazard trajectories prevents acute impact injuries."
+        base_confidence: 0.86
+      LSR-07:
+        category: "INSPECTION"
+        title: "Inspect rigging gear, verify lift plan, and enforce crane exclusion radius"
+        action: "Verify certified lifting gear color-coding, review critical lift plan with crane operator and rigger, and secure crane swing radius."
+        rationale: "Defective rigging or uncoordinated lifting operations represent catastrophic crush and dropped load precursors."
+        base_confidence: 0.89
+      LSR-09:
+        category: "PPE"
+        title: "Mandate 100% fall protection and inspect scaffolding tags"
+        action: "Verify green scaffolding inspection tag, secure 100% tie-off using shock-absorbing lanyards, and check certified anchor points."
+        rationale: "Elevated work without inspected collective or personal fall protection is a predominant driver of fatal falls."
+        base_confidence: 0.91
+
+  cluster_rules:
+    lifting:
+      category: "INSPECTION"
+      title: "Conduct cross-site lifting gear and rigger competency review"
+      action: "Perform targeted audits of all active crane lifting plans, inspect sling/shackle registers across affected sites, and hold frontline lifting stand-downs."
+      rationale: "Cluster analysis reveals recurring lifting and exclusion zone breakdown across multiple facilities."
+      base_confidence: 0.88
+    height:
+      category: "INSPECTION"
+      title: "Targeted fall-protection barrier verification and scaffold audit"
+      action: "Initiate focused field verification of all elevated work platforms, audit scaffold tag compliance, and recertify harness anchorage points."
+      rationale: "Recurring work-at-height precursor pattern indicates systemic control weakness in fall protection execution."
+      base_confidence: 0.89
+    isolation:
+      category: "AUDIT"
+      title: "Comprehensive Lock-Out / Tag-Out (LOTO) field practice audit"
+      action: "Conduct peer-level isolation audits during high-risk isolations, verify lock-box procedures, and review isolation authorization sign-offs."
+      rationale: "Multiple reports signal recurring isolation non-compliance across operating shifts."
+      base_confidence: 0.92
+    generic_cluster:
+      category: "SUPERVISION"
+      title: "Targeted supervisory field review for recurring precursor cluster"
+      action: "Deploy HSE specialist to conduct specialized task observations and verify critical barrier reliability for the recurring work activity."
+      rationale: "Elevated frequency and multi-site pattern warrant proactive field intervention before minor precursors escalate."
+      base_confidence: 0.82

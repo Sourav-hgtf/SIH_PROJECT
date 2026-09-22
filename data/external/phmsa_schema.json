@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PHMSAPipelineAccidentSchema",
+  "type": "object",
+  "required": ["REPORT_NUMBER", "NARRATIVE"],
+  "properties": {
+    "REPORT_NUMBER": { "type": ["string", "integer"] },
+    "LOCAL_DATETIME": { "type": ["string", "null"] },
+    "OPERATOR_NAME": { "type": ["string", "null"] },
+    "COMMODITY_RELEASED_TYPE": { "type": ["string", "null"] },
+    "LOCATION_CITY_NAME": { "type": ["string", "null"] },
+    "LOCATION_STATE_ABBREVIATION": { "type": ["string", "null"] },
+    "SYSTEM_PART_INVOLVED": { "type": ["string", "null"] },
+    "CAUSE": { "type": ["string", "null"] },
+    "SUBCAUSE": { "type": ["string", "null"] },
+    "IGNITE_IND": { "type": ["string", "null"] },
+    "EXPLODE_IND": { "type": ["string", "null"] },
+    "UNINTENTIONAL_RELEASE_BBLS": { "type": ["number", "string", "null"] },
+    "NUM_FATALITIES": { "type": ["integer", "string", "null"] },
+    "NUM_INJURIES": { "type": ["integer", "string", "null"] },
+    "NARRATIVE": { "type": "string" }
+  }
+}

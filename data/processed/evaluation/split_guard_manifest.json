@@ -1,0 +1,101 @@
+{
+  "policy": "All report_ids in a duplicate_group must share the same train/val/test split.",
+  "near_dup_threshold": 0.85,
+  "multi_member_groups": {
+    "dupgrp-0030": [
+      "SYN-HSSE-1000",
+      "SYN-HSSE-1012",
+      "SYN-HSSE-1024",
+      "SYN-HSSE-1036",
+      "SYN-HSSE-1048",
+      "SYN-HSSE-1060"
+    ],
+    "dupgrp-0031": [
+      "SYN-HSSE-1001",
+      "SYN-HSSE-1013",
+      "SYN-HSSE-1025",
+      "SYN-HSSE-1037",
+      "SYN-HSSE-1049"
+    ],
+    "dupgrp-0032": [
+      "SYN-HSSE-1002",
+      "SYN-HSSE-1062"
+    ],
+    "dupgrp-0033": [
+      "SYN-HSSE-1003",
+      "SYN-HSSE-1015",
+      "SYN-HSSE-1063"
+    ],
+    "dupgrp-0034": [
+      "SYN-HSSE-1004",
+      "SYN-HSSE-1064"
+    ],
+    "dupgrp-0035": [
+      "SYN-HSSE-1005",
+      "SYN-HSSE-1017",
+      "SYN-HSSE-1029"
+    ],
+    "dupgrp-0036": [
+      "SYN-HSSE-1006",
+      "SYN-HSSE-1030",
+      "SYN-HSSE-1054",
+      "SYN-HSSE-1066"
+    ],
+    "dupgrp-0037": [
+      "SYN-HSSE-1007",
+      "SYN-HSSE-1019",
+      "SYN-HSSE-1031",
+      "SYN-HSSE-1055"
+    ],
+    "dupgrp-0038": [
+      "SYN-HSSE-1008",
+      "SYN-HSSE-1020",
+      "SYN-HSSE-1032",
+      "SYN-HSSE-1056"
+    ],
+    "dupgrp-0040": [
+      "SYN-HSSE-1010",
+      "SYN-HSSE-1022",
+      "SYN-HSSE-1070"
+    ],
+    "dupgrp-0042": [
+      "SYN-HSSE-1014",
+      "SYN-HSSE-1038"
+    ],
+    "dupgrp-0043": [
+      "SYN-HSSE-1016",
+      "SYN-HSSE-1040"
+    ],
+    "dupgrp-0045": [
+      "SYN-HSSE-1021",
+      "SYN-HSSE-1057",
+      "SYN-HSSE-1069"
+    ],
+    "dupgrp-0046": [
+      "SYN-HSSE-1023",
+      "SYN-HSSE-1047"
+    ],
+    "dupgrp-0047": [
+      "SYN-HSSE-1026",
+      "SYN-HSSE-1050"
+    ],
+    "dupgrp-0048": [
+      "SYN-HSSE-1027",
+      "SYN-HSSE-1039",
+      "SYN-HSSE-1051"
+    ],
+    "dupgrp-0052": [
+      "SYN-HSSE-1035",
+      "SYN-HSSE-1071"
+    ],
+    "dupgrp-0053": [
+      "SYN-HSSE-1041",
+      "SYN-HSSE-1065"
+    ],
+    "dupgrp-0058": [
+      "SYN-HSSE-1046",
+      "SYN-HSSE-1058"
+    ]
+  },
+  "group_count": 19
+}

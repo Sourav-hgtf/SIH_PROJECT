@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OISDIncidentReportSchema",
+  "type": "object",
+  "required": ["Incident No", "Description of Incident"],
+  "properties": {
+    "Incident No": { "type": "string" },
+    "Date of Occurrence": { "type": ["string", "null"] },
+    "Organization": { "type": ["string", "null"] },
+    "Installation / Unit": { "type": ["string", "null"] },
+    "State / Region": { "type": ["string", "null"] },
+    "Sector": { "type": ["string", "null"] },
+    "Activity Underway": { "type": ["string", "null"] },
+    "Description of Incident": { "type": "string" },
+    "Hazard Type": { "type": ["string", "null"] },
+    "Energy Source": { "type": ["string", "null"] },
+    "Barrier Failure": { "type": ["string", "null"] },
+    "Consequence": { "type": ["string", "null"] },
+    "Fatalities": { "type": ["integer", "string", "null"] },
+    "Injuries": { "type": ["integer", "string", "null"] },
+    "Life Saving Rule Violated": { "type": ["string", "null"] }
+  }
+}

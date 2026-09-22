@@ -1,0 +1,27 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+sqlalchemy==2.0.40
+alembic==1.16.2
+psycopg[binary]==3.2.9
+pydantic==2.11.3
+pydantic-settings==2.8.1
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+pyyaml==6.0.2
+python-multipart==0.0.20
+httpx==0.28.1
+pytest==8.3.5
+email-validator==2.2.0
+# The persisted sif_model.joblib was trained with Python 3.14.3 and
+# scikit-learn 1.9.0. Keep this exact pairing to avoid pickle compatibility
+# warnings and, more importantly, silently different estimator behavior.
+scikit-learn==1.9.0
+joblib==1.5.3
+# NER-based PII detection. The language-model wheel is a runtime dependency,
+# not an optional post-install download; Docker production builds must include it.
+spacy==3.7.5
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+sentence-transformers==5.3.0
+torch==2.10.0
+python-dateutil==2.9.0.post0

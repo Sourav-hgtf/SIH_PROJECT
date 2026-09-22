@@ -1,0 +1,505 @@
+{
+  "statistics": {
+    "total_records": 101,
+    "labeled_records": 29,
+    "unlabeled_records": 72,
+    "human_validated_records": 0,
+    "synthetic_records": 72,
+    "imported_records": 29,
+    "heuristic_records": 0,
+    "unknown_label_source_records": 0,
+    "usable_gold_standard_records": 0,
+    "sif_true": 19,
+    "sif_false": 10,
+    "sif_unlabeled": 72,
+    "gold_sif_true": 0,
+    "gold_sif_false": 0,
+    "duplicate_exact_count": 41,
+    "near_duplicate_pair_count": 23,
+    "duplicate_group_count": 19,
+    "missing_text": 0,
+    "missing_labels": 72,
+    "label_source_distribution": {
+      "IMPORTED": 29,
+      "SYNTHETIC": 72
+    },
+    "data_type_distribution": {
+      "real": 29,
+      "synthetic": 72
+    },
+    "challenge_candidate_count": 40,
+    "limitations": [
+      "No HUMAN_VALIDATED gold-standard labels are available. Model evaluation must not report gold-test metrics until analysts complete labeling.",
+      "Gold-standard corpus is below the minimum split size (0 < 20). Expect INSUFFICIENT_VALIDATION_DATA until more human labels exist.",
+      "Gold-standard class counts are below the per-class split minimum (4). Current gold SIF=0, NON_SIF=0.",
+      "29 IMPORTED public-authority labels exist. These are outcome/regulatory documented labels, not OIL precursor HUMAN_VALIDATED gold.",
+      "72 SYNTHETIC records are present for demo/UI only and are excluded from gold-standard evaluation.",
+      "Labeled-but-not-gold records (IMPORTED/HEURISTIC/SYNTHETIC) must not be mixed into primary evaluation metrics."
+    ],
+    "generated_at": "2026-09-13T17:21:27.105147+00:00"
+  },
+  "exact_duplicate_pairs": [
+    {
+      "report_id_a": "SYN-HSSE-1001",
+      "report_id_b": "SYN-HSSE-1025",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "49b8b21cc3b096fd"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1002",
+      "report_id_b": "SYN-HSSE-1062",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "6eaedd9630cb73b4"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1003",
+      "report_id_b": "SYN-HSSE-1015",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "7083ccfd2d2d006b"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1003",
+      "report_id_b": "SYN-HSSE-1063",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "7083ccfd2d2d006b"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1015",
+      "report_id_b": "SYN-HSSE-1063",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "7083ccfd2d2d006b"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1004",
+      "report_id_b": "SYN-HSSE-1064",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1e3f30ee5458d9f6"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1005",
+      "report_id_b": "SYN-HSSE-1017",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1097139a9e820f84"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1005",
+      "report_id_b": "SYN-HSSE-1029",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1097139a9e820f84"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1017",
+      "report_id_b": "SYN-HSSE-1029",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1097139a9e820f84"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1006",
+      "report_id_b": "SYN-HSSE-1030",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1006",
+      "report_id_b": "SYN-HSSE-1054",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1006",
+      "report_id_b": "SYN-HSSE-1066",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1030",
+      "report_id_b": "SYN-HSSE-1054",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1030",
+      "report_id_b": "SYN-HSSE-1066",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1054",
+      "report_id_b": "SYN-HSSE-1066",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "189fd0d79a8732db"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1007",
+      "report_id_b": "SYN-HSSE-1055",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "e70f814533b252b2"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1010",
+      "report_id_b": "SYN-HSSE-1022",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "93cd34e1492a14ef"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1010",
+      "report_id_b": "SYN-HSSE-1070",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "93cd34e1492a14ef"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1022",
+      "report_id_b": "SYN-HSSE-1070",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "93cd34e1492a14ef"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1013",
+      "report_id_b": "SYN-HSSE-1037",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "a38a41e2ebd71d10"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1013",
+      "report_id_b": "SYN-HSSE-1049",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "a38a41e2ebd71d10"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1037",
+      "report_id_b": "SYN-HSSE-1049",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "a38a41e2ebd71d10"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1014",
+      "report_id_b": "SYN-HSSE-1038",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "f878112e55002eb4"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1016",
+      "report_id_b": "SYN-HSSE-1040",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "b5bfdb33f55d3c49"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1019",
+      "report_id_b": "SYN-HSSE-1031",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "f4be0e34060493f8"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1020",
+      "report_id_b": "SYN-HSSE-1032",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "e650fec2939bf175"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1020",
+      "report_id_b": "SYN-HSSE-1056",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "e650fec2939bf175"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1032",
+      "report_id_b": "SYN-HSSE-1056",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "e650fec2939bf175"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1021",
+      "report_id_b": "SYN-HSSE-1057",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1d84c699711eedcc"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1021",
+      "report_id_b": "SYN-HSSE-1069",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1d84c699711eedcc"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1057",
+      "report_id_b": "SYN-HSSE-1069",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1d84c699711eedcc"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1023",
+      "report_id_b": "SYN-HSSE-1047",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "31aa900dc5ac2e8f"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1024",
+      "report_id_b": "SYN-HSSE-1036",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "ffe14211ce58c01e"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1026",
+      "report_id_b": "SYN-HSSE-1050",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "1fdcb7f92e353d11"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1027",
+      "report_id_b": "SYN-HSSE-1039",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "44325a8cf68e36fb"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1027",
+      "report_id_b": "SYN-HSSE-1051",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "44325a8cf68e36fb"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1039",
+      "report_id_b": "SYN-HSSE-1051",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "44325a8cf68e36fb"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1035",
+      "report_id_b": "SYN-HSSE-1071",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "952f1faa851645a0"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1041",
+      "report_id_b": "SYN-HSSE-1065",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "ba632072c80d41b6"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1046",
+      "report_id_b": "SYN-HSSE-1058",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "86d8106fc7687211"
+    },
+    {
+      "report_id_a": "SYN-HSSE-1048",
+      "report_id_b": "SYN-HSSE-1060",
+      "similarity": 1.0,
+      "kind": "exact",
+      "text_hash": "91d4545ff61374e9"
+    }
+  ],
+  "near_duplicate_pairs": [
+    {
+      "report_id_a": "SYN-HSSE-1000",
+      "report_id_b": "SYN-HSSE-1024",
+      "similarity": 0.907,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1000",
+      "report_id_b": "SYN-HSSE-1036",
+      "similarity": 0.907,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1000",
+      "report_id_b": "SYN-HSSE-1048",
+      "similarity": 0.8667,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1000",
+      "report_id_b": "SYN-HSSE-1060",
+      "similarity": 0.8667,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1001",
+      "report_id_b": "SYN-HSSE-1013",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1001",
+      "report_id_b": "SYN-HSSE-1037",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1001",
+      "report_id_b": "SYN-HSSE-1049",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1007",
+      "report_id_b": "SYN-HSSE-1019",
+      "similarity": 0.8571,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1007",
+      "report_id_b": "SYN-HSSE-1031",
+      "similarity": 0.8571,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1008",
+      "report_id_b": "SYN-HSSE-1020",
+      "similarity": 0.8929,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1008",
+      "report_id_b": "SYN-HSSE-1032",
+      "similarity": 0.8929,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1008",
+      "report_id_b": "SYN-HSSE-1056",
+      "similarity": 0.8929,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1012",
+      "report_id_b": "SYN-HSSE-1024",
+      "similarity": 0.8667,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1012",
+      "report_id_b": "SYN-HSSE-1036",
+      "similarity": 0.8667,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1013",
+      "report_id_b": "SYN-HSSE-1025",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1019",
+      "report_id_b": "SYN-HSSE-1055",
+      "similarity": 0.8571,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1024",
+      "report_id_b": "SYN-HSSE-1048",
+      "similarity": 0.9512,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1024",
+      "report_id_b": "SYN-HSSE-1060",
+      "similarity": 0.9512,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1025",
+      "report_id_b": "SYN-HSSE-1037",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1025",
+      "report_id_b": "SYN-HSSE-1049",
+      "similarity": 0.871,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1031",
+      "report_id_b": "SYN-HSSE-1055",
+      "similarity": 0.8571,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1036",
+      "report_id_b": "SYN-HSSE-1048",
+      "similarity": 0.9512,
+      "kind": "near",
+      "text_hash": null
+    },
+    {
+      "report_id_a": "SYN-HSSE-1036",
+      "report_id_b": "SYN-HSSE-1060",
+      "similarity": 0.9512,
+      "kind": "near",
+      "text_hash": null
+    }
+  ],
+  "gold_standard_policy": {
+    "primary_eval_label_sources": [
+      "HUMAN_VALIDATED"
+    ],
+    "excluded_from_gold": [
+      "SYNTHETIC",
+      "HEURISTIC",
+      "IMPORTED",
+      "UNKNOWN"
+    ],
+    "synthetic_never_enters_gold_test": true
+  }
+}

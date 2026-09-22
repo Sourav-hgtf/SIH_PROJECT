@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sif_sentinel_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEMO_MODE=false
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY through the deployment environment}
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL through the deployment environment}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set explicit CORS_ORIGINS through the deployment environment}
+    volumes:
+      - sif_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  sif_data:

@@ -1,0 +1,13 @@
+{
+  "model_version": "sif-semantic-minilm-v1-20260913181524",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_dimension": 384,
+  "sha256": "a63ab1d3430ed6372d25c39e202b8abb0482f2b2976adb636d88b478af5457ee",
+  "training_date": "2026-09-13T18:15:33.348912+00:00",
+  "optimal_threshold": 0.45,
+  "is_calibrated": true,
+  "calibration_version": "sklearn-ccv-sigmoid-v1",
+  "threshold_version": "thresh-opt-recall-0.85-v1",
+  "training_run_id": "5f00302b-bae7-47b8-a8ea-e4b1871e6c55",
+  "artifact_file": "semantic_sif_model.joblib"
+}
